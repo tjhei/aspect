@@ -38,7 +38,8 @@ namespace aspect
        * using the normal stresses.
        *
        * Normal stress is calculated in the middle of
-       * each cell.
+       * each cell. Best accuracy with a laterally
+       * homogeneous mesh refinement.
        *
        * @ingroup Postprocessing
        */

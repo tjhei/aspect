@@ -207,7 +207,9 @@ namespace aspect
                                                   "surface topography",
 												  "A visualization output object that generates output "
 												  "for the surface topography using the normal stresses"
-												  "at the surface for the calculation. ")
+												  "at the surface for the calculation. "
+												  "Best accuracy with a laterally homogeneous mesh "
+												  "refinement.")
     }
   }
 }
