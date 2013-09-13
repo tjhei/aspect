@@ -34,8 +34,15 @@ namespace aspect
     {}
 
 
-    template <int dim>
+    template<int dim>
+    std::set< std::pair< std::pair<types::boundary_id, types::boundary_id>, unsigned int > >
+    Interface<dim>::get_periodic_boundary_pairs() const
+    {
+      //return an empty set in the base class
+      return std::set< std::pair< std::pair< types::boundary_id, types::boundary_id>, unsigned int > >();
+    }
 
+    template <int dim>
     void
     Interface<dim>::
     declare_parameters (dealii::ParameterHandler &prm)
@@ -103,11 +110,19 @@ namespace aspect
       {
         const std::string pattern_of_names
           = std_cxx1x::get<dim>(registered_plugins).get_pattern_of_names ();
+        try
+        {
         prm.declare_entry ("Model name", "",
                            Patterns::Selection (pattern_of_names),
                            "Select one of the following models:\n\n"
                            +
                            std_cxx1x::get<dim>(registered_plugins).get_description_string());
+        }
+        catch (const ParameterHandler::ExcValueDoesNotMatchPattern &)
+        {
+            // ignore the fact that the default value for this parameter
+            // does not match the pattern
+        }
       }
       prm.leave_subsection ();
 

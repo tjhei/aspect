@@ -560,6 +560,8 @@ namespace aspect
           std::vector<double> thermal_conductivities;
           /**
            * Compressibility at the given positions.
+           * The compressibility is given as
+           * $\frac 1\rho \frac{\partial\rho}{\partial p}$.
            */
           std::vector<double> compressibilities;
           /**
@@ -628,70 +630,70 @@ namespace aspect
     template <int dim>
     class InterfaceCompatibility: public Interface<dim>
     {
-    public:
-      /**
-       * Return the viscosity $\eta$ of the model as a function of temperature,
-       * pressure, composition, strain rate, and position.
-      *
-      * @note The strain rate given as the third argument of this function
-      * is computed as $\varepsilon(\mathbf u)=\frac 12 (\nabla \mathbf u +
-      * \nabla \mathbf u^T)$, regardless of whether the model is
-      * compressible or not. This is relevant since in some other contexts,
-      * the strain rate in the compressible case is computed as
-      * $\varepsilon(\mathbf u)=\frac 12 (\nabla \mathbf u +
-      * \nabla \mathbf u^T) - \frac 13 \nabla \cdot \mathbf u \mathbf 1$.
-       */
-      virtual double viscosity (const double                  temperature,
-                                const double                  pressure,
-                                const std::vector<double>    &compositional_fields,
-                                const SymmetricTensor<2,dim> &strain_rate,
-                                const Point<dim>             &position) const=0;
+      public:
+        /**
+         * Return the viscosity $\eta$ of the model as a function of temperature,
+         * pressure, composition, strain rate, and position.
+        *
+        * @note The strain rate given as the third argument of this function
+        * is computed as $\varepsilon(\mathbf u)=\frac 12 (\nabla \mathbf u +
+        * \nabla \mathbf u^T)$, regardless of whether the model is
+        * compressible or not. This is relevant since in some other contexts,
+        * the strain rate in the compressible case is computed as
+        * $\varepsilon(\mathbf u)=\frac 12 (\nabla \mathbf u +
+        * \nabla \mathbf u^T) - \frac 13 \nabla \cdot \mathbf u \mathbf 1$.
+         */
+        virtual double viscosity (const double                  temperature,
+                                  const double                  pressure,
+                                  const std::vector<double>    &compositional_fields,
+                                  const SymmetricTensor<2,dim> &strain_rate,
+                                  const Point<dim>             &position) const=0;
 
 
-      /**
-       * Return the density $\rho$ of the model as a function of temperature,
-       * pressure and position.
-       */
-      virtual double density (const double      temperature,
-                              const double      pressure,
-                              const std::vector<double> &compositional_fields,
-                              const Point<dim> &position) const=0;
+        /**
+         * Return the density $\rho$ of the model as a function of temperature,
+         * pressure and position.
+         */
+        virtual double density (const double      temperature,
+                                const double      pressure,
+                                const std::vector<double> &compositional_fields,
+                                const Point<dim> &position) const=0;
 
-      /**
-       * Return the compressibility coefficient
-       * $\frac 1\rho \frac{\partial\rho}{\partial p}$ of the model as a
-       * function of temperature, pressure and position.
-       */
-      virtual double compressibility (const double temperature,
-                                      const double pressure,
+        /**
+         * Return the compressibility coefficient
+         * $\frac 1\rho \frac{\partial\rho}{\partial p}$ of the model as a
+         * function of temperature, pressure and position.
+         */
+        virtual double compressibility (const double temperature,
+                                        const double pressure,
+                                        const std::vector<double> &compositional_fields,
+                                        const Point<dim> &position) const=0;
+
+        /**
+         * Return the specific heat $C_p$ of the model as a function of temperature,
+         * pressure and position.
+         */
+        virtual double specific_heat (const double      temperature,
+                                      const double      pressure,
                                       const std::vector<double> &compositional_fields,
                                       const Point<dim> &position) const=0;
 
-      /**
-       * Return the specific heat $C_p$ of the model as a function of temperature,
-       * pressure and position.
-       */
-      virtual double specific_heat (const double      temperature,
-                                    const double      pressure,
-                                    const std::vector<double> &compositional_fields,
-                                    const Point<dim> &position) const=0;
-
-      /**
-       * Return the thermal expansion coefficient $\alpha$ of the model,
-       * possibly as a function of temperature, pressure and position.
-      * The thermal expansion coefficient is defined as
-      * $\alpha=-\frac{1}{\rho} \frac{d\rho}{dT}$. Since the density
-      * <i>decreases</i> with temperature for almost all models,
-      * $\alpha$ is usually positive.
-      *
-      * This function has a default implementation that computes $\alpha$
-      * through its definition above, using the density() and density_derivative()
-      * functions.
-       */
-      virtual double thermal_expansion_coefficient (const double      temperature,
-                                                    const double      pressure,
-                                                    const std::vector<double> &compositional_fields,
-                                                    const Point<dim> &position) const=0;
+        /**
+         * Return the thermal expansion coefficient $\alpha$ of the model,
+         * possibly as a function of temperature, pressure and position.
+        * The thermal expansion coefficient is defined as
+        * $\alpha=-\frac{1}{\rho} \frac{d\rho}{dT}$. Since the density
+        * <i>decreases</i> with temperature for almost all models,
+        * $\alpha$ is usually positive.
+        *
+        * This function has a default implementation that computes $\alpha$
+        * through its definition above, using the density() and density_derivative()
+        * functions.
+         */
+        virtual double thermal_expansion_coefficient (const double      temperature,
+                                                      const double      pressure,
+                                                      const std::vector<double> &compositional_fields,
+                                                      const Point<dim> &position) const=0;
 
       /**
        * Return the product of the change in entropy across phase
@@ -767,15 +769,14 @@ namespace aspect
                                            const std::vector<double> &compositional_fields,
                                            const Point<dim> &position) const=0;
 
-
-      /**
-       * The evaluate() function is implemented to call the individual
-       * functions in this class, so there is no need to implement this
-       * in your material model derived from InterfaceCompatibility.
-       * @param in
-       * @param out
-       */
-      void evaluate(const struct Interface<dim>::MaterialModelInputs &in, struct Interface<dim>::MaterialModelOutputs &out) const;
+        /**
+         * The evaluate() function is implemented to call the individual
+         * functions in this class, so there is no need to implement this
+         * in your material model derived from InterfaceCompatibility.
+         * @param in
+         * @param out
+         */
+        void evaluate(const struct Interface<dim>::MaterialModelInputs &in, struct Interface<dim>::MaterialModelOutputs &out) const;
 
     };
 

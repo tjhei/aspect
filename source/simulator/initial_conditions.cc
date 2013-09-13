@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012 by the authors of the ASPECT code.
+  Copyright (C) 2011, 2012, 2013 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -72,6 +72,7 @@ namespace aspect
 
         // base element in the finite element is 2 for temperature (n=0) and 3 for
         // compositional fields (n>0)
+//TODO: can we use introspection here, instead of the hard coded numbers?
         const unsigned int base_element = (n==0 ? 2 : 3);
 
         // get the temperature/composition support points
@@ -85,7 +86,7 @@ namespace aspect
                                  support_points,
                                  update_quadrature_points);
 
-        std::vector<unsigned int> local_dof_indices (finite_element.dofs_per_cell);
+        std::vector<types::global_dof_index> local_dof_indices (finite_element.dofs_per_cell);
 
         for (typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active();
              cell != dof_handler.end(); ++cell)
@@ -224,7 +225,7 @@ namespace aspect
         dofs_per_cell = fe_values.dofs_per_cell,
         n_q_points    = fe_values.n_quadrature_points;
 
-        std::vector<unsigned int> local_dof_indices (dofs_per_cell);
+        std::vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
         Vector<double> cell_vector (dofs_per_cell);
         Vector<double> local_projection (dofs_per_cell);
         FullMatrix<double> local_mass_matrix (dofs_per_cell, dofs_per_cell);

@@ -616,17 +616,51 @@ namespace aspect
       pcout.get_stream().imbue(s);
     }
 
+    //reinit the constraints matrix and make hanging node constraints
+    constraints.clear();
+    constraints.reinit(introspection.index_sets.system_relevant_set);
+    DoFTools::make_hanging_node_constraints (dof_handler,
+                                             constraints);
+    
+    //Now set up the constraints for periodic boundary conditions
+    {
+      typedef std::set< std::pair< std::pair< types::boundary_id, types::boundary_id>, unsigned int> > 
+               periodic_boundary_set;
+      periodic_boundary_set pbs = geometry_model->get_periodic_boundary_pairs();
+
+      for(periodic_boundary_set::iterator p = pbs.begin(); p != pbs.end(); ++p)
+        {
+          //Throw error if we are trying to use the same boundary for more than one boundary condition
+          Assert( is_element( (*p).first.first, parameters.fixed_temperature_boundary_indicators ) == false &&
+                  is_element( (*p).first.second, parameters.fixed_temperature_boundary_indicators ) == false &&
+                  is_element( (*p).first.first, parameters.zero_velocity_boundary_indicators ) == false &&
+                  is_element( (*p).first.second, parameters.zero_velocity_boundary_indicators ) == false &&
+                  is_element( (*p).first.first, parameters.tangential_velocity_boundary_indicators ) == false &&
+                  is_element( (*p).first.second, parameters.tangential_velocity_boundary_indicators ) == false &&
+                  parameters.prescribed_velocity_boundary_indicators.find( (*p).first.first)
+                             == parameters.prescribed_velocity_boundary_indicators.end() &&
+                  parameters.prescribed_velocity_boundary_indicators.find( (*p).first.second)
+                             == parameters.prescribed_velocity_boundary_indicators.end(), 
+                  ExcInternalError());
+
+#if (DEAL_II_MAJOR*100 + DEAL_II_MINOR) >= 801
+          DoFTools::make_periodicity_constraints(dof_handler, 
+                                                 (*p).first.first,  //first boundary id
+                                                 (*p).first.second, //second boundary id
+                                                 (*p).second,       //cartesian direction for translational symmetry
+                                                 constraints);
+#endif
+        }
+ 
+
+    }
     // then compute constraints for the velocity. the constraints we compute
     // here are the ones that are the same for all following time steps. in
     // addition, we may be computing constraints from boundary values for the
     // velocity that are different between time steps. these are then put
     // into current_constraints in start_timestep().
     {
-      constraints.clear();
-      constraints.reinit(introspection.index_sets.system_relevant_set);
 
-      DoFTools::make_hanging_node_constraints (dof_handler,
-                                               constraints);
 
       // do the interpolation for zero velocity
       for (std::set<types::boundary_id>::const_iterator
@@ -698,9 +732,8 @@ namespace aspect
                                                       introspection.component_masks.compositional_fields[c]);
 
           }
-
-      constraints.close();
     }
+    constraints.close();
 
     // finally initialize vectors, matrices, etc.
 
@@ -747,10 +780,10 @@ namespace aspect
                                     introspection.system_dofs_per_block,
                                     introspection.components_to_blocks);
     {
-      const unsigned int n_u = introspection.system_dofs_per_block[0],
-                         n_p = introspection.system_dofs_per_block[1],
-                         n_T = introspection.system_dofs_per_block[2];
-      std::vector<unsigned int> n_C (parameters.n_compositional_fields+1);
+      const types::global_dof_index n_u = introspection.system_dofs_per_block[0],
+                                    n_p = introspection.system_dofs_per_block[1],
+                                    n_T = introspection.system_dofs_per_block[2];
+      std::vector<types::global_dof_index> n_C (parameters.n_compositional_fields+1);
       for (unsigned int c=0; c<parameters.n_compositional_fields; ++c)
         n_C[c] = introspection.system_dofs_per_block
                  [introspection.block_indices.compositional_fields[c]];
@@ -959,7 +992,34 @@ namespace aspect
 
           break;
         }
+        case NonlinearSolver::Stokes_only:
+        {
+          // the Stokes matrix depends on the viscosity. if the viscosity
+          // depends on other solution variables, then after we need to
+          // update the Stokes matrix in every time step and so need to set
+          // the following flag. if we change the Stokes matrix we also
+          // need to update the Stokes preconditioner.
+          unsigned int iteration = 0;
 
+          do
+            {
+              if (stokes_matrix_depends_on_solution() == true)
+                rebuild_stokes_matrix = rebuild_stokes_preconditioner = true;
+
+              assemble_stokes_system();
+              build_stokes_preconditioner();
+              const double stokes_residual = solve_stokes();
+              current_linearization_point = solution;
+
+              pcout << "stokes residual: " << stokes_residual << std::endl;
+              if (stokes_residual <1e-8)
+                break;
+
+              ++iteration;
+            }
+          while (iteration < parameters.max_nonlinear_iterations);
+          break;
+        }
         case NonlinearSolver::iterated_IMPES:
         {
           double initial_temperature_residual = 0;
@@ -1041,7 +1101,7 @@ namespace aspect
               ++iteration;
 //TODO: terminate here if the number of iterations is too large and we see no convergence
             }
-          while (iteration < 10);
+          while (iteration < parameters.max_nonlinear_iterations);
 
           break;
         }
@@ -1050,17 +1110,25 @@ namespace aspect
         {
           // solve the temperature system once...
           assemble_advection_system (TemperatureOrComposition::temperature());
+          build_advection_preconditioner (TemperatureOrComposition::temperature (),
+                                          T_preconditioner);
           solve_advection(TemperatureOrComposition::temperature());
+          current_linearization_point.block(introspection.block_indices.temperature)
+            = solution.block(introspection.block_indices.temperature);
 
           for (unsigned int c=0; c<parameters.n_compositional_fields; ++c)
             {
               assemble_advection_system (TemperatureOrComposition::composition(c));
+              build_advection_preconditioner (TemperatureOrComposition::composition (c),
+                                              C_preconditioner);
               solve_advection(TemperatureOrComposition::composition(c));
+              current_linearization_point.block(introspection.block_indices.compositional_fields[c])
+                = solution.block(introspection.block_indices.compositional_fields[c]);
             }
 
           // ...and then iterate the solution
           // of the Stokes system
-          for (int i=0; i<10; ++i)
+          for (unsigned int i=0; i< parameters.max_nonlinear_iterations; ++i)
             {
               // rebuild the matrix if it actually depends on the solution
               // of the previous iteration.
@@ -1070,10 +1138,10 @@ namespace aspect
               assemble_stokes_system();
               build_stokes_preconditioner();
               solve_stokes();
-              old_solution = solution;
-
-//TODO: don't we need to set the linearization point here somehow?
-              Assert (false, ExcNotImplemented());
+              current_linearization_point.block(introspection.block_indices.velocities)
+                = solution.block(introspection.block_indices.velocities);
+              current_linearization_point.block(introspection.block_indices.pressure)
+                = solution.block(introspection.block_indices.pressure);
 
               pcout << std::endl;
             }

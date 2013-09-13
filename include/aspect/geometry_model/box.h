@@ -85,6 +85,13 @@ namespace aspect
         get_used_boundary_indicators () const;
 
         /**
+         * Return the set of periodic boundaries
+         */
+        virtual
+        std::set< std::pair< std::pair<types::boundary_id, types::boundary_id>, unsigned int> >
+        get_periodic_boundary_pairs () const;
+
+        /**
          * Declare the parameters this class takes through input files.
          */
         static
@@ -112,6 +119,11 @@ namespace aspect
          * be appended in the parse_parameters function.
          */
         std::vector<std::vector<double> > step_sizes;
+
+        /**
+         * Flag whether the box is periodic in the x-, y-, and z-direction.
+         */
+        bool periodic[dim];
     };
   }
 }

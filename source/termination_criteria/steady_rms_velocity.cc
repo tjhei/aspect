@@ -75,7 +75,7 @@ namespace aspect
       // If the length of the simulation time covered in the list is shorter than the
       // specified parameter, we must continue the simulation
       const double adjusted_time
-      = time_length * (this->convert_output_to_years() ? year_in_seconds : 1);
+        = time_length * (this->convert_output_to_years() ? year_in_seconds : 1);
       if ((time_rmsvel.size() == 0)
           ||
           (time_rmsvel.back().first - time_rmsvel.front().first < adjusted_time))
@@ -83,7 +83,7 @@ namespace aspect
 
       // Remove old times until we're at the correct time period
       std::list<std::pair<double, double> >::iterator it = time_rmsvel.begin();
-      while (time_rmsvel.back().first - (*it).first > time_length)
+      while (time_rmsvel.back().first - (*it).first > adjusted_time)
         it++;
       time_rmsvel.erase(time_rmsvel.begin(), it);
 

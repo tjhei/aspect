@@ -39,23 +39,33 @@ Topics for preview release:
 
 
 - Create a task list for a release that includes:
+  *** go over the installation section again and make sure the cmake stuff
+      is in there and correct ***
+
   . go through the list of TODOs in the source code and see what can be done
   . make sure the description of the interfaces that need to be updated
     are up to date in the manual
-  . move changes.h to changes-<version>.h
+  . update copyright years of all files
+  . update changes.h in doc/modules:
+    1. svn cp changes.h <oldversion>-<newversion>.h
+    2. remove entries from changes.h
+    3. update headers of both files
+    4. svn commit
   . create a branch:
     svn cp https://svn.aspect.dealii.org/trunk/aspect https://svn.aspect.dealii.org/branches/releases/aspect-0.2
   . remove TODO on the branch
-  . update the version number on the front page of doc/manual.pdf
+  . update the version number on the front page of doc/manual.pdf (and also on trunk!)
   . remove the various table_* postprocessors
-  . update doc/manual/parameters.tex by running aspect-2d with an empty .prm
-    file and copying output/parameters.tex to doc/manual/parameters.tex
+  . update doc/manual/parameters.tex by running aspect with doc/manual/empty.prm
+    and copying output/parameters.tex to doc/manual/parameters.tex
+    and fix things like "tecplot_binary"->"tecplot\_binary"
   . run
       cd doc ; make manual.pdf
   . check in doc/manual.pdf
   . make sure the .prm and .xml files we ship match the default values
     of parameters
-  . create a tar file: tar czf aspect-0.2.tar.gz aspect-0.2/
+  . create a tar file (do svn export): 
+    tar --exclude-vcs -czf aspect-0.3.tar.gz aspect-0.3/
   . upload tar file (deal homepage svn in aspect/download)
   . link in on download.html (same location)
   . announce on
@@ -130,8 +140,12 @@ write a postprocessor that shows temperature minus depth averaged
   temperature. maybe similar for density (= buoyancy)
 
 
+- change some/all material models to the new system
 
 
 write tests for the depth averaging functions (test adaptive refinement,
 averaged composition, non-zero average/sinking velocity)
   
+write tests to verify the possibility of external plugins compiled into
+shared libraries. implement ways to verify that they are compiled against
+the same version of ASPECT that they are running under.

@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012 by the authors of the ASPECT code.
+  Copyright (C) 2011, 2012, 2013 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -25,6 +25,7 @@
 #include <deal.II/grid/grid_generator.h>
 #include <deal.II/grid/tria_iterator.h>
 #include <deal.II/grid/tria_accessor.h>
+#include <deal.II/grid/grid_tools.h>
 
 
 namespace aspect
@@ -53,6 +54,21 @@ namespace aspect
     		else if(cell->face(f)->center()[i] == extents[i])           // right/top/back boundary
     		  cell->face(f)->set_boundary_indicator(2*i+1);
     	  }
+
+      //Tell p4est about the periodicity of the mesh.
+#if (DEAL_II_MAJOR*100 + DEAL_II_MINOR) >= 801
+      std::vector<std_cxx1x::tuple< typename parallel::distributed::Triangulation<dim>::cell_iterator, unsigned int,
+                                    typename parallel::distributed::Triangulation<dim>::cell_iterator, unsigned int> >
+                                   periodicity_vector;
+      for( unsigned int i=0; i<dim; ++i)
+        if (periodic[i])
+          GridTools::identify_periodic_face_pairs(coarse_grid, 2*i, 2*i+1, i, periodicity_vector);
+
+      coarse_grid.add_periodicity(periodicity_vector);
+#else
+      for( unsigned int i=0; i<dim; ++i)
+        AssertThrow(!periodic[i],"please update deal.II to the latest version to get support for periodic domains.");
+#endif
     }
 
 
@@ -68,6 +84,17 @@ namespace aspect
       return s;
     }
 
+    template <int dim>
+    std::set< std::pair< std::pair<types::boundary_id, types::boundary_id>, unsigned int> >
+    Box<dim>::
+    get_periodic_boundary_pairs () const
+    {
+      std::set< std::pair< std::pair<types::boundary_id, types::boundary_id>, unsigned int> > periodic_boundaries;
+      for( unsigned int i=0; i<dim; ++i)
+        if (periodic[i])
+          periodic_boundaries.insert( std::make_pair( std::pair<types::boundary_id, types::boundary_id>(2*i, 2*i+1), i) );
+      return periodic_boundaries;
+    }
 
     template <int dim>
     Point<dim>
@@ -154,6 +181,15 @@ namespace aspect
                              Patterns::List (Patterns::Double(0)),
                              "List of lengths of the subdivisions of the box "
                              "in z-direction. Units: m.");
+          prm.declare_entry ("X periodic", "false",
+                             Patterns::Bool (),
+                             "Whether the box should be periodic in X direction");
+          prm.declare_entry ("Y periodic", "false",
+                             Patterns::Bool (),
+                             "Whether the box should be periodic in Y direction");
+          prm.declare_entry ("Z periodic", "false",
+                             Patterns::Bool (),
+                             "Whether the box should be periodic in Z direction");
         }
         prm.leave_subsection();
       }
@@ -171,12 +207,19 @@ namespace aspect
         prm.enter_subsection("Box");
         {
           extents[0] = prm.get_double ("X extent");
+          periodic[0] = prm.get_bool ("X periodic");
 
           if (dim >= 2)
-            extents[1] = prm.get_double ("Y extent");
+            {
+              extents[1] = prm.get_double ("Y extent");
+              periodic[1] = prm.get_bool ("Y periodic");
+            }
 
           if (dim >= 3)
-            extents[2] = prm.get_double ("Z extent");
+            {
+              extents[2] = prm.get_double ("Z extent");
+              periodic[2] = prm.get_bool ("Z periodic");
+            }
 
           step_sizes.push_back (Utilities::string_to_double
                                (Utilities::split_string_list(prm.get ("subdivisions X"))));

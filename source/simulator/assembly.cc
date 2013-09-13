@@ -339,7 +339,7 @@ namespace aspect
           StokesPreconditioner (const StokesPreconditioner &data);
 
           FullMatrix<double>          local_matrix;
-          std::vector<unsigned int>   local_dof_indices;
+          std::vector<types::global_dof_index>   local_dof_indices;
         };
 
 
@@ -407,7 +407,7 @@ namespace aspect
 
           FullMatrix<double>          local_matrix;
           Vector<double>              local_rhs;
-          std::vector<unsigned int>   local_dof_indices;
+          std::vector<types::global_dof_index>   local_dof_indices;
         };
 
 
@@ -1437,8 +1437,24 @@ namespace aspect
                           copy_local_to_global_advection_system,
                           this,
                           std_cxx1x::_1),
+
+                          // we have to assemble the term u.grad phi_i * phi_j, which is
+                          // of total polynomial degree
+                          //   stokes_deg + 2*temp_deg -1
+                          // (or similar for comp_deg). this suggests using a Gauss
+                          // quadrature formula of order
+                          //   temp_deg + stokes_deg/2
+                          // rounded up. do so. (note that x/2 rounded up
+                          // equals (x+1)/2 using integer division.)
          internal::Assembly::Scratch::
-         AdvectionSystem<dim> (finite_element, mapping, QGauss<dim>(parameters.composition_degree+2),
+         AdvectionSystem<dim> (finite_element, mapping,
+                               QGauss<dim>((temperature_or_composition.is_temperature()
+                                            ?
+                                            parameters.temperature_degree
+                                            :
+                                            parameters.composition_degree)
+                                           +
+                                           (parameters.stokes_velocity_degree+1)/2),
                                parameters.n_compositional_fields),
          internal::Assembly::CopyData::
          AdvectionSystem<dim> (finite_element));

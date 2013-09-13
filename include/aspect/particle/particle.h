@@ -1,5 +1,5 @@
 /*
- Copyright (C) 2011, 2012 by the authors of the ASPECT code.
+ Copyright (C) 2011, 2012, 2013 by the authors of the ASPECT code.
 
  This file is part of ASPECT.
 
@@ -29,287 +29,322 @@ namespace aspect
 {
   namespace Particle
   {
-    // Typedef of cell level/index pair
+    /**
+     * Typedef of cell level/index pair
+     */
     typedef std::pair<int, int> LevelInd;
 
     class MPIDataInfo
     {
       public:
-        std::string     _name;
-        unsigned int    _num_elems;
-        MPI_Datatype    _data_type;
-        unsigned int    _elem_size_bytes;
+        std::string     name;
+        unsigned int    n_elements;
 
-        MPIDataInfo(std::string name, unsigned int num_elems, MPI_Datatype data_type, unsigned int elem_size_bytes) : _name(name), _num_elems(num_elems), _data_type(data_type), _elem_size_bytes(elem_size_bytes) {};
+        MPIDataInfo(std::string name,
+                    unsigned int num_elems)
+          :
+          name(name),
+          n_elements(num_elems) {};
     };
 
-    enum ParticleDataFormat
-    {
-      MPI_DATA,
-      HDF5_DATA
-    };
-
-    // Base class of particles - represents a particle with position, velocity, and an ID number
+    /**
+     * Base class of particles - represents a particle with position, velocity,
+     * and an ID number. This class can be extended to include data related
+     * to a particle. An example of this is shown in the DataParticle class.
+     */
     template <int dim>
     class BaseParticle
     {
       private:
-        // Current particle location
-        Point<dim>      _loc;
+        /**
+         * Current particle location
+         */
+        Point<dim>      location;
 
-        // Current particle velocity
-        Point<dim>      _vel;
+        /**
+         * Current particle velocity
+         */
+        Point<dim>      velocity;
 
-        // Globally unique ID of particle
-        double          _id;
+        /**
+         * Globally unique ID of particle
+         */
+        double          id;
 
-        // Whether this particle is in the local subdomain or not
-        bool            _local;
+        /**
+         * Whether this particle is in the local subdomain or not
+         */
+        bool            is_local;
 
-        // Whether to check the velocity of this particle
-        // This is used for integration schemes which require multiple
-        // integration steps for some particles, but not for others
-        bool            _check_vel;
+        /**
+         * Whether to check the velocity of this particle
+         * This is used for integration schemes which require multiple
+         * integration steps for some particles, but not for others
+         */
+        bool            check_vel;
 
       public:
-        BaseParticle(void) : _loc(), _vel(), _id(0), _local(true), _check_vel(true) {};
+        /**
+               * Empty constructor for BaseParticle, creates a particle at the origin with zero velocity.
+               */
+        BaseParticle ();
 
-        BaseParticle(const Point<dim> &new_loc, const double &new_id) : _loc(new_loc), _id(new_id), _local(true), _check_vel(true) {};
+        /**
+               * Constructor for BaseParticle, creates a particle with the specified ID at the
+               * specified location with zero velocity. Note that Aspect does not check for
+               * duplicate particle IDs so the user must be sure the IDs are unique over all processes.
+               *
+               * @param[in] new_loc Initial location of particle.
+               * @param[in] new_id Globally unique ID number of particle.
+               */
+        BaseParticle (const Point<dim> &new_loc,
+                      const double &new_id);
 
-        virtual ~BaseParticle(void) {};
+        /**
+               * Destructor for BaseParticle
+               */
+        virtual
+        ~BaseParticle ();
 
-        static unsigned int data_len(ParticleDataFormat format)
-        {
-          switch (format)
-            {
-              case MPI_DATA:
-              case HDF5_DATA:
-                return (dim+dim+1)*sizeof(double);
-            }
-          return 0;
-        };
-        virtual char *read_data(ParticleDataFormat format, char *data)
-        {
-          char            *p = data;
-          unsigned int    i;
+        /**
+               * Get the number of doubles required to represent this particle for communication.
+               *
+               * @return Number of doubles required to represent this particle
+               */
+        static unsigned int
+        data_len ();
 
-          switch (format)
-            {
-              case MPI_DATA:
-              case HDF5_DATA:
-                // Read location data
-                for (i=0; i<dim; ++i)
-                  {
-                    _loc(i) = ((double *)p)[0];
-                    p += sizeof(double);
-                  }
-                // Write velocity data
-                for (i=0; i<dim; ++i)
-                  {
-                    _vel(i) = ((double *)p)[0];
-                    p += sizeof(double);
-                  }
-                _id = ((double *)p)[0];
-                p += sizeof(double);
-                break;
-            }
+        /**
+               * Read the particle data from the specified vector of doubles.
+               *
+               * @param [in] data The vector of double data to read from.
+               * @param [in] pos The position in the data vector to start reading from.
+               * @return The position in the vector of the next unread double.
+               */
+        virtual unsigned int read_data(const std::vector<double> &data, const unsigned int &pos);
 
-          return p;
-        };
-        virtual char *write_data(ParticleDataFormat format, char *data) const
-        {
-          char          *p = data;
-          unsigned int  i;
+        /**
+         * Write particle data to a vector of doubles.
+         *
+         * @param [in,out] data The vector of doubles to write integrator data into.
+         */
+        virtual void write_data(std::vector<double> &data) const;
 
-          // Then write our data in the appropriate format
-          switch (format)
-            {
-              case MPI_DATA:
-              case HDF5_DATA:
-                // Write location data
-                for (i=0; i<dim; ++i)
-                  {
-                    ((double *)p)[0] = _loc(i);
-                    p += sizeof(double);
-                  }
-                // Write velocity data
-                for (i=0; i<dim; ++i)
-                  {
-                    ((double *)p)[0] = _vel(i);
-                    p += sizeof(double);
-                  }
-                ((double *)p)[0] = _id;
-                p += sizeof(double);
-                break;
-            }
+        /**
+         * Set the location of this particle. Note that this does not check whether this
+         * is a valid location in the simulation domain.
+         *
+         * @param [in] new_loc The new location for this particle.
+         */
+        void
+        set_location (const Point<dim> &new_loc);
 
-          return p;
-        };
+        /**
+         * Get the location of this particle.
+         *
+         * @return The location of this particle.
+         */
+        Point<dim>
+        get_location () const;
 
-        void set_location(Point<dim> new_loc)
-        {
-          _loc = new_loc;
-        };
-        Point<dim> location(void) const
-        {
-          return _loc;
-        };
+        /**
+         * Set the velocity of this particle.
+         *
+         * @param [in] new_vel The new velocity for this particle.
+         */
+        void
+        set_velocity (Point<dim> new_vel);
 
-        void set_velocity(Point<dim> new_vel)
-        {
-          _vel = new_vel;
-        };
-        Point<dim> velocity(void) const
-        {
-          return _vel;
-        };
+        /**
+         * Get the velocity of this particle.
+         *
+         * @return The velocity of this particle.
+         */
+        Point<dim>
+        get_velocity () const;
 
-        double id_num(void) const
-        {
-          return _id;
-        };
+        /**
+         * Get the ID number of this particle.
+         *
+         * @return The id of this particle.
+         */
+        double
+        get_id () const;
 
-        bool local(void) const
-        {
-          return _local;
-        };
-        void set_local(bool new_local)
-        {
-          _local = new_local;
-        };
+        /**
+         * Check whether the particle is marked as being local to this subdomain.
+         * Note that this function does not actually perform the check for locality.
+         *
+         * @return Whether the particle is marked as local.
+         */
+        bool
+        local () const;
 
-        bool vel_check(void) const
-        {
-          return _check_vel;
-        };
-        void set_vel_check(bool new_vel_check)
-        {
-          _check_vel = new_vel_check;
-        };
+        /**
+         * Mark the particle as being local of not. Note that this function does
+         * not perform the check for locality.
+         *
+         * @param[in] new_local Whether to mark the particle as local.
+         */
+        void
+        set_local (bool new_local);
 
-        static void add_mpi_types(std::vector<MPIDataInfo> &data_info)
-        {
-          // Add the position, velocity, ID
-          data_info.push_back(MPIDataInfo("pos", dim, MPI_DOUBLE, sizeof(double)));
-          data_info.push_back(MPIDataInfo("velocity", dim, MPI_DOUBLE, sizeof(double)));
-          data_info.push_back(MPIDataInfo("id", 1, MPI_DOUBLE, sizeof(double)));
-        };
+        /**
+         * Whether to check the particle velocity at its current location. This is
+         * used for integrators where the particle velocity may not need to be
+         * checked every step.
+         *
+         * @return Whether to check the particle velocity
+         */
+        bool
+        vel_check () const;
+
+        /**
+         * Mark whether to check the particle velocity.
+         *
+         * @param[in] new_vel_check Whether to check the particle velocity.
+         */
+        void
+        set_vel_check (bool new_vel_check);
+
+        /**
+         * Add the MPI data description for this particle type to the vector.
+         *
+         * @param[in,out] data_info Vector to which MPI data description is appended.
+         */
+        static void
+        add_mpi_types (std::vector<MPIDataInfo> &data_info);
     };
 
-    // A particle with associated values, such as scalars, vectors or tensors
+    /**
+     * DataParticle provides an example of how to extend the BaseParticle class
+     * to include related particle data. This allows users to attach
+     * scalars/vectors/tensors/etc to particles and ensure they are transmitted
+     * correctly over MPI and written to output files.
+     */
     template <int dim, int data_dim>
     class DataParticle : public BaseParticle<dim>
     {
       private:
-        double      _val[data_dim];
+        double      val[data_dim];
 
-      public:
-        DataParticle(void)
+      private:
+        DataParticle()
         {
-          for (unsigned int i=0; i<data_dim; ++i) _val[i] = 0;
+          for (unsigned int i=0; i<data_dim; ++i) val[i] = 0;
         };
 
         DataParticle(const Point<dim> &new_loc, const double &new_id) : BaseParticle<dim>(new_loc, new_id)
         {
-          for (unsigned int i=0; i<data_dim; ++i) _val[i] = 0;
+          for (unsigned int i=0; i<data_dim; ++i) val[i] = 0;
         };
 
-        static unsigned int data_len(ParticleDataFormat format)
+        static unsigned int data_len()
         {
-          unsigned int        base_size  = BaseParticle<dim>::data_len(format);
-
-          switch (format)
-            {
-              case MPI_DATA:
-              case HDF5_DATA:
-                return base_size + data_dim * sizeof(double);
-            }
-          return 0;
+          return BaseParticle<dim>::data_len() + data_dim;
         };
-        virtual char *read_data(ParticleDataFormat format, char *data)
+
+        virtual unsigned int read_data(const std::vector<double> &data, const unsigned int &pos)
         {
-          char          *p = data;
-          unsigned int  i;
+          unsigned int  p;
 
           // Read the parent data first
-          p = BaseParticle<dim>::read_data(format, data);
+          p = BaseParticle<dim>::read_data(data, pos);
 
-          // Then read our data in the appropriate format
-          switch (format)
+          // Then read the DataParticle data
+          for (unsigned i=0; i<data_dim; ++i)
             {
-              case MPI_DATA:
-                for (i=0; i<data_dim; ++i)
-                  {
-                    _val[i] = ((double *)p)[0];
-                    p += sizeof(double);
-                  }
-                break;
-              case HDF5_DATA:
-                break;
+              val[i] = data.at(p++);
             }
 
           return p;
         };
-        virtual char *write_data(ParticleDataFormat format, char *data) const
-        {
-          char          *p = data;
-          unsigned int  i;
 
+
+        virtual void write_data(std::vector<double> &data) const
+        {
           // Write the parent data first
-          p = BaseParticle<dim>::write_data(format, data);
+          BaseParticle<dim>::write_data(data);
 
-          // Then write our data in the appropriate format
-          switch (format)
+          // Then write the DataParticle data
+          for (unsigned i=0; i<data_dim; ++i)
             {
-              case MPI_DATA:
-                for (i=0; i<data_dim; ++i)
-                  {
-                    ((double *)p)[0] = _val[i];
-                    p += sizeof(double);
-                  }
-                break;
-              case HDF5_DATA:
-                break;
+              data.push_back(val[i]);
             }
-
-          return p;
         };
 
-        // Returns a vector from the first dim components of _val
-        Point<dim> get_vector(void) const
-        {
-          AssertThrow(data_dim>=dim, std::out_of_range("get_vector"));
-          Point<dim>  p;
-          for (unsigned int i=0; i<dim; ++i) p(i) = _val[i];
-        };
-        // Sets the first dim components of _val to the specified vector value
+        /**
+         * Returns a vector from the first dim components of val
+         *
+         * @return vector representation of first dim components of the particle data
+         */
+        Point<dim>
+        get_vector () const;
+
+        /**
+         * Sets the first dim components of val to the specified vector value
+         *
+         * @param [in] new_vec Vector to set the DataParticle data to
+         */
         void set_vector(Point<dim> new_vec)
         {
           AssertThrow(data_dim>=dim, std::out_of_range("set_vector"));
-          for (unsigned int i=0; i<dim; ++i) _val[i] = new_vec(i);
-        };
+          for (unsigned int i=0; i<dim; ++i)
+            val[i] = new_vec(i);
+        }
 
+        /**
+         * Return a reference to an element of the DataParticle data
+         *
+         * @param [in] ind Index of the data array
+         * @return Reference to double value at the requested index
+         */
         double &operator[](const unsigned int &ind)
         {
           AssertThrow(data_dim>ind, std::out_of_range("DataParticle[]"));
-          return _val[ind];
-        };
+          return val[ind];
+        }
+
+        /**
+         * Return the value of an element of the DataParticle data
+         *
+         * @param [in] ind Index of the data array
+         * @return Value at the requested index
+         */
         double operator[](const unsigned int &ind) const
         {
           AssertThrow(data_dim>ind, std::out_of_range("DataParticle[]"));
-          return _val[ind];
-        };
+          return val[ind];
+        }
 
+        /**
+         * Set up the MPI data type information for the DataParticle type
+         *
+         * @param [in,out] data_info Vector to append MPIDataInfo objects to
+         */
         static void add_mpi_types(std::vector<MPIDataInfo> &data_info)
         {
           // Set up the parent types first
           BaseParticle<dim>::add_mpi_types(data_info);
 
           // Then add our own
-          data_info.push_back(MPIDataInfo("data", data_dim, MPI_DOUBLE, sizeof(double)));
+          data_info.push_back(MPIDataInfo("data", data_dim));
         };
     };
+
+    // A particle with associated values, such as scalars, vectors or tensors
+    template <int dim, int data_dim>
+    inline Point<dim>
+    DataParticle<dim,data_dim>::get_vector () const
+    {
+      AssertThrow(data_dim >= dim, std::out_of_range ("get_vector"));
+      Point < dim > p;
+      for (unsigned int i = 0; i < dim; ++i)
+        p (i) = val[i];
+    }
+
   }
 }
 
 #endif
+

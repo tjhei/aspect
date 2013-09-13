@@ -101,7 +101,8 @@ namespace aspect
         {
           IMPES,
           iterated_IMPES,
-          iterated_Stokes
+          iterated_Stokes,
+          Stokes_only
         };
       };
 
@@ -168,6 +169,7 @@ namespace aspect
         double                         adiabatic_surface_temperature;
         unsigned int                   timing_output_frequency;
         double                         linear_stokes_solver_tolerance;
+        unsigned int                   max_nonlinear_iterations;
         unsigned int                   n_cheap_stokes_solver_steps;
         double                         temperature_solver_tolerance;
         double                         composition_solver_tolerance;
@@ -370,6 +372,12 @@ namespace aspect
          */
         bool
         is_temperature () const;
+
+        /**
+         * Look up the block index for this temperature or compositional field i.
+         * See Introspection::block_indices for more information.
+         */
+        unsigned int block_index(const Introspection<dim> &introspection) const;
       };
 
       /**
@@ -743,7 +751,7 @@ namespace aspect
        *    std::vector<double> & output)
        */
       template<class FUNCTOR>
-      void compute_depth_average(std::vector<double> &values, FUNCTOR & fctr) const;
+      void compute_depth_average(std::vector<double> &values, FUNCTOR &fctr) const;
 
       /**
        * Compute a depth average of the current temperature/composition. The function

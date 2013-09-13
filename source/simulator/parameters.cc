@@ -44,17 +44,36 @@ namespace aspect
   {
     prm.declare_entry ("Dimension", "2",
                        Patterns::Integer (2,4),
-                       "The number of space dimensions you want to run this program in.");
+                       "The number of space dimensions you want to run this program in. "
+                       "ASPECT can run in 2 and 3 space dimensions.");
+    prm.declare_entry ("Additional shared libraries", "",
+                       Patterns::List (Patterns::FileName()),
+                       "A list of names of additional shared libraries that should be loaded "
+                       "upon starting up the program. The names of these files can contain absolute "
+                       "or relative paths (relative to the directory in which you call ASPECT). "
+                       "In fact, file names that are do not contain any directory "
+                       "information (i.e., only the name of a file such as <myplugin.so> "
+                       "will not be found if they are not located in one of the directories "
+                       "listed in the LD_LIBRARY_PATH environment variable. In order "
+                       "to load a library in the current directory, use <./myplugin.so> "
+                       "instead."
+                       "\n\n"
+                       "The typical use of this parameter is to so that you can implement "
+                       "additional plugins in your own directories, rather than in the ASPECT "
+                       "source directories. You can then simply compile these plugins into a "
+                       "shared library without having to re-compile all of ASPECT. See the "
+                       "section of the manual discussing writing extensions for more "
+                       "information on how to compile additional files into a shared "
+                       "library.");
 
     prm.declare_entry ("Resume computation", "false",
                        Patterns::Bool (),
                        "A flag indicating whether the computation should be resumed from "
                        "a previously saved state (if true) or start from scratch (if false).");
 
-    prm.declare_entry ("Nonlinear iteration", "false",
-                       Patterns::Bool (),
-                       "A flag indicating whether the Stokes+Advection equation should be solved "
-                       "once per time step (false) or resolved using a fixed-point iteration (true).");
+    prm.declare_entry ("Max nonlinear iterations", "10",
+                       Patterns::Integer (0),
+                       "The maximal number of nonlinear iterations to be performed.");
 
     prm.declare_entry ("Start time", "0",
                        Patterns::Double (),
@@ -82,7 +101,7 @@ namespace aspect
     prm.declare_entry ("CFL number", "1.0",
                        Patterns::Double (0),
                        "In computations, the time step $k$ is chosen according to "
-                       "$k = c \\min_K \\frac{h_K}{\\|u\\|_{\\infty,K} p_T}$ where $h_K$ is the "
+                       "$k = c \\min_K \\frac {h_K} {\\|u\\|_{\\infty,K} p_T}$ where $h_K$ is the "
                        "diameter of cell $K$, and the denominator is the maximal magnitude "
                        "of the velocity on cell $K$ times the polynomial degree $p_T$ of the "
                        "temperature discretization. The dimensionless constant $c$ is called the "
@@ -103,7 +122,7 @@ namespace aspect
                        "heat conduction in determining the length of each time step.");
 
     prm.declare_entry ("Nonlinear solver scheme", "IMPES",
-                       Patterns::Selection ("IMPES|iterated IMPES|iterated Stokes"),
+                       Patterns::Selection ("IMPES|iterated IMPES|iterated Stokes|Stokes only"),
                        "The kind of scheme used to resolve the nonlinearity in the system. "
                        "'IMPES' is the classical IMplicit Pressure Explicit Saturation scheme "
                        "in which ones solves the temperatures and Stokes equations exactly "
@@ -111,12 +130,13 @@ namespace aspect
                        "iterates this decoupled approach by alternating the solution of the "
                        "temperature and Stokes systems. The 'iterated Stokes' scheme solves "
                        "the temperature equation once at the beginning of each time step "
-                       "and then iterates out the solution of the Stokes equation.");
+                       "and then iterates out the solution of the Stokes equation. The 'Stokes only' "
+                       "scheme only solves the Stokes system and ignores compositions and the "
+                       "temperature equation (careful, the material model must not depend on "
+                       "the temperature; mostly useful for Stokes benchmarks).");
 
     prm.declare_entry ("Pressure normalization", "surface",
-                       Patterns::Selection ("surface|"
-                                            "volume|"
-                                            "no"),
+                       Patterns::Selection ("surface|volume|no"),
                        "If and how to normalize the pressure after the solution step. "
                        "This is necessary because depending on boundary conditions, "
                        "in many cases the pressure is only determined by the model "
@@ -405,13 +425,13 @@ namespace aspect
                          "When using a locally "
                          "conservative discretization, the finite element space for "
                          "the pressure is discontinuous between cells and is the "
-                         "polynomial space $P_{-q}$ of polynomials of degree $q$ in "
+                         "polynomial space $P_ {-q}$ of polynomials of degree $q$ in "
                          "each variable separately. Here, $q$ is one less than the value "
                          "given in the parameter ``Stokes velocity polynomial degree''. "
                          "As a consequence of choosing this "
                          "element, it can be shown if the medium is considered incompressible "
                          "that the computed discrete velocity "
-                         "field $\\mathbf u_h$ satisfies the property $\\int_{\\partial K} \\mathbf u_h "
+                         "field $\\mathbf u_h$ satisfies the property $\\int_ {\\partial K} \\mathbf u_h "
                          "\\cdot \\mathbf n = 0$ for every cell $K$, i.e., for each cell inflow and "
                          "outflow exactly balance each other as one would expect for an "
                          "incompressible medium. In other words, the velocity field is locally "
@@ -422,7 +442,7 @@ namespace aspect
                          "has the advantage of requiring fewer degrees of freedom. Furthermore, "
                          "the error is generally smaller with this choice.\n\n"
                          "For an in-depth discussion of these issues and a quantitative evaluation "
-                         "of the different choices, see \\cite{KHB12}.");
+                         "of the different choices, see \\cite {KHB12} .");
 
       prm.enter_subsection ("Stabilization parameters");
       {
@@ -450,7 +470,7 @@ namespace aspect
                            "and 0.117 for 3d. (For historical reasons, the name used here is different "
                            "from the one used in the 2012 GJI paper by Kronbichler, "
                            "Heister and Bangerth that describes ASPECT. This parameter corresponds "
-                           "to the factor $\\alpha_\\text{max}$ in the formulas following equation (15) of "
+                           "to the factor $\\alpha_\\text {max}$ in the formulas following equation (15) of "
                            "the paper. After further experiments, we have also chosen to use a "
                            "different value than described there: It can be chosen as stated there for "
                            "uniformly refined meshes, but it needs to be chosen larger if the mesh has "
@@ -505,9 +525,12 @@ namespace aspect
       nonlinear_solver = NonlinearSolver::iterated_IMPES;
     else if (prm.get ("Nonlinear solver scheme") == "iterated Stokes")
       nonlinear_solver = NonlinearSolver::iterated_Stokes;
+    else if (prm.get ("Nonlinear solver scheme") == "Stokes only")
+      nonlinear_solver = NonlinearSolver::Stokes_only;
     else
       AssertThrow (false, ExcNotImplemented());
 
+    max_nonlinear_iterations = prm.get_integer ("Max nonlinear iterations");
     start_time              = prm.get_double ("Start time");
     if (convert_to_years == true)
       start_time *= year_in_seconds;

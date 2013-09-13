@@ -2,13 +2,15 @@
 #  CMake script
 ##
 
+MESSAGE("====================================================")
+MESSAGE("============ Configuring ASPECT ====================")
+MESSAGE("====================================================")
+
 # Set the name of the project and target:
 SET(TARGET "aspect")
 
 FILE(GLOB_RECURSE TARGET_SRC  "source/*.cc")
 INCLUDE_DIRECTORIES(include)
-
-# Usually, you will not need to modify anything beyond this point...
 
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8.8)
 
@@ -25,10 +27,20 @@ ENDIF()
 
 IF(NOT DEAL_II_WITH_TRILINOS OR NOT DEAL_II_WITH_P4EST)
   MESSAGE(FATAL_ERROR
-    "\nAspect requires a deal.II installation built with support for Trilinos and p4est!\n"
+    "\nAspect requires a deal.II installation built with support for Trilinos and p4est but one or both of these appears to be missing!\n"
     )
 ENDIF()
 
 DEAL_II_INITIALIZE_CACHED_VARIABLES()
 PROJECT(${TARGET})
+
+
+IF(EXISTS ${CMAKE_SOURCE_DIR}/tests/CMakeLists.txt)
+  ENABLE_TESTING()
+  ADD_SUBDIRECTORY(tests)
+ENDIF()
+
+
+MESSAGE("====================================================")
+
 DEAL_II_INVOKE_AUTOPILOT()

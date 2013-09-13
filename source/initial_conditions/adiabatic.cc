@@ -24,6 +24,8 @@
 #include <aspect/geometry_model/box.h>
 #include <aspect/geometry_model/spherical_shell.h>
 
+#include <cmath>
+
 namespace aspect
 {
   namespace InitialConditions
@@ -47,12 +49,12 @@ namespace aspect
       // point at the top and bottom boundary of the model
       const Point<dim> surface_point = this->geometry_model->representative_point(0.0);
       const Point<dim> bottom_point = this->geometry_model->representative_point(this->geometry_model->maximal_depth());
-      const double Adiabatic_surface = this->adiabatic_conditions->temperature(surface_point);
-      const double Adiabatic_bottom = this->adiabatic_conditions->temperature(bottom_point);
+      const double adiabatic_surface_temperature = this->adiabatic_conditions->temperature(surface_point);
+      const double adiabatic_bottom_temperature = this->adiabatic_conditions->temperature(bottom_point);
 
       // get a representative profile of the compositional fields as an input
       // for the material model
-      const dealii::Point<1, double> depth(this->geometry_model->depth(position));
+      const double depth = this->geometry_model->depth(position);
 
       // look up material properties
       typename MaterialModel::Interface<dim>::MaterialModelInputs in(1, this->n_compositional_fields());
@@ -61,7 +63,7 @@ namespace aspect
       in.temperature[0]=this->adiabatic_conditions->temperature(position);
       in.pressure[0]=this->adiabatic_conditions->pressure(position);
       for (unsigned int c=0; c<this->n_compositional_fields(); ++c)
-        in.composition[0][c] = function->value(depth,c);
+        in.composition[0][c] = function->value(Point<1>(depth),c);
       in.strain_rate[0] = SymmetricTensor<2,dim>(); // adiabat has strain=0.
       this->get_material_model().evaluate(in, out);
 
@@ -69,23 +71,28 @@ namespace aspect
 
       // analytical solution for the thermal boundary layer from half-space cooling model
       const double surface_cooling_temperature = age_top > 0.0 ?
-                                                 (T_surface - Adiabatic_surface) * erfc(this->geometry_model->depth(position) / (2 * sqrt(kappa * age_top)))
+                                                 (T_surface - adiabatic_surface_temperature) *
+                                                 erfc(this->geometry_model->depth(position) /
+                                                      (2 * sqrt(kappa * age_top)))
                                                  : 0.0;
       const double bottom_heating_temperature = age_bottom > 0.0 ?
-                                                (T_bottom - Adiabatic_bottom + subadiabaticity)
-                                                * erfc((this->geometry_model->maximal_depth() - this->geometry_model->depth(position)) / (2 * sqrt(kappa * age_bottom)))
+                                                (T_bottom - adiabatic_bottom_temperature + subadiabaticity)
+                                                * erfc((this->geometry_model->maximal_depth()
+                                                        - this->geometry_model->depth(position)) /
+                                                       (2 * sqrt(kappa * age_bottom)))
                                                 : 0.0;
 
       // set the initial temperature perturbation
       // first: get the center of the perturbation, then check the distance to the evaluation point
-      Point<dim> mid_point (true);
+      Point<dim> mid_point;
       if (perturbation_position == "center")
         {
-          if (dynamic_cast <const GeometryModel::SphericalShell<dim>*> (this->geometry_model) != 0)
+          if (const GeometryModel::SphericalShell<dim> *
+              geometry_model = dynamic_cast <const GeometryModel::SphericalShell<dim>*> (this->geometry_model))
             {
               const double pi = 3.14159265;
-              double inner_radius = dynamic_cast<const GeometryModel::SphericalShell<dim>&> (*this->geometry_model).inner_radius();
-              double angle = pi/180.0 * 0.5 * dynamic_cast<const GeometryModel::SphericalShell<dim>&> (*this->geometry_model).opening_angle();
+              double inner_radius = geometry_model->inner_radius();
+              double angle = pi/180.0 * 0.5 * geometry_model->opening_angle();
               if (dim==2)
                 {
                   mid_point(0) = inner_radius * sin(angle),
@@ -93,11 +100,11 @@ namespace aspect
                 }
               else if (dim==3)
                 {
-            	  if (dynamic_cast<const GeometryModel::SphericalShell<dim>&> (*this->geometry_model).opening_angle() == 90)
+            	  if (geometry_model->opening_angle() == 90)
             	  {
-            		mid_point(0) = std::sqrt(inner_radius*inner_radius/3),
-            		mid_point(1) = std::sqrt(inner_radius*inner_radius/3),
-            		mid_point(2) = std::sqrt(inner_radius*inner_radius/3);
+                    mid_point(0) = std::sqrt(inner_radius*inner_radius/3),
+                    mid_point(1) = std::sqrt(inner_radius*inner_radius/3),
+                    mid_point(2) = std::sqrt(inner_radius*inner_radius/3);
             	  }
                   else
                   {
@@ -107,11 +114,14 @@ namespace aspect
                   }
                 }
             }
-          else if (dynamic_cast <const GeometryModel::Box<dim>*> (this->geometry_model) != 0)
+          else if (const GeometryModel::Box<dim> *
+                   geometry_model = dynamic_cast <const GeometryModel::Box<dim>*> (this->geometry_model))
             for (unsigned int i=0; i<dim-1; ++i)
-              mid_point(i) += 0.5 * dynamic_cast<const GeometryModel::Box<dim>&> (*this->geometry_model).get_extents()[i];
-          else ExcMessage ("Not a valid geometry model for the initial conditions model"
-                             "adiabatic.");
+              mid_point(i) += 0.5 * geometry_model->get_extents()[i];
+          else
+            AssertThrow (false,
+                         ExcMessage ("Not a valid geometry model for the initial conditions model"
+                                     "adiabatic."));
         }
 
       const double perturbation = (mid_point.distance(position) < radius) ? amplitude
@@ -144,26 +154,26 @@ namespace aspect
         {
           prm.declare_entry ("Age top boundary layer", "0e0",
                              Patterns::Double (0),
-                             "The age of the upper thermal boundary layer, used for the calculation"
+                             "The age of the upper thermal boundary layer, used for the calculation "
                              "of the half-space cooling model temperature. Units: years if the "
                              "'Use years in output instead of seconds' parameter is set; "
                              "seconds otherwise.");
           prm.declare_entry ("Age bottom boundary layer", "0e0",
                              Patterns::Double (0),
-                             "The age of the lower thermal boundary layer, used for the calculation"
+                             "The age of the lower thermal boundary layer, used for the calculation "
                              "of the half-space cooling model temperature. Units: years if the "
                              "'Use years in output instead of seconds' parameter is set; "
                              "seconds otherwise.");
           prm.declare_entry ("Radius", "0e0",
                              Patterns::Double (0),
-                             "The Radius (in m) of the initial spherical temperature perturbation"
+                             "The Radius (in m) of the initial spherical temperature perturbation "
                              "at the bottom of the model domain.");
           prm.declare_entry ("Amplitude", "0e0",
                              Patterns::Double (0),
-                             "The amplitude (in K) of the initial spherical temperature perturbation"
-                             "at the bottom of the model domain. This perturbation will be added to"
-                             "the adiabatic temperature profile, but not to the bottom thermal"
-                             "boundary layer. Instead, the maximum of the perturbation and the bottom"
+                             "The amplitude (in K) of the initial spherical temperature perturbation "
+                             "at the bottom of the model domain. This perturbation will be added to "
+                             "the adiabatic temperature profile, but not to the bottom thermal "
+                             "boundary layer. Instead, the maximum of the perturbation and the bottom "
                              "boundary layer temperature will be used.");
           prm.declare_entry ("Position", "center",
                              Patterns::Selection ("center|"
@@ -172,13 +182,13 @@ namespace aspect
                              "center or at the boundary of the model domain).");
           prm.declare_entry ("Subadiabaticity", "0e0",
                              Patterns::Double (0),
-                             "If this value is larger than 0, the initial temperature profile will"
+                             "If this value is larger than 0, the initial temperature profile will "
                              "not be adiabatic, but subadiabatic. This value gives the maximal "
                              "deviation from adiabaticity. Set to 0 for an adiabatic temperature "
-                             "profile. Units: K. "
-                             "The function object in the Function subsection"
+                             "profile. Units: K.\n\n"
+                             "The function object in the Function subsection "
                              "represents the compositional fields that will be used as a reference "
-                             "profile for calculating the thermal diffusivity."
+                             "profile for calculating the thermal diffusivity. "
                              "The function depends only on depth.");
           prm.enter_subsection("Function");
           {
@@ -241,7 +251,7 @@ namespace aspect
     ASPECT_REGISTER_INITIAL_CONDITIONS(Adiabatic,
                                        "adiabatic",
                                        "Temperature is prescribed as an adiabatic "
-                                       "profile with upper and lower thermal boundary layers,"
-                                       "whose ages are given as input parameters.");
+                                       "profile with upper and lower thermal boundary layers, "
+                                       "whose ages are given as input parameters.")
   }
 }
