@@ -362,7 +362,7 @@ namespace aspect
         /**
          * Graphical output format.
          */
-        string output_format;
+        std::string output_format;
 
         /**
          * VTU file output supports grouping files from several CPUs
@@ -381,6 +381,23 @@ namespace aspect
          * having to catch up once the time step becomes larger.
          */
         void set_next_output_time (const double current_time);
+
+        /**
+         * Record that the mesh changed. This helps some output
+         * writers avoid writing the same mesh multiple times.
+         */
+        void mesh_changed_signal ();
+
+        /**
+         * Whether the mesh changed since the last output.
+         */
+        bool mesh_changed;
+
+        /**
+         * The most recent name of the mesh file, used to avoid
+         * redundant mesh output.
+         */
+        std::string last_mesh_file_name;
 
         /**
          * Handle to a thread that is used to write data in the
@@ -416,6 +433,13 @@ namespace aspect
          * time inside the .pvtu or .vtu files).
          */
         std::vector<std::pair<double,std::string> > times_and_pvtu_names;
+
+        /**
+         * A list of list of filenames, sorted by timestep, that correspond
+         * to what has been created as output. This is used to create a master
+         * .visit file for the entire simulation.
+         */
+        std::vector<std::vector<std::string> > output_file_names_by_timestep;
 
         /**
          * A set of data related to XDMF file sections describing the HDF5 heavy data

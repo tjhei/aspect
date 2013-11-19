@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012 by the authors of the ASPECT code.
+  Copyright (C) 2011, 2012, 2013 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -33,6 +33,7 @@
 
 #include <math.h>
 #include <stdio.h>
+#include <unistd.h>
 
 namespace aspect
 {
@@ -96,6 +97,14 @@ namespace aspect
 
 
     template <int dim>
+    void Visualization<dim>::mesh_changed_signal()
+    {
+      mesh_changed = true;
+    }
+
+
+
+    template <int dim>
     std::pair<std::string,std::string>
     Visualization<dim>::execute (TableHandler &statistics)
     {
@@ -103,7 +112,9 @@ namespace aspect
       // to the current time. this makes sure we always produce data during
       // the first time step
       if (std::isnan(next_output_time))
-        next_output_time = this->get_time();
+        {
+          next_output_time = this->get_time();
+        }
 
       // see if graphical output is requested at this time
       if (this->get_time() < next_output_time)
@@ -230,16 +241,42 @@ namespace aspect
       data_out.build_patches ();
 
       std::string solution_file_prefix = "solution-" + Utilities::int_to_string (output_file_number, 5);
+      std::string mesh_file_prefix = "mesh-" + Utilities::int_to_string (output_file_number, 5);
       if (output_format=="hdf5")
         {
-          std::string     h5_filename = solution_file_prefix + ".h5";
+          XDMFEntry new_xdmf_entry;
+          std::string     h5_solution_file_name = solution_file_prefix + ".h5";
           std::string     xdmf_filename = this->get_output_directory() + "solution.xdmf";
-          data_out.write_hdf5_parallel((this->get_output_directory()+h5_filename).c_str(),
+
+          // Filter redundant values if the functionality is available in the current
+          // version of deal.II, otherwise use the old data format
+#if DEAL_II_VERSION_MAJOR*100 + DEAL_II_VERSION_MINOR > 800
+          DataOutBase::DataOutFilter   data_filter(DataOutBase::DataOutFilterFlags(true, true));
+
+          // If the mesh changed since the last output, make a new mesh file
+          if (mesh_changed) last_mesh_file_name = mesh_file_prefix + ".h5";
+          data_out.write_filtered_data(data_filter);
+          data_out.write_hdf5_parallel(data_filter,
+                                       mesh_changed,
+                                       (this->get_output_directory()+last_mesh_file_name).c_str(),
+                                       (this->get_output_directory()+h5_solution_file_name).c_str(),
                                        this->get_mpi_communicator());
-          xdmf_entries.push_back(data_out.create_xdmf_entry(h5_filename.c_str(), this->get_time(),
-                                                            this->get_mpi_communicator()));
+          new_xdmf_entry = data_out.create_xdmf_entry(data_filter,
+                                                      last_mesh_file_name.c_str(),
+                                                      h5_solution_file_name.c_str(),
+                                                      this->get_time(),
+                                                      this->get_mpi_communicator());
+#else
+          data_out.write_hdf5_parallel((this->get_output_directory()+h5_solution_file_name).c_str(),
+                                       this->get_mpi_communicator());
+          new_xdmf_entry = data_out.create_xdmf_entry(h5_solution_file_name.c_str(),
+                                                      this->get_time(),
+                                                      this->get_mpi_communicator());
+#endif
+          xdmf_entries.push_back(new_xdmf_entry);
           data_out.write_xdmf_file(xdmf_entries, xdmf_filename.c_str(),
                                    this->get_mpi_communicator());
+          mesh_changed = false;
         }
       else if ((output_format=="vtu") && (group_files!=0))
         {
@@ -268,13 +305,21 @@ namespace aspect
               std::ofstream pvd_master (pvd_master_filename.c_str());
               data_out.write_pvd_record (pvd_master, times_and_pvtu_names);
 
-              // finally, do the same for Visit via the .visit file
+              // finally, do the same for Visit via the .visit file for this
+              // time step, as well as for all time steps together
               const std::string
               visit_master_filename = (this->get_output_directory() +
                                        solution_file_prefix +
                                        ".visit");
               std::ofstream visit_master (visit_master_filename.c_str());
               data_out.write_visit_record (visit_master, filenames);
+
+              output_file_names_by_timestep.push_back (filenames);
+#if (DEAL_II_MAJOR*100 + DEAL_II_MINOR) > 800
+              std::ofstream global_visit_master ((this->get_output_directory() +
+                                                  "solution.visit").c_str());
+              data_out.write_visit_record (global_visit_master, output_file_names_by_timestep);
+#endif
             }
         }
       else
@@ -325,13 +370,21 @@ namespace aspect
               std::ofstream pvd_master (pvd_master_filename.c_str());
               data_out.write_pvd_record (pvd_master, times_and_pvtu_names);
 
-              // finally, do the same for Visit via the .visit file
+              // finally, do the same for Visit via the .visit file for this
+              // time step, as well as for all time steps together
               const std::string
               visit_master_filename = (this->get_output_directory() +
                                        solution_file_prefix +
                                        ".visit");
               std::ofstream visit_master (visit_master_filename.c_str());
               data_out.write_visit_record (visit_master, filenames);
+
+              output_file_names_by_timestep.push_back (filenames);
+#if (DEAL_II_MAJOR*100 + DEAL_II_MINOR) > 800
+              std::ofstream global_visit_master ((this->get_output_directory() +
+                                                  "solution.visit").c_str());
+              data_out.write_visit_record (global_visit_master, output_file_names_by_timestep);
+#endif
             }
 
           const std::string *filename
@@ -374,65 +427,93 @@ namespace aspect
     {
       // write stuff into a (hopefully local) tmp file first. to do so first
       // find out whether $TMPDIR is set and if so put the file in there
-      char tmp_filename[1025], *tmp_filedir;
-      int tmp_file_desc;
-      FILE *out_fp;
-      static bool wrote_warning = false;
-      bool using_bg_tmp = true;
+      std::string tmp_filename;
 
       {
         // Try getting the environment variable for the temporary directory
-        tmp_filedir = getenv("TMPDIR");
+        const char *tmp_filedir = getenv("TMPDIR");
         // If we can't, default to /tmp
-        sprintf(tmp_filename, "%s/tmp.XXXXXX", (tmp_filedir?tmp_filedir:"/tmp"));
-        // Create the temporary file
-        tmp_file_desc = mkstemp(tmp_filename);
+        if (tmp_filedir)
+          tmp_filename = tmp_filedir;
+        else
+          tmp_filename = "/tmp";
+        tmp_filename += "/aspect.tmp.XXXXXX";
+
+        // Create the temporary file; get at the actual filename
+        // by using a C-style string that mkstemp will then overwrite
+        char *tmp_filename_x = new char[tmp_filename.size()+1];
+        std::strcpy(tmp_filename_x, tmp_filename.c_str());
+        const int tmp_file_desc = mkstemp(tmp_filename_x);
+        tmp_filename = tmp_filename_x;
+        delete tmp_filename_x;
 
         // If we failed to create the temp file, just write directly to the target file
         if (tmp_file_desc == -1)
           {
-            if (!wrote_warning)
-              std::cerr << "***** WARNING: could not create temporary file, will "
-                        "output directly to final location. This may negatively "
-                        "affect performance." << std::endl;
-            wrote_warning = true;
-
-            // Set the filename to be the specified input name
-            sprintf(tmp_filename, "%s", filename->c_str());
-            out_fp = fopen(tmp_filename, "w");
-            using_bg_tmp = false;
-          }
-        else
-          {
-            out_fp = fdopen(tmp_file_desc, "w");
-          }
-      }
-
-      // write the data into the file
-      {
-        if (!out_fp)
-          {
-            std::cerr << "***** ERROR: could not create " << tmp_filename
-                      << " *****"
+            std::cerr << "***** WARNING: could not create temporary file, will "
+                      "output directly to final location. This may negatively "
+                      "affect performance."
+                      " (On processor "
+                      << Utilities::MPI::this_mpi_process (MPI_COMM_WORLD) << ".)"
                       << std::endl;
-          }
-        else
-          {
-            fprintf(out_fp, "%s", file_contents->c_str());
-            fclose(out_fp);
+
+            tmp_filename = *filename;
           }
       }
 
-      if (using_bg_tmp)
+      // open the file. if we can't open it, abort if this is the "real"
+      // file. re-try with the "real" file if we had tried to write to
+      // a temporary file
+    re_try_with_non_tmp_file:
+      std::ofstream out (tmp_filename.c_str());
+      if (!out)
         {
-          // now move the file to its final destination on the global file system
+          if (tmp_filename == *filename)
+            AssertThrow (false, ExcMessage(std::string("Trying to write to file <") +
+                                           *filename +
+                                           " but the file can't be opened!"))
+            else
+              {
+                tmp_filename = *filename;
+                goto re_try_with_non_tmp_file;
+              }
+        }
+
+      // now write and then move the tmp file to its final destination
+      // if necessary
+      out << *file_contents;
+
+      if (tmp_filename != *filename)
+        {
           std::string command = std::string("mv ") + tmp_filename + " " + *filename;
+
+          bool first_attempt = true;
+
+        re_try:
           int error = system(command.c_str());
+
+          // if the move failed, and this is the first time, sleep for a second in
+          // hopes that it was just an NFS timeout, then try again. if it fails the
+          // second time around, try writing to the final file directly.
           if (error != 0)
             {
-              std::cerr << "***** ERROR: could not move " << tmp_filename
-                        << " to " << *filename << " *****"
-                        << std::endl;
+              if (first_attempt == true)
+                {
+                  first_attempt = false;
+                  sleep (1);
+                  goto re_try;
+                }
+              else
+                {
+                  std::cerr << "***** WARNING: could not move " << tmp_filename
+                            << " to " << *filename << ". Trying again to write directly to "
+                            << *filename
+                            << ". (On processor "
+                            << Utilities::MPI::this_mpi_process (MPI_COMM_WORLD) << ".)"
+                            << std::endl;
+                  tmp_filename = *filename;
+                  goto re_try_with_non_tmp_file;
+                }
             }
         }
 
@@ -583,7 +664,14 @@ namespace aspect
     {
       ar &next_output_time
       & output_file_number
-      & times_and_pvtu_names;
+      & times_and_pvtu_names
+      & output_file_names_by_timestep
+      & mesh_changed
+      & last_mesh_file_name
+#if DEAL_II_VERSION_MAJOR*100 + DEAL_II_VERSION_MINOR > 800
+      & xdmf_entries
+#endif
+      ;
     }
 
 
@@ -657,6 +745,10 @@ namespace aspect
         // solution variables to compute what they compute
         if (SimulatorAccess<dim> *x = dynamic_cast<SimulatorAccess<dim>*>(& **p))
           x->initialize (simulator);
+
+      // Also set up a listener to check when the mesh changes
+      mesh_changed = true;
+      this->get_triangulation().signals.post_refinement.connect(std_cxx1x::bind(&Visualization::mesh_changed_signal, std_cxx1x::ref(*this)));
     }
 
 

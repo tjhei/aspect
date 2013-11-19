@@ -559,7 +559,7 @@ physical units. On the other hand, there are also downsides:
   example, it is clear that we get the same behavior if one increases both the
   viscosity and the thermal expansion coefficient by a factor of two because the
   resulting Rayleigh number; similarly, if we were to increase the size of the
-  domain by 2 and thermal diffusion coefficient by a factor of 8. In both of
+  domain by a factor of 2 and thermal diffusion coefficient by a factor of 8. In both of
   these cases, the non-dimensional equations are exactly the same. On the other
   hand, the equations in their physical unit form are different and one may not
   see that the result of this variations in coefficients will be exactly the
@@ -601,8 +601,8 @@ physical units. On the other hand, there are also downsides:
   temperature and strain rate from non-dimensional to physical units, look up
   the corresponding viscosity in a table, and then convert the viscosity back to
   non-dimensional quantities. Getting this right at every one of the dozens or
-  hundreds of places inside a program, using the correct (but distinct)
-  conversion factors for each of these quantities, is a challenge and a source
+  hundreds of places inside a program and using the correct (but distinct)
+  conversion factors for each of these quantities is both a challenge and a possible source
   of errors.
 
   \item From a mathematical viewpoint, it is typically clear how an equation
@@ -725,7 +725,7 @@ We do note that most of the codes available today and that we are aware of
 split the pressure into static and dynamic parts nevertheless, either
 internally or require the user to specify the density profile as the
 difference between the true and the hydrostatic density. This may, in part, be
-due to the fact that historically most codes where written to solve problems
+due to the fact that historically most codes were written to solve problems
 in which the medium was considered incompressible, i.e., where the definition
 of a static density was simple.
 
@@ -1397,6 +1397,7 @@ total 780
 -rw------- 1 b     35 Dec  1 15:13 solution-00001.visit
 ...
 -rw-r--r-- 1 b    997 Dec  1 15:13 solution.pvd
+-rw-r--r-- 1 b    997 Dec  1 15:13 solution.visit
 -rw------- 1 b    924 Dec  1 15:13 statistics
 \end{lstlisting}
 The purpose of these files is as follows:
@@ -1445,21 +1446,27 @@ The purpose of these files is as follows:
   simply creates both kinds of files in each time step in which graphical data
   is produced.
 
-  The final file of this kind, \texttt{solution.pvd} is a file that
-  describes to Paraview which \texttt{solution-xxxx.pvtu} jointly form
-  a complete simulation by listing the \texttt{.pvtu} files of all
-  timesteps together with the simulation time to which they correspond.
+  The final two files of this kind, \texttt{solution.pvd} and
+  \texttt{solution.visit}, are files that
+  describes to Paraview and Visit, respectively, which
+  \texttt{solution-xxxx.pvtu} and \texttt{solution-xxxx.yyyy.vtu} jointly form 
+  a complete simulation. In the former case, the file lists the \texttt{.pvtu}
+  files of all 
+  timesteps together with the simulation time to which they correspond. In the
+  latter case, it actually lists all \texttt{.vtu} that belong to one
+  simulation, grouped by the timestep they correspond to.
   To visualize an entire simulation, not just a single time step, it is
-  therefore simplest to just load this \texttt{solution.pvd} file.
+  therefore simplest to just load one of these files, depending on whether you
+  use Paraview or Visit.%
+  \footnote{At the time of writing this, current versions of Visit (starting
+    with version 2.5.1) actually have a bug that prevents them from
+    successfully reading the \texttt{solution.visit} or
+    \texttt{solution-xxxx.visit} files -- Visit believes that each of these
+    files corresponds to an individual time step, rather than that a whole
+    group of files together form one time step. This bug is not fixed in Visit
+    2.6.3, but may be fixed in later versions.}
 
-  The final file of this kind, \texttt{solution.pvd} is a file that
-  describes to Paraview which \texttt{solution-xxxx.pvtu} jointly form
-  a complete simulation by listing the \texttt{.pvtu} files of all
-  timesteps together with the simulation time to which they correspond.
-  To visualize an entire simulation, not just a single time step, it is
-  therefore simplest to just load this \texttt{solution.pvd} file.
-
-  For more on visualization, see Section~\ref{sec:viz}.
+  For more on visualization, see also Section~\ref{sec:viz}.
 
 \item \textit{A statistics file:} The \texttt{output/statistics} file contains
   statistics collected during each time step, both from within the simulator
@@ -1666,7 +1673,7 @@ region (see the ``cookbooks'' section, Section~\ref{sec:cookbooks}, and in
 particular Section~\ref{sec:cookbooks-simple-box} for
 the input file for this particular model). We can run the program with 4 processors using
 \begin{verbatim}
-  mpirun -np 4 ./aspect box.prm
+  mpirun -np 4 ./aspect cookbooks/convection-box.prm
 \end{verbatim}
 Letting the program run for a while will result in several output files as
 discussed in Section~\ref{sec:running-overview} above.
@@ -4728,8 +4735,8 @@ following two steps:
   can then be selected in an input file. In fact, this is true for
   all of the plugins we have: by and large, they just receive some data
   from the simulator and do something with it (e.g., postprocessors), or they
-  just provide information (e.g., initial meshes, gravity models), but they
-  writing either does not imply that you have even fundamental understanding
+  just provide information (e.g., initial meshes, gravity models), but their
+  writing does not require that you have a fundamental understanding
   of what the core of the program does.
 \end{itemize}
 
@@ -4912,7 +4919,7 @@ do:
   achieved:
   \begin{itemize}
     \item Put the \texttt{my\_plugin.cc} into one of the \aspect{} source
-    directories and list it in the \texttt{source/CMakeLists.txt} file to ensure
+    directories and call \texttt{cmake .} followed by \texttt{make} to ensure
     that it actually gets compiled. This approach has the advantage that you do
     not need to worry much about how the file actually gets compiled. On the
     other hand, every time you modify the file, calling \texttt{make} requires
@@ -5738,6 +5745,45 @@ There are numerous postprocessors already implemented. If you want to
 implement a new one, it would be helpful to look at the existing ones to see
 how they implement their functionality.
 
+\paragraph{Postprocessors and checkpoint/restart.} Postprocessors have
+\texttt{save()} and \texttt{load()} functions that are used to write the data
+a postprocessor has into a checkpoint file, and to load it again upon
+restart. This is important since many postprocessors store some state -- say,
+a temporal average over all the time steps seen so far, or the number of the
+last graphical output file generated so that we know how the next one needs
+to be numbered. 
+
+The typical case is that this state is the same across all processors of a
+parallel computation. Consequently, what \aspect{} writes into the checkpoint
+file is only the state obtained from the postprocessors on processor 0 of a
+parallel computation. On restart, all processors read from the same file and
+the postprocessors on \textit{all} processors will be initialized by what the
+same postprocessor on processor 0 wrote.
+
+There are situations where postprocessors do in fact store complementary
+information on different processors. At the time of writing this, one example
+is the postprocessor that supports advecting passive particles along the
+velocity field: on every processor, it handles only those particles that lie
+inside the part of the domain that is owned by this MPI rank. The
+serialization approach outlined above can not work in this case, for obvious
+reasons. In cases like this, one needs to implement the \texttt{save()} and
+\texttt{load()} differently than usual: one needs to put all variables that
+are common across processors into the maps of string as usual, but one then
+also needs to save all state that is different across processors, from all
+processors. There are two ways: If the amount of data is small, you can use
+MPI communications to send the state of all processors to processor zero, and
+have processor zero store it in the result so that it gets written into the
+checkpoint file; in the \texttt{load()} function, you will then have to
+identify which part of the text written by processor 0 is relevant to the
+current processor. Or, if your postprocessor stores a large amount of data, you
+may want to open a restart file specifically for this postprocessor, use MPI
+I/O or other ways to write into it, and do the reverse operation in
+\texttt{load()}.
+
+Note that this approach requires that \aspect{} actually calls the
+\texttt{save()} function on all processors. This in fact happens -- though
+\aspect{} also discards the result on all but processor zero.
+
 
 \subsubsection{Visualization postprocessors}
 \label{sec:viz-postpostprocessors}
@@ -5907,7 +5953,7 @@ problem is that mesh refinement criteria either can refine based on some
 variable such as the temperature, the pressure, the velocity, or a compositional
 field, but that oftentimes this by itself is not quite what one wants. For
 example, we know that Earth has discontinuities, e.g., at 440km and 610km depth.
-In these places, densities and other material properties suddently change. Their
+In these places, densities and other material properties suddenly change. Their
 resolution in computation models is important as we know that they affect
 convection patterns. At the same time, there is only a small effect on the
 primary variables in a computation -- maybe a jump in the second or third

@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012 by the authors of the ASPECT code.
+  Copyright (C) 2011, 2012, 2013 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -776,8 +776,8 @@ namespace aspect
          * @param in
          * @param out
          */
-        void evaluate(const struct Interface<dim>::MaterialModelInputs &in, struct Interface<dim>::MaterialModelOutputs &out) const;
-
+        void evaluate(const typename Interface<dim>::MaterialModelInputs &in,
+		      typename Interface<dim>::MaterialModelOutputs &out) const;
     };
 
 

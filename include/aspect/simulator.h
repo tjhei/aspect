@@ -159,6 +159,7 @@ namespace aspect
 
         NonlinearSolverKind            nonlinear_solver;
 
+        double                         nonlinear_tolerance;
         bool                           resume_computation;
         double                         start_time;
         double                         CFL_number;
@@ -189,7 +190,12 @@ namespace aspect
         std::set<types::boundary_id> fixed_composition_boundary_indicators;
         std::set<types::boundary_id> zero_velocity_boundary_indicators;
         std::set<types::boundary_id> tangential_velocity_boundary_indicators;
-        std::map<types::boundary_id, std::string> prescribed_velocity_boundary_indicators;
+        /**
+         * map from boundary id to a pair "components", "velocity boundary type",
+         * where components is of the format "[x][y][z]" and the velocity type
+         * is mapped to one of the plugins of velocity boundary conditions (e.g. "function")
+         */
+        std::map<types::boundary_id, std::pair<std::string,std::string> > prescribed_velocity_boundary_indicators;
         /**
          * @}
          */
@@ -740,6 +746,11 @@ namespace aspect
       void make_pressure_rhs_compatible(LinearAlgebra::BlockVector &vector);
 
       /**
+       * Fills a vector with the artificial viscosity for the temperature on each local cell
+       */
+      void get_artificial_viscosity (Vector<float> &viscosity_per_cell) const;
+
+      /**
        * Internal routine to compute the depth average of a certain quantitiy.
        * The functor @p fctr should implement:
        * 1. bool need_material_properties()
@@ -1125,7 +1136,7 @@ namespace aspect
       LinearAlgebra::BlockVector                                old_old_solution;
       LinearAlgebra::BlockVector                                system_rhs;
 
-      TrilinosWrappers::MPI::BlockVector                        current_linearization_point;
+      LinearAlgebra::BlockVector                                current_linearization_point;
 
       // only used if is_compressible()
       LinearAlgebra::BlockVector                                pressure_shape_function_integrals;

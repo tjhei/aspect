@@ -7,6 +7,11 @@ MACRO(SET_IF_EMPTY _variable _value)
   ENDIF()
 ENDMACRO()
 
+# set a time limit of 10 minutes per test. this should be long
+# enough even for long-running tests, and short enough to not
+# get into trouble should we have an infinite loop.
+SET_IF_EMPTY(TEST_TIME_LIMIT 600)
+
 ############################3
 
 ADD_CUSTOM_TARGET(tests)
@@ -17,7 +22,7 @@ SET_IF_EMPTY(DEAL_II_DIFF "numdiff -a 1e-6 -q -s \" \\t\\n:\"")
 
 FILE(GLOB _tests *.prm)
 FOREACH(_test ${_tests})
-  GET_FILENAME_COMPONENT(_test ${_test} NAME_WE) 
+  GET_FILENAME_COMPONENT(_test ${_test} NAME_WE)
   MESSAGE(STATUS "Adding test ${_test}")
 
   IF(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/${_test}.cc)
@@ -30,15 +35,15 @@ FOREACH(_test ${_tests})
 
   FILE(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/output-${_test})
   ADD_CUSTOM_COMMAND(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/output-${_test}/screen-output
-    COMMAND aspect ${CMAKE_CURRENT_SOURCE_DIR}/${_test}.prm 
-            > ${CMAKE_CURRENT_BINARY_DIR}/output-${_test}/screen-output
+    COMMAND aspect ${CMAKE_CURRENT_SOURCE_DIR}/${_test}.prm
+            > ${CMAKE_CURRENT_BINARY_DIR}/output-${_test}/screen-output 2>&1
     COMMAND ${PERL_EXECUTABLE} -pi
               ${CMAKE_CURRENT_SOURCE_DIR}/normalize.pl
               ${CMAKE_CURRENT_BINARY_DIR}/output-${_test}/*
     DEPENDS aspect ${CMAKE_CURRENT_SOURCE_DIR}/${_test}.prm ${_testdepends}
     )
 
-  ADD_CUSTOM_TARGET(${_test}.run 
+  ADD_CUSTOM_TARGET(${_test}.run
     DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/output-${_test}/screen-output
     )
 
@@ -50,15 +55,15 @@ FOREACH(_test ${_tests})
   # this test, create targets that
   # - create a 'output.notime' file
   # - diff this file with the saved one and save the result
-  FILE(GLOB _outputs ${CMAKE_CURRENT_SOURCE_DIR}/${_test}/*)
+  FILE(GLOB _outputs ${CMAKE_CURRENT_SOURCE_DIR}/${_test}/[a-zA-Z0-9]*)
   FOREACH(_output ${_outputs})
-    GET_FILENAME_COMPONENT(_output ${_output} NAME) 
+    GET_FILENAME_COMPONENT(_output ${_output} NAME)
 
     # create the output.notime target
     ADD_CUSTOM_COMMAND(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/output-${_test}/${_output}.notime
       COMMAND
 	cat ${CMAKE_CURRENT_BINARY_DIR}/output-${_test}/${_output}
-        | egrep -v '^\\|' 
+        | egrep -v '^\\|'
         > ${CMAKE_CURRENT_BINARY_DIR}/output-${_test}/${_output}.notime
       DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/output-${_test}/screen-output
     )
@@ -73,6 +78,10 @@ FOREACH(_test ${_tests})
         else
 	  mv ${CMAKE_CURRENT_BINARY_DIR}/output-${_test}/${_output}.diff
              ${CMAKE_CURRENT_BINARY_DIR}/output-${_test}/${_output}.diff.failed \;
+          echo "******* Error during diffing output results for ${_test}/${_output}" \;
+          echo "******* Results are stored in ${CMAKE_CURRENT_BINARY_DIR}/output-${_test}/${_output}.diff.failed" \;
+          echo "******* Diffs are:" \;
+          cat ${CMAKE_CURRENT_BINARY_DIR}/output-${_test}/${_output}.diff.failed \;
 	  false \;
         fi
       DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/${_test}/${_output}
@@ -80,10 +89,10 @@ FOREACH(_test ${_tests})
     )
 
     # add the target for this output file to the dependencies of this test
-    ADD_CUSTOM_TARGET(${_test}.${_output}.diff 
+    ADD_CUSTOM_TARGET(${_test}.${_output}.diff
       DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/output-${_test}/${_output}.diff
       )
-    ADD_DEPENDENCIES(tests.${_test} 
+    ADD_DEPENDENCIES(tests.${_test}
                      ${_test}.${_output}.diff)
   ENDFOREACH()
 
@@ -98,6 +107,9 @@ FOREACH(_test ${_tests})
           -DERROR="Test ${_test} failed"
           -P ${CMAKE_SOURCE_DIR}/tests/run_test.cmake
         WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
+    )
+  SET_TESTS_PROPERTIES(${_test} PROPERTIES
+	TIMEOUT ${TEST_TIME_LIMIT}
     )
 ENDFOREACH()
 

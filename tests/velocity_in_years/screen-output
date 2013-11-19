@@ -1,10 +1,11 @@
+Running with 1 MPI tasks.
 Number of active cells: 64 (on 4 levels)
 Number of degrees of freedom: 948 (578+81+289)
 
 *** Timestep 0:  t=0 years
-   Solving temperature system... 1 iterations.
+   Solving temperature system... 0 iterations.
    Rebuilding Stokes preconditioner...
-   Solving Stokes system... 7 iterations.
+   Solving Stokes system... 5 iterations.
 
    Postprocessing:
 
@@ -20,24 +21,12 @@ Number of degrees of freedom: 948 (578+81+289)
      reference_cp:                                  1250
      reference_thermal_diffusivity:                 8e-10
 
-     RMS, max velocity: 0.34 m/year, 1.02 m/year
+     RMS, max velocity: 0.362 m/year, 1.02 m/year
 
 Termination requested by criterion: end time
 
 
 +---------------------------------------------+------------+------------+
-| Total wallclock time elapsed since start    |      1.38s |            |
-|                                             |            |            |
-| Section                         | no. calls |  wall time | % of total |
 +---------------------------------+-----------+------------+------------+
-| Assemble Stokes system          |         1 |    0.0945s |       6.8% |
-| Assemble temperature system     |         1 |     0.372s |        27% |
-| Build Stokes preconditioner     |         1 |    0.0866s |       6.3% |
-| Build temperature preconditioner|         1 |   0.00281s |       0.2% |
-| Solve Stokes system             |         1 |    0.0246s |       1.8% |
-| Solve temperature system        |         1 |     0.002s |      0.14% |
-| Initialization                  |         2 |     0.133s |       9.6% |
-| Postprocessing                  |         1 |    0.0197s |       1.4% |
-| Setup dof systems               |         1 |     0.418s |        30% |
 +---------------------------------+-----------+------------+------------+
 

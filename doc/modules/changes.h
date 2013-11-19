@@ -8,7 +8,55 @@ All entries are signed with the names of the author.
 </p>
 
 <ol>
-  <li>New: Aspect now supports periodic domains (recent dev. version of deal.II
+  <li>New: It is now possible to prescribe the velocity only for certain
+  components in the 'Prescribed velocity boundary indicators' parameter.
+  <br>
+  (Timo Heister 2013/11/08)
+
+  <li>New: the "iterated Stokes" nonlinear solver will now stop iterating
+  if the residual is smaller than the new "Nonlinear solver tolerance".
+  <br>
+  (Timo Heister 2013/11/02)
+
+  <li>New: add a visual postprocessor that outputs the artificial
+  viscosity parameter for the temperature equation on each cell.
+  <br>
+  (Timo Heister 2013/10/28)
+
+  <li>Fixed: moved particle generation to a class, changed particle 
+  integration and generation to be factory patterned classes. There
+  should be no effect on the user but this will allow for easier
+  extension of particle functionality in the future.
+  <br>
+  (Eric Heien 2013/10/14)
+
+  <li>New: Aspect now not only generates a <code>solution-NNNNN.visit</code>
+  file for each time step but also a global <code>solution.visit</code> file
+  that Visit can use to visualize the entire time dependent solution. (Both
+  of these work with versions of Visit that support this, including Visit 2.5.0.
+  Unfortunately, versions of Visit between 2.5.1 and the version current at
+  the time of writing this, 2.6.3, have a bug that prevents this.)
+  <br>
+  (Wolfgang Bangerth 2013/10/08)
+
+  <li>Fixed: Performance of matrix assembly has been improved significantly,
+  especially in 3d: assembly of the temperature system is up to three
+  times faster, assembly of the Stokes system up to 50%.
+  <br>
+  (Timo Heister, Thomas Geenen, Wolfgang Bangerth 2013/10/08)
+
+  <li>New: HDF5/XDMF will only output mesh data when the mesh changes,
+  reducing total data output significantly. XDMF serialization is also
+  properly implemented.
+  <br>
+  (Eric Heien, 2013/09/27)
+
+  <li>New: HDF5 output now uses DataOutFilter to remove redundant
+  vertices/values in output data.
+  <br>
+  (Eric Heien, 2013/09/27)
+
+  <li>New: Aspect now supports periodic domains (a recent development version of deal.II
   is required).
   <br>
   (Ian Rose, Timo Heister, 2013/09/11)

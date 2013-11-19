@@ -1,30 +1,19 @@
+Running with 1 MPI tasks.
 Number of active cells: 256 (on 5 levels)
 Number of degrees of freedom: 3,556 (2,178+289+1,089)
 
 *** Timestep 0:  t=0 seconds
    Solving temperature system... 0 iterations.
    Rebuilding Stokes preconditioner...
-   Solving Stokes system... 30+3 iterations.
+   Solving Stokes system... 30+4 iterations.
 
    Postprocessing:
-     Errors u_L1, p_L1, u_L2, p_L2: 1.125997e-06, 2.994143e-03, 1.670009e-06, 9.778442e-03
+     Errors u_L1, p_L1, u_L2, p_L2: 1.125998e-06, 2.994139e-03, 1.670010e-06, 9.778440e-03
 
 Termination requested by criterion: end time
 
 
 +---------------------------------------------+------------+------------+
-| Total wallclock time elapsed since start    |      2.65s |            |
-|                                             |            |            |
-| Section                         | no. calls |  wall time | % of total |
 +---------------------------------+-----------+------------+------------+
-| Assemble Stokes system          |         1 |     0.221s |       8.3% |
-| Assemble temperature system     |         1 |     0.407s |        15% |
-| Build Stokes preconditioner     |         1 |     0.193s |       7.3% |
-| Build temperature preconditioner|         1 |   0.00713s |      0.27% |
-| Solve Stokes system             |         1 |     0.344s |        13% |
-| Solve temperature system        |         1 |   0.00393s |      0.15% |
-| Initialization                  |         2 |      0.12s |       4.5% |
-| Postprocessing                  |         1 |     0.862s |        33% |
-| Setup dof systems               |         1 |     0.338s |        13% |
 +---------------------------------+-----------+------------+------------+
 

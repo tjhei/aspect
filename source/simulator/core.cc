@@ -147,7 +147,8 @@ namespace aspect
             parameters.tangential_velocity_boundary_indicators,
             std::set<types::boundary_id>()
           };
-      for (std::map<types::boundary_id,std::string>::const_iterator
+
+      for (std::map<types::boundary_id,std::pair<std::string, std::string> >::const_iterator
            p = parameters.prescribed_velocity_boundary_indicators.begin();
            p != parameters.prescribed_velocity_boundary_indicators.end();
            ++p)
@@ -188,7 +189,7 @@ namespace aspect
            p != parameters.fixed_temperature_boundary_indicators.end(); ++p)
         AssertThrow (all_boundary_indicators.find (*p)
                      != all_boundary_indicators.end(),
-                     ExcMessage ("One of the boundary indicators listed in the input file "
+                     ExcMessage ("One of the fixed boundary indicators listed in the input file "
                                  "is not used by the geometry model."));
     }
 
@@ -234,14 +235,14 @@ namespace aspect
     geometry_model->create_coarse_mesh (triangulation);
     global_Omega_diameter = GridTools::diameter (triangulation);
 
-    for (std::map<types::boundary_id,std::string>::const_iterator
+    for (std::map<types::boundary_id,std::pair<std::string,std::string> >::const_iterator
          p = parameters.prescribed_velocity_boundary_indicators.begin();
          p != parameters.prescribed_velocity_boundary_indicators.end();
          ++p)
       {
         VelocityBoundaryConditions::Interface<dim> *bv
           = VelocityBoundaryConditions::create_velocity_boundary_conditions
-            (p->second,
+            (p->second.second,
              prm,
              *geometry_model);
         if (dynamic_cast<SimulatorAccess<dim>*>(bv) != 0)
@@ -453,11 +454,36 @@ namespace aspect
            std_cxx1x::bind (&VelocityBoundaryConditions::Interface<dim>::boundary_velocity,
                             p->second,
                             std_cxx1x::_1));
+
+          // here we create a mask for interpolate_boundary_values out of the 'selector'
+          std::vector<bool> mask(introspection.component_masks.velocities.size(), false);
+          Assert(introspection.component_masks.velocities[0]==true, ExcInternalError()); // in case we ever move the velocity around
+          const std::string & comp = parameters.prescribed_velocity_boundary_indicators[p->first].first;
+
+          if (comp.length()>0)
+            {
+              for (std::string::const_iterator p=comp.begin();p!=comp.end();++p)
+                {
+                  AssertThrow(*p>='x' && *p<='z', ExcMessage("Error in selector of prescribed velocity boundary component"));
+                  AssertThrow(dim==3 || *p!='z', ExcMessage("for dim=2, prescribed velocity component z is invalid"))
+                  mask[*p-'x']=true;
+                }
+              for (unsigned int i=0;i<introspection.component_masks.velocities.size();++i)
+                mask[i] = mask[i] & introspection.component_masks.velocities[i];
+            }
+          else
+            {
+              for (unsigned int i=0;i<introspection.component_masks.velocities.size();++i)
+                  mask[i]=introspection.component_masks.velocities[i];
+
+              Assert(introspection.component_masks.velocities[0]==true, ExcInternalError()); // in case we ever move the velocity down
+            }
+
           VectorTools::interpolate_boundary_values (dof_handler,
                                                     p->first,
                                                     vel,
                                                     current_constraints,
-                                                    introspection.component_masks.velocities);
+                                                    mask);
         }
       current_constraints.close();
     }
@@ -946,7 +972,7 @@ namespace aspect
         //TODO: Trilinos sadd does not like ghost vectors even as input. Copy
         //into distributed vectors for now:
         LinearAlgebra::BlockVector distr_solution (system_rhs);
-        distr_solution = current_linearization_point;
+        distr_solution = old_solution;
         LinearAlgebra::BlockVector distr_old_solution (system_rhs);
         distr_old_solution = old_old_solution;
         distr_solution .sadd ((1 + time_step/old_time_step),
@@ -1088,13 +1114,13 @@ namespace aspect
                 }
               else
                 {
-//TODO: make this a parameter in the input file
                   double max = 0.0;
                   for (unsigned int c=0; c<parameters.n_compositional_fields; ++c)
                     max = std::max(composition_residual[c]/initial_composition_residual[c],max);
-                  if (std::max(std::max(stokes_residual/initial_stokes_residual,
-                                        temperature_residual/initial_temperature_residual),
-                               max) < 1e-3)
+                  max = std::max(stokes_residual/initial_stokes_residual, max);
+                  max = std::max(temperature_residual/initial_temperature_residual, max);
+                  pcout << "      residual: " << max << std::endl;
+                  if (max < parameters.nonlinear_tolerance)
                     break;
                 }
 
@@ -1126,8 +1152,13 @@ namespace aspect
                 = solution.block(introspection.block_indices.compositional_fields[c]);
             }
 
-          // ...and then iterate the solution
-          // of the Stokes system
+
+          // residual vector (only for the velocity)
+          LinearAlgebra::Vector residual (introspection.index_sets.system_partitioning[0], mpi_communicator);
+          LinearAlgebra::Vector tmp (introspection.index_sets.system_partitioning[0], mpi_communicator);
+
+          // ...and then iterate the solution of the Stokes system
+          double initial_stokes_residual = 0;
           for (unsigned int i=0; i< parameters.max_nonlinear_iterations; ++i)
             {
               // rebuild the matrix if it actually depends on the solution
@@ -1137,11 +1168,24 @@ namespace aspect
 
               assemble_stokes_system();
               build_stokes_preconditioner();
-              solve_stokes();
+              const double stokes_residual = solve_stokes();
+
+              if (i==0)
+                  initial_stokes_residual = stokes_residual;
+              else
+                {
+                  pcout << "      residual: " << stokes_residual/initial_stokes_residual << std::endl;
+                  if (stokes_residual/initial_stokes_residual < parameters.nonlinear_tolerance)
+                    {
+                      break; // convergence reached, exist nonlinear iteration.
+                    }
+                }
+
               current_linearization_point.block(introspection.block_indices.velocities)
                 = solution.block(introspection.block_indices.velocities);
               current_linearization_point.block(introspection.block_indices.pressure)
                 = solution.block(introspection.block_indices.pressure);
+
 
               pcout << std::endl;
             }
@@ -1162,6 +1206,18 @@ namespace aspect
   template <int dim>
   void Simulator<dim>::run ()
   {
+    {
+      const int n_tasks = Utilities::MPI::n_mpi_processes(mpi_communicator);
+      pcout << "Running with " << n_tasks << " MPI task" << (n_tasks == 1 ? "" : "s");
+#if (DEAL_II_MAJOR*100 + DEAL_II_MINOR) >= 801
+      const int n_threads = multithread_info.n_threads();
+      if (n_threads>1)
+        pcout << " using " << n_threads << " threads " << (n_tasks == 1 ? "" : "each");
+#endif
+      pcout << "." << std::endl;
+    }
+
+
     unsigned int max_refinement_level = parameters.initial_global_refinement +
                                         parameters.initial_adaptive_refinement;
     unsigned int pre_refinement_step = 0;

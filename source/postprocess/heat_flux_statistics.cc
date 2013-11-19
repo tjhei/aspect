@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012 by the authors of the ASPECT code.
+  Copyright (C) 2011, 2012, 2013 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -21,7 +21,6 @@
 
 
 #include <aspect/postprocess/heat_flux_statistics.h>
-#include <aspect/geometry_model/box.h>
 #include <aspect/simulator_access.h>
 
 #include <deal.II/base/quadrature_lib.h>
@@ -88,7 +87,14 @@ namespace aspect
                       composition_values[c]);
 
                 in.position = fe_face_values.get_quadrature_points();
-                in.strain_rate.resize(0);// we are not reading the viscosity
+
+		// since we are not reading the viscosity and the viscosity
+		// is the only coefficient that depends on the strain rate,
+		// we need not compute the strain rate. set the corresponding
+		// array to empty, to prevent accidental use and skip the
+                // evaluation of the strain rate in evaluate().
+                in.strain_rate.resize(0);
+		
                 for (unsigned int i=0; i<fe_face_values.n_quadrature_points; ++i)
                   {
                     for (unsigned int c=0; c<this->n_compositional_fields(); ++c)

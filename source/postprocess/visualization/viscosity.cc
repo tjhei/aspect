@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012 by the authors of the ASPECT code.
+  Copyright (C) 2011, 2012, 2013 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -47,8 +47,8 @@ namespace aspect
       Viscosity<dim>::
       compute_derived_quantities_vector (const std::vector<Vector<double> >              &uh,
                                          const std::vector<std::vector<Tensor<1,dim> > > &duh,
-                                         const std::vector<std::vector<Tensor<2,dim> > > &dduh,
-                                         const std::vector<Point<dim> >                  &normals,
+                                         const std::vector<std::vector<Tensor<2,dim> > > &,
+                                         const std::vector<Point<dim> >                  &,
                                          const std::vector<Point<dim> >                  &evaluation_points,
                                          std::vector<Vector<double> >                    &computed_quantities) const
       {
@@ -76,7 +76,6 @@ namespace aspect
 
             for (unsigned int c=0; c<this->n_compositional_fields(); ++c)
               in.composition[q][c] = uh[q][dim+2+c];
-
           }
 
         this->get_material_model().evaluate(in, out);

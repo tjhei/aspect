@@ -56,9 +56,7 @@ Topics for preview release:
   . remove TODO on the branch
   . update the version number on the front page of doc/manual.pdf (and also on trunk!)
   . remove the various table_* postprocessors
-  . update doc/manual/parameters.tex by running aspect with doc/manual/empty.prm
-    and copying output/parameters.tex to doc/manual/parameters.tex
-    and fix things like "tecplot_binary"->"tecplot\_binary"
+  . update doc/manual/parameters.tex by "cd doc;./update_parameters.sh"
   . run
       cd doc ; make manual.pdf
   . check in doc/manual.pdf
@@ -149,3 +147,10 @@ averaged composition, non-zero average/sinking velocity)
 write tests to verify the possibility of external plugins compiled into
 shared libraries. implement ways to verify that they are compiled against
 the same version of ASPECT that they are running under.
+
+
+2013/11/04 implement "open boundary conditions" as described in "Using open
+sidewalls for modelling self-consistent lithosphere subduction dynamics",
+M. V. Chertova, T. Geenen, A. van den Berg, and W. Spakman see discussion on
+the aspect mailing list "[aspect-devel] strain rate corner values and velocity
+boundary conditions"

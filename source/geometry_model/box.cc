@@ -56,19 +56,22 @@ namespace aspect
     	  }
 
       //Tell p4est about the periodicity of the mesh.
-#if (DEAL_II_MAJOR*100 + DEAL_II_MINOR) >= 801
+				       //TODO: fix
+/*#if (DEAL_II_MAJOR*100 + DEAL_II_MINOR) >= 801
       std::vector<std_cxx1x::tuple< typename parallel::distributed::Triangulation<dim>::cell_iterator, unsigned int,
                                     typename parallel::distributed::Triangulation<dim>::cell_iterator, unsigned int> >
                                    periodicity_vector;
-      for( unsigned int i=0; i<dim; ++i)
+      for (unsigned int i=0; i<dim; ++i)
         if (periodic[i])
           GridTools::identify_periodic_face_pairs(coarse_grid, 2*i, 2*i+1, i, periodicity_vector);
 
-      coarse_grid.add_periodicity(periodicity_vector);
-#else
+      if (periodicity_vector.size() > 0)
+        coarse_grid.add_periodicity (periodicity_vector);
+	#else*/
       for( unsigned int i=0; i<dim; ++i)
-        AssertThrow(!periodic[i],"please update deal.II to the latest version to get support for periodic domains.");
-#endif
+        AssertThrow(!periodic[i],
+                    ExcMessage("Please update deal.II to the latest version to get support for periodic domains."));
+//#endif
     }
 
 
@@ -119,8 +122,8 @@ namespace aspect
     {
       const double d = maximal_depth()-position(dim-1);
 
-      Assert (d >= 0, ExcInternalError());
-      Assert (d <= maximal_depth(), ExcInternalError());
+      Assert (d >= -1e-14*std::fabs(maximal_depth()), ExcInternalError());
+      Assert (d <= (1.+1e-14)*maximal_depth(), ExcInternalError());
 
       return d;
     }
