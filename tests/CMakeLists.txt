@@ -21,6 +21,7 @@ SET_IF_EMPTY(DEAL_II_DIFF "numdiff -a 1e-6 -q -s \" \\t\\n:\"")
 
 
 FILE(GLOB _tests *.prm)
+LIST(SORT _tests)
 FOREACH(_test ${_tests})
   GET_FILENAME_COMPONENT(_test ${_test} NAME_WE)
   MESSAGE(STATUS "Adding test ${_test}")
@@ -33,8 +34,14 @@ FOREACH(_test ${_tests})
     SET(_testdepends)
   ENDIF()
 
+  # Create the output directory, then generate a rule that runs aspect and normalizes
+  # the output files. Before running aspect, delete prior content of the directory
+  # to make sure no dead files are left there (this is one way to trip up the
+  # 'terminate_user_request' test which terminates the program when a certain
+  # file appears)
   FILE(MAKE_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/output-${_test})
   ADD_CUSTOM_COMMAND(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/output-${_test}/screen-output
+    COMMAND rm ${CMAKE_CURRENT_BINARY_DIR}/output-${_test}/*
     COMMAND aspect ${CMAKE_CURRENT_SOURCE_DIR}/${_test}.prm
             > ${CMAKE_CURRENT_BINARY_DIR}/output-${_test}/screen-output 2>&1
     COMMAND ${PERL_EXECUTABLE} -pi

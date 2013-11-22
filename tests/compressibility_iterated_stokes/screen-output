@@ -1,0 +1,24 @@
+Loading shared library <./libcompressibility_iterated_stokes.so>
+
+Running with 1 MPI task.
+Number of active cells: 1,024 (on 6 levels)
+Number of degrees of freedom: 13,764 (8,450+1,089+4,225)
+
+*** Timestep 0:  t=0 seconds
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 26 iterations.
+      Nonlinear Stokes residual: 21.2064
+   Solving Stokes system... 27 iterations.
+      Nonlinear Stokes residual: 5.48482
+
+   Postprocessing:
+     Top/bottom flux:          2.718/5.009
+     Writing graphical output: output-compressibility_iterated_stokes/solution-00000
+
+Termination requested by criterion: end time
+
+
++---------------------------------------------+------------+------------+
++---------------------------------+-----------+------------+------------+
++---------------------------------+-----------+------------+------------+
+

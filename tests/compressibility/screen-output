@@ -1,15 +1,17 @@
+Loading shared library <./libcompressibility.so>
+
 Running with 1 MPI task.
-Number of active cells: 16 (on 3 levels)
-Number of degrees of freedom: 268 (162+25+81)
+Number of active cells: 1,024 (on 6 levels)
+Number of degrees of freedom: 13,764 (8,450+1,089+4,225)
 
 *** Timestep 0:  t=0 seconds
-   Solving temperature system... 0 iterations.
    Rebuilding Stokes preconditioner...
-   Solving Stokes system... 16 iterations.
+   Solving Stokes system... 26 iterations.
+      Nonlinear Stokes residual: 21.2064
 
    Postprocessing:
-     Writing graphical output:      output-inclusion_2/solution-00000
-     Errors u_L1, p_L1, u_L2, p_L2: 4.145864e-02, 5.044065e-01, 2.432442e-02, 3.912139e-01
+     Top/bottom flux:          1/2.718
+     Writing graphical output: output-compressibility/solution-00000
 
 Termination requested by criterion: end time
 

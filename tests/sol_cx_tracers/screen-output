@@ -1,4 +1,4 @@
-Running with 1 MPI tasks.
+Running with 1 MPI task.
 Number of active cells: 256 (on 5 levels)
 Number of degrees of freedom: 3,556 (2,178+289+1,089)
 
@@ -90,6 +90,13 @@ Number of degrees of freedom: 3,379 (2,070+274+1,035)
 
    Postprocessing:
      Advecting particles: done. Writing particle graphical output output-sol_cx_tracers/particles-00011
+
+*** Timestep 12:  t=100 seconds
+   Solving temperature system... 0 iterations.
+   Solving Stokes system... 27 iterations.
+
+   Postprocessing:
+     Advecting particles: done. Writing particle graphical output output-sol_cx_tracers/particles-00012
 
 Termination requested by criterion: end time
 

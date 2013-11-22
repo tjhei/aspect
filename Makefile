@@ -30,10 +30,10 @@ cmake_force:
 SHELL = /bin/sh
 
 # The CMake executable.
-CMAKE_COMMAND = /w/bangerth/share/software/cmake-2.8.9/bin/cmake
+CMAKE_COMMAND = /w/bangerth/share/software/bin/cmake
 
 # The command to remove a file.
-RM = /w/bangerth/share/software/cmake-2.8.9/bin/cmake -E remove -f
+RM = /w/bangerth/share/software/bin/cmake -E remove -f
 
 # Escaping for special characters.
 EQUALS = =
@@ -63,7 +63,7 @@ edit_cache/fast: edit_cache
 # Special rule for the target rebuild_cache
 rebuild_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake to regenerate build system..."
-	/w/bangerth/share/software/cmake-2.8.9/bin/cmake -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
+	/w/bangerth/share/software/bin/cmake -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
 .PHONY : rebuild_cache
 
 # Special rule for the target rebuild_cache
@@ -73,7 +73,7 @@ rebuild_cache/fast: rebuild_cache
 # Special rule for the target test
 test:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running tests..."
-	/w/bangerth/share/software/cmake-2.8.9/bin/ctest --force-new-ctest-process $(ARGS)
+	/w/bangerth/share/software/bin/ctest --force-new-ctest-process $(ARGS)
 .PHONY : test
 
 # Special rule for the target test
@@ -669,6 +669,84 @@ composition-passive-tracers.statistics.diff: cmake_check_build_system
 composition-passive-tracers.statistics.diff/fast:
 	$(MAKE) -f tests/CMakeFiles/composition-passive-tracers.statistics.diff.dir/build.make tests/CMakeFiles/composition-passive-tracers.statistics.diff.dir/build
 .PHONY : composition-passive-tracers.statistics.diff/fast
+
+#=============================================================================
+# Target rules for targets named compressibility
+
+# Build rule for target.
+compressibility: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 compressibility
+.PHONY : compressibility
+
+# fast build rule for target.
+compressibility/fast:
+	$(MAKE) -f tests/CMakeFiles/compressibility.dir/build.make tests/CMakeFiles/compressibility.dir/build
+.PHONY : compressibility/fast
+
+#=============================================================================
+# Target rules for targets named compressibility.run
+
+# Build rule for target.
+compressibility.run: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 compressibility.run
+.PHONY : compressibility.run
+
+# fast build rule for target.
+compressibility.run/fast:
+	$(MAKE) -f tests/CMakeFiles/compressibility.run.dir/build.make tests/CMakeFiles/compressibility.run.dir/build
+.PHONY : compressibility.run/fast
+
+#=============================================================================
+# Target rules for targets named compressibility.screen-output.diff
+
+# Build rule for target.
+compressibility.screen-output.diff: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 compressibility.screen-output.diff
+.PHONY : compressibility.screen-output.diff
+
+# fast build rule for target.
+compressibility.screen-output.diff/fast:
+	$(MAKE) -f tests/CMakeFiles/compressibility.screen-output.diff.dir/build.make tests/CMakeFiles/compressibility.screen-output.diff.dir/build
+.PHONY : compressibility.screen-output.diff/fast
+
+#=============================================================================
+# Target rules for targets named compressibility_iterated_stokes
+
+# Build rule for target.
+compressibility_iterated_stokes: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 compressibility_iterated_stokes
+.PHONY : compressibility_iterated_stokes
+
+# fast build rule for target.
+compressibility_iterated_stokes/fast:
+	$(MAKE) -f tests/CMakeFiles/compressibility_iterated_stokes.dir/build.make tests/CMakeFiles/compressibility_iterated_stokes.dir/build
+.PHONY : compressibility_iterated_stokes/fast
+
+#=============================================================================
+# Target rules for targets named compressibility_iterated_stokes.run
+
+# Build rule for target.
+compressibility_iterated_stokes.run: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 compressibility_iterated_stokes.run
+.PHONY : compressibility_iterated_stokes.run
+
+# fast build rule for target.
+compressibility_iterated_stokes.run/fast:
+	$(MAKE) -f tests/CMakeFiles/compressibility_iterated_stokes.run.dir/build.make tests/CMakeFiles/compressibility_iterated_stokes.run.dir/build
+.PHONY : compressibility_iterated_stokes.run/fast
+
+#=============================================================================
+# Target rules for targets named compressibility_iterated_stokes.screen-output.diff
+
+# Build rule for target.
+compressibility_iterated_stokes.screen-output.diff: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 compressibility_iterated_stokes.screen-output.diff
+.PHONY : compressibility_iterated_stokes.screen-output.diff
+
+# fast build rule for target.
+compressibility_iterated_stokes.screen-output.diff/fast:
+	$(MAKE) -f tests/CMakeFiles/compressibility_iterated_stokes.screen-output.diff.dir/build.make tests/CMakeFiles/compressibility_iterated_stokes.screen-output.diff.dir/build
+.PHONY : compressibility_iterated_stokes.screen-output.diff/fast
 
 #=============================================================================
 # Target rules for targets named conservative_with_mpi.run
@@ -2203,6 +2281,32 @@ tests.composition-passive-tracers: cmake_check_build_system
 tests.composition-passive-tracers/fast:
 	$(MAKE) -f tests/CMakeFiles/tests.composition-passive-tracers.dir/build.make tests/CMakeFiles/tests.composition-passive-tracers.dir/build
 .PHONY : tests.composition-passive-tracers/fast
+
+#=============================================================================
+# Target rules for targets named tests.compressibility
+
+# Build rule for target.
+tests.compressibility: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 tests.compressibility
+.PHONY : tests.compressibility
+
+# fast build rule for target.
+tests.compressibility/fast:
+	$(MAKE) -f tests/CMakeFiles/tests.compressibility.dir/build.make tests/CMakeFiles/tests.compressibility.dir/build
+.PHONY : tests.compressibility/fast
+
+#=============================================================================
+# Target rules for targets named tests.compressibility_iterated_stokes
+
+# Build rule for target.
+tests.compressibility_iterated_stokes: cmake_check_build_system
+	$(MAKE) -f CMakeFiles/Makefile2 tests.compressibility_iterated_stokes
+.PHONY : tests.compressibility_iterated_stokes
+
+# fast build rule for target.
+tests.compressibility_iterated_stokes/fast:
+	$(MAKE) -f tests/CMakeFiles/tests.compressibility_iterated_stokes.dir/build.make tests/CMakeFiles/tests.compressibility_iterated_stokes.dir/build
+.PHONY : tests.compressibility_iterated_stokes/fast
 
 #=============================================================================
 # Target rules for targets named tests.conservative_with_mpi
@@ -4207,6 +4311,30 @@ source/postprocess/visualization/friction_heating.s: source/postprocess/visualiz
 source/postprocess/visualization/friction_heating.cc.s:
 	$(MAKE) -f CMakeFiles/aspect.dir/build.make CMakeFiles/aspect.dir/source/postprocess/visualization/friction_heating.cc.s
 .PHONY : source/postprocess/visualization/friction_heating.cc.s
+
+source/postprocess/visualization/melt_fraction.o: source/postprocess/visualization/melt_fraction.cc.o
+.PHONY : source/postprocess/visualization/melt_fraction.o
+
+# target to build an object file
+source/postprocess/visualization/melt_fraction.cc.o:
+	$(MAKE) -f CMakeFiles/aspect.dir/build.make CMakeFiles/aspect.dir/source/postprocess/visualization/melt_fraction.cc.o
+.PHONY : source/postprocess/visualization/melt_fraction.cc.o
+
+source/postprocess/visualization/melt_fraction.i: source/postprocess/visualization/melt_fraction.cc.i
+.PHONY : source/postprocess/visualization/melt_fraction.i
+
+# target to preprocess a source file
+source/postprocess/visualization/melt_fraction.cc.i:
+	$(MAKE) -f CMakeFiles/aspect.dir/build.make CMakeFiles/aspect.dir/source/postprocess/visualization/melt_fraction.cc.i
+.PHONY : source/postprocess/visualization/melt_fraction.cc.i
+
+source/postprocess/visualization/melt_fraction.s: source/postprocess/visualization/melt_fraction.cc.s
+.PHONY : source/postprocess/visualization/melt_fraction.s
+
+# target to generate assembly for a file
+source/postprocess/visualization/melt_fraction.cc.s:
+	$(MAKE) -f CMakeFiles/aspect.dir/build.make CMakeFiles/aspect.dir/source/postprocess/visualization/melt_fraction.cc.s
+.PHONY : source/postprocess/visualization/melt_fraction.cc.s
 
 source/postprocess/visualization/nonadiabatic_pressure.o: source/postprocess/visualization/nonadiabatic_pressure.cc.o
 .PHONY : source/postprocess/visualization/nonadiabatic_pressure.o

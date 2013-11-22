@@ -139,6 +139,7 @@ namespace aspect
     rebuild_stokes_preconditioner (true)
   {
     computing_timer.enter_section("Initialization");
+
     // first do some error checking for the parameters we got
     {
       // make sure velocity boundary indicators don't appear in multiple lists
@@ -250,7 +251,38 @@ namespace aspect
         velocity_boundary_conditions[p->first].reset (bv);
       }
 
+    // determine how to treat the pressure. we have to scale it for the solver
+    // to make velocities and pressures of roughly the same (numerical) size,
+    // and we may have to fix up the right hand side vector before solving for
+    // compressible models if there are no in-/outflow boundaries
     pressure_scaling = material_model->reference_viscosity() / geometry_model->length_scale();
+
+    std::set<types::boundary_id> open_velocity_boundary_indicators
+    = geometry_model->get_used_boundary_indicators();
+    for (std::map<types::boundary_id,std::pair<std::string,std::string> >::const_iterator
+         p = parameters.prescribed_velocity_boundary_indicators.begin();
+         p != parameters.prescribed_velocity_boundary_indicators.end();
+         ++p)
+      open_velocity_boundary_indicators.erase (p->first);
+    for (std::set<types::boundary_id>::const_iterator
+         p = parameters.zero_velocity_boundary_indicators.begin();
+         p != parameters.zero_velocity_boundary_indicators.end();
+         ++p)
+      open_velocity_boundary_indicators.erase (*p);
+    for (std::set<types::boundary_id>::const_iterator
+         p = parameters.tangential_velocity_boundary_indicators.begin();
+         p != parameters.tangential_velocity_boundary_indicators.end();
+         ++p)
+      open_velocity_boundary_indicators.erase (*p);
+//TODO: The "correct" condition would be to not do the correction for compressible
+    // models if there are either open boundaries, or if there are boundaries
+    // where the prescribed velocity is so that in- and outflux do not exactly
+    // match
+    do_pressure_rhs_compatibility_modification = (material_model->is_compressible()
+                                                  &&
+                                                  (parameters.prescribed_velocity_boundary_indicators.size() == 0)
+                                                  &&
+                                                  (open_velocity_boundary_indicators.size() == 0));
 
     // make sure that we don't have to fill every column of the statistics
     // object in each time step.
@@ -772,7 +804,7 @@ namespace aspect
     old_old_solution.reinit(introspection.index_sets.system_relevant_partitioning, mpi_communicator);
     current_linearization_point.reinit (introspection.index_sets.system_relevant_partitioning, mpi_communicator);
 
-    if (material_model->is_compressible())
+    if (do_pressure_rhs_compatibility_modification)
       pressure_shape_function_integrals.reinit (introspection.index_sets.system_partitioning, mpi_communicator);
 
     rebuild_stokes_matrix         = true;
@@ -1020,25 +1052,38 @@ namespace aspect
         }
         case NonlinearSolver::Stokes_only:
         {
-          // the Stokes matrix depends on the viscosity. if the viscosity
-          // depends on other solution variables, then after we need to
-          // update the Stokes matrix in every time step and so need to set
-          // the following flag. if we change the Stokes matrix we also
-          // need to update the Stokes preconditioner.
           unsigned int iteration = 0;
 
           do
             {
+              // the Stokes matrix depends on the viscosity. if the viscosity
+              // depends on other solution variables, then we need to
+              // update the Stokes matrix in every iteration and so need to set
+              // the rebuild_stokes_matrix flag. if we change the Stokes matrix we also
+              // need to update the Stokes preconditioner.
+              //
+              // there is a similar case where this nonlinear solver can be used, namely for
+              // compressible models. in that case, the matrix does not depend on
+              // the previous solution, but we still need to iterate since the right
+              // hand side depends on it. in those cases, the matrix does not change,
+              // but if we have to repeat computing the right hand side, we need to
+              // also rebuild the matrix if we end up with inhomogenous velocity
+              // boundary conditions (i.e., if there are prescribed velocity boundary
+              // indicators)
+              if ((stokes_matrix_depends_on_solution() == true)
+                  ||
+                  (parameters.prescribed_velocity_boundary_indicators.size() > 0))
+                rebuild_stokes_matrix = true;
               if (stokes_matrix_depends_on_solution() == true)
-                rebuild_stokes_matrix = rebuild_stokes_preconditioner = true;
+                rebuild_stokes_preconditioner = true;
 
               assemble_stokes_system();
               build_stokes_preconditioner();
               const double stokes_residual = solve_stokes();
               current_linearization_point = solution;
 
-              pcout << "stokes residual: " << stokes_residual << std::endl;
-              if (stokes_residual <1e-8)
+              pcout << "      Nonlinear Stokes residual: " << stokes_residual << std::endl;
+              if (stokes_residual < 1e-8)
                 break;
 
               ++iteration;
@@ -1046,6 +1091,8 @@ namespace aspect
           while (iteration < parameters.max_nonlinear_iterations);
           break;
         }
+
+
         case NonlinearSolver::iterated_IMPES:
         {
           double initial_temperature_residual = 0;
@@ -1096,7 +1143,7 @@ namespace aspect
 
               current_linearization_point = solution;
 
-              pcout << "   Nonlinear residuals: " << temperature_residual
+              pcout << "      Nonlinear residuals: " << temperature_residual
                     << ", " << stokes_residual;
 
               for (unsigned int c=0; c<parameters.n_compositional_fields; ++c)
@@ -1281,6 +1328,7 @@ namespace aspect
         // added to statistics later
         old_time_step = time_step;
         time_step = compute_time_step().first;
+        time_step = termination_manager.check_for_last_time_step(time_step);
 
         if (parameters.convert_to_years == true)
           statistics.add_value("Time step size (years)", time_step / year_in_seconds);

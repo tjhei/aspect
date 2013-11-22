@@ -30,10 +30,10 @@ cmake_force:
 SHELL = /bin/sh
 
 # The CMake executable.
-CMAKE_COMMAND = /w/bangerth/share/software/cmake-2.8.9/bin/cmake
+CMAKE_COMMAND = /w/bangerth/share/software/bin/cmake
 
 # The command to remove a file.
-RM = /w/bangerth/share/software/cmake-2.8.9/bin/cmake -E remove -f
+RM = /w/bangerth/share/software/bin/cmake -E remove -f
 
 # Escaping for special characters.
 EQUALS = =
@@ -63,7 +63,7 @@ edit_cache/fast: edit_cache
 # Special rule for the target rebuild_cache
 rebuild_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake to regenerate build system..."
-	/w/bangerth/share/software/cmake-2.8.9/bin/cmake -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
+	/w/bangerth/share/software/bin/cmake -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
 .PHONY : rebuild_cache
 
 # Special rule for the target rebuild_cache
@@ -73,7 +73,7 @@ rebuild_cache/fast: rebuild_cache
 # Special rule for the target test
 test:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running tests..."
-	/w/bangerth/share/software/cmake-2.8.9/bin/ctest --force-new-ctest-process $(ARGS)
+	/w/bangerth/share/software/bin/ctest --force-new-ctest-process $(ARGS)
 .PHONY : test
 
 # Special rule for the target test
@@ -600,6 +600,90 @@ composition-passive-tracers.statistics.diff: tests/CMakeFiles/composition-passiv
 composition-passive-tracers.statistics.diff/fast:
 	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/composition-passive-tracers.statistics.diff.dir/build.make tests/CMakeFiles/composition-passive-tracers.statistics.diff.dir/build
 .PHONY : composition-passive-tracers.statistics.diff/fast
+
+# Convenience name for target.
+tests/CMakeFiles/compressibility.dir/rule:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/compressibility.dir/rule
+.PHONY : tests/CMakeFiles/compressibility.dir/rule
+
+# Convenience name for target.
+compressibility: tests/CMakeFiles/compressibility.dir/rule
+.PHONY : compressibility
+
+# fast build rule for target.
+compressibility/fast:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/compressibility.dir/build.make tests/CMakeFiles/compressibility.dir/build
+.PHONY : compressibility/fast
+
+# Convenience name for target.
+tests/CMakeFiles/compressibility.run.dir/rule:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/compressibility.run.dir/rule
+.PHONY : tests/CMakeFiles/compressibility.run.dir/rule
+
+# Convenience name for target.
+compressibility.run: tests/CMakeFiles/compressibility.run.dir/rule
+.PHONY : compressibility.run
+
+# fast build rule for target.
+compressibility.run/fast:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/compressibility.run.dir/build.make tests/CMakeFiles/compressibility.run.dir/build
+.PHONY : compressibility.run/fast
+
+# Convenience name for target.
+tests/CMakeFiles/compressibility.screen-output.diff.dir/rule:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/compressibility.screen-output.diff.dir/rule
+.PHONY : tests/CMakeFiles/compressibility.screen-output.diff.dir/rule
+
+# Convenience name for target.
+compressibility.screen-output.diff: tests/CMakeFiles/compressibility.screen-output.diff.dir/rule
+.PHONY : compressibility.screen-output.diff
+
+# fast build rule for target.
+compressibility.screen-output.diff/fast:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/compressibility.screen-output.diff.dir/build.make tests/CMakeFiles/compressibility.screen-output.diff.dir/build
+.PHONY : compressibility.screen-output.diff/fast
+
+# Convenience name for target.
+tests/CMakeFiles/compressibility_iterated_stokes.dir/rule:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/compressibility_iterated_stokes.dir/rule
+.PHONY : tests/CMakeFiles/compressibility_iterated_stokes.dir/rule
+
+# Convenience name for target.
+compressibility_iterated_stokes: tests/CMakeFiles/compressibility_iterated_stokes.dir/rule
+.PHONY : compressibility_iterated_stokes
+
+# fast build rule for target.
+compressibility_iterated_stokes/fast:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/compressibility_iterated_stokes.dir/build.make tests/CMakeFiles/compressibility_iterated_stokes.dir/build
+.PHONY : compressibility_iterated_stokes/fast
+
+# Convenience name for target.
+tests/CMakeFiles/compressibility_iterated_stokes.run.dir/rule:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/compressibility_iterated_stokes.run.dir/rule
+.PHONY : tests/CMakeFiles/compressibility_iterated_stokes.run.dir/rule
+
+# Convenience name for target.
+compressibility_iterated_stokes.run: tests/CMakeFiles/compressibility_iterated_stokes.run.dir/rule
+.PHONY : compressibility_iterated_stokes.run
+
+# fast build rule for target.
+compressibility_iterated_stokes.run/fast:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/compressibility_iterated_stokes.run.dir/build.make tests/CMakeFiles/compressibility_iterated_stokes.run.dir/build
+.PHONY : compressibility_iterated_stokes.run/fast
+
+# Convenience name for target.
+tests/CMakeFiles/compressibility_iterated_stokes.screen-output.diff.dir/rule:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/compressibility_iterated_stokes.screen-output.diff.dir/rule
+.PHONY : tests/CMakeFiles/compressibility_iterated_stokes.screen-output.diff.dir/rule
+
+# Convenience name for target.
+compressibility_iterated_stokes.screen-output.diff: tests/CMakeFiles/compressibility_iterated_stokes.screen-output.diff.dir/rule
+.PHONY : compressibility_iterated_stokes.screen-output.diff
+
+# fast build rule for target.
+compressibility_iterated_stokes.screen-output.diff/fast:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/compressibility_iterated_stokes.screen-output.diff.dir/build.make tests/CMakeFiles/compressibility_iterated_stokes.screen-output.diff.dir/build
+.PHONY : compressibility_iterated_stokes.screen-output.diff/fast
 
 # Convenience name for target.
 tests/CMakeFiles/conservative_with_mpi.run.dir/rule:
@@ -2254,6 +2338,34 @@ tests.composition-passive-tracers/fast:
 .PHONY : tests.composition-passive-tracers/fast
 
 # Convenience name for target.
+tests/CMakeFiles/tests.compressibility.dir/rule:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/tests.compressibility.dir/rule
+.PHONY : tests/CMakeFiles/tests.compressibility.dir/rule
+
+# Convenience name for target.
+tests.compressibility: tests/CMakeFiles/tests.compressibility.dir/rule
+.PHONY : tests.compressibility
+
+# fast build rule for target.
+tests.compressibility/fast:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/tests.compressibility.dir/build.make tests/CMakeFiles/tests.compressibility.dir/build
+.PHONY : tests.compressibility/fast
+
+# Convenience name for target.
+tests/CMakeFiles/tests.compressibility_iterated_stokes.dir/rule:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/tests.compressibility_iterated_stokes.dir/rule
+.PHONY : tests/CMakeFiles/tests.compressibility_iterated_stokes.dir/rule
+
+# Convenience name for target.
+tests.compressibility_iterated_stokes: tests/CMakeFiles/tests.compressibility_iterated_stokes.dir/rule
+.PHONY : tests.compressibility_iterated_stokes
+
+# fast build rule for target.
+tests.compressibility_iterated_stokes/fast:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/tests.compressibility_iterated_stokes.dir/build.make tests/CMakeFiles/tests.compressibility_iterated_stokes.dir/build
+.PHONY : tests.compressibility_iterated_stokes/fast
+
+# Convenience name for target.
 tests/CMakeFiles/tests.conservative_with_mpi.dir/rule:
 	cd /w/dannberg/aspect_my_branch && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/tests.conservative_with_mpi.dir/rule
 .PHONY : tests/CMakeFiles/tests.conservative_with_mpi.dir/rule
@@ -2757,6 +2869,54 @@ velocity_in_years.statistics.diff/fast:
 	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/velocity_in_years.statistics.diff.dir/build.make tests/CMakeFiles/velocity_in_years.statistics.diff.dir/build
 .PHONY : velocity_in_years.statistics.diff/fast
 
+compressibility.o: compressibility.cc.o
+.PHONY : compressibility.o
+
+# target to build an object file
+compressibility.cc.o:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/compressibility.dir/build.make tests/CMakeFiles/compressibility.dir/compressibility.cc.o
+.PHONY : compressibility.cc.o
+
+compressibility.i: compressibility.cc.i
+.PHONY : compressibility.i
+
+# target to preprocess a source file
+compressibility.cc.i:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/compressibility.dir/build.make tests/CMakeFiles/compressibility.dir/compressibility.cc.i
+.PHONY : compressibility.cc.i
+
+compressibility.s: compressibility.cc.s
+.PHONY : compressibility.s
+
+# target to generate assembly for a file
+compressibility.cc.s:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/compressibility.dir/build.make tests/CMakeFiles/compressibility.dir/compressibility.cc.s
+.PHONY : compressibility.cc.s
+
+compressibility_iterated_stokes.o: compressibility_iterated_stokes.cc.o
+.PHONY : compressibility_iterated_stokes.o
+
+# target to build an object file
+compressibility_iterated_stokes.cc.o:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/compressibility_iterated_stokes.dir/build.make tests/CMakeFiles/compressibility_iterated_stokes.dir/compressibility_iterated_stokes.cc.o
+.PHONY : compressibility_iterated_stokes.cc.o
+
+compressibility_iterated_stokes.i: compressibility_iterated_stokes.cc.i
+.PHONY : compressibility_iterated_stokes.i
+
+# target to preprocess a source file
+compressibility_iterated_stokes.cc.i:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/compressibility_iterated_stokes.dir/build.make tests/CMakeFiles/compressibility_iterated_stokes.dir/compressibility_iterated_stokes.cc.i
+.PHONY : compressibility_iterated_stokes.cc.i
+
+compressibility_iterated_stokes.s: compressibility_iterated_stokes.cc.s
+.PHONY : compressibility_iterated_stokes.s
+
+# target to generate assembly for a file
+compressibility_iterated_stokes.cc.s:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/compressibility_iterated_stokes.dir/build.make tests/CMakeFiles/compressibility_iterated_stokes.dir/compressibility_iterated_stokes.cc.s
+.PHONY : compressibility_iterated_stokes.cc.s
+
 plugin.o: plugin.cc.o
 .PHONY : plugin.o
 
@@ -2846,6 +3006,12 @@ help:
 	@echo "... composition-passive-tracers.run"
 	@echo "... composition-passive-tracers.screen-output.diff"
 	@echo "... composition-passive-tracers.statistics.diff"
+	@echo "... compressibility"
+	@echo "... compressibility.run"
+	@echo "... compressibility.screen-output.diff"
+	@echo "... compressibility_iterated_stokes"
+	@echo "... compressibility_iterated_stokes.run"
+	@echo "... compressibility_iterated_stokes.screen-output.diff"
 	@echo "... conservative_with_mpi.run"
 	@echo "... conservative_with_mpi.screen-output.diff"
 	@echo "... conservative_with_mpi.statistics.diff"
@@ -2967,6 +3133,8 @@ help:
 	@echo "... tests.box-steady-state-terminate"
 	@echo "... tests.composition-active"
 	@echo "... tests.composition-passive-tracers"
+	@echo "... tests.compressibility"
+	@echo "... tests.compressibility_iterated_stokes"
 	@echo "... tests.conservative_with_mpi"
 	@echo "... tests.diffusion"
 	@echo "... tests.diffusion-velocity"
@@ -3003,6 +3171,12 @@ help:
 	@echo "... velocity_in_years.run"
 	@echo "... velocity_in_years.screen-output.diff"
 	@echo "... velocity_in_years.statistics.diff"
+	@echo "... compressibility.o"
+	@echo "... compressibility.i"
+	@echo "... compressibility.s"
+	@echo "... compressibility_iterated_stokes.o"
+	@echo "... compressibility_iterated_stokes.i"
+	@echo "... compressibility_iterated_stokes.s"
 	@echo "... plugin.o"
 	@echo "... plugin.i"
 	@echo "... plugin.s"
