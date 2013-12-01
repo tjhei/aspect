@@ -235,6 +235,78 @@ namespace aspect
         std::vector<double> phase_prefactors; // TODO check if length is that of the others +1
         std::vector<double> activation_enthalpies;
 
+        bool enable_melting;
+
+        /**
+         * Parameters for anhydrous melting of peridotite after Katz, 2003
+         */
+
+        // for the solidus temperature
+        double A1;   // °C
+        double A2; // °C/Pa
+        double A3; // °C/(Pa^2)
+
+        // for the lherzolite liquidus temperature
+        double B1;   // °C
+        double B2;   // °C/Pa
+        double B3; // °C/(Pa^2)
+
+        // for the liquidus temperature
+        double C1;   // °C
+        double C2;  // °C/Pa
+        double C3; // °C/(Pa^2)
+
+        // for the reaction coefficient of pyroxene
+        double r1;     // cpx/melt
+        double r2;     // cpx/melt/GPa
+        double M_cpx;  // mass fraction of pyroxene
+
+        // melt fraction exponent
+        double beta;
+
+        /**
+         * Parameters for melting of pyroxenite after Sobolev et al., 2011
+         */
+
+        // for the melting temperature
+        double D1;    // °C
+        double D2;  // °C/Pa
+        double D3; // °C/(Pa^2)
+        // for the melt-fraction dependence of productivity
+        double E1;
+        double E2;
+
+        // for the maximum melt fraction of pyroxenite
+        double F_px_max;
+
+        // the relative density of molten material (compared to solid)
+        double relative_melt_density;
+
+        /**
+         * Percentage of material that is molten. Melting model
+         * after Katz, 2003 (for peridotite) and Sobolev et al.,
+         * 2011 (for pyroxenite)
+         */
+        virtual
+        double
+        melt_fraction (const double temperature,
+                       const double pressure,
+                       const std::vector<double> &compositional_fields,
+                       const Point<dim> &position) const;
+
+        virtual
+        double
+        peridotite_melt_fraction (const double temperature,
+                                  const double pressure,
+                                  const std::vector<double> &compositional_fields,
+                                  const Point<dim> &position) const;
+
+        virtual
+        double
+        pyroxenite_melt_fraction (const double temperature,
+                                  const double pressure,
+                                  const std::vector<double> &compositional_fields,
+                                  const Point<dim> &position) const;
 
     };
 

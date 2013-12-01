@@ -1545,7 +1545,7 @@ namespace aspect
         const double latent_heat_LHS =
           (parameters.include_latent_heat && temperature_or_composition.is_temperature())
            ?
-           scratch.material_model_outputs.densities[q] *
+           - scratch.material_model_outputs.densities[q] *
            scratch.material_model_inputs.temperature[q] *
            scratch.material_model_outputs.entropy_derivative_temperature[q]
            :
@@ -1575,6 +1575,7 @@ namespace aspect
             *
             (density_c_P + latent_heat_LHS);
 
+        AssertThrow(density_c_P + latent_heat_LHS, ExcMessage("mass matrix must be positive"));
 
         const Tensor<1,dim> current_u = scratch.current_velocity_values[q];
         const double factor = (use_bdf2_scheme)? ((2*time_step + old_time_step) /
