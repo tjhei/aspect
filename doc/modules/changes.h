@@ -8,6 +8,57 @@ All entries are signed with the names of the author.
 </p>
 
 <ol>
+  <li>Fixed: When using adiabatic initial conditions with a shell geometry and
+  an opening angle of 90 degrees, the perturbation was not located where it
+  was supposed to be. This is now fixed.
+  <br>
+  (Juliane Dannberg 2013/12/02)
+
+  <li>New: There are now boundary temperature and boundary composition models
+  that simply use the initial temperature and composition as the values
+  that should hold at the boundary for all future times.
+  <br>
+  (Juliane Dannberg 2013/12/02)
+
+  <li>New: Material models can now include reactions between compositional
+  species.
+  <br>
+  (Juliane Dannberg 2013/12/01)
+
+  <li>Fixed: The shear heating term $2\eta \left(\varepsilon(\mathbf u)-
+  \frac 13 (\textrm{div}\; \mathbf u)I\right):\left(\varepsilon(\mathbf u)-
+  \frac 13 (\textrm{div}\; \mathbf u)I\right)$ was computed wrongly for
+  compressible models for which the divergence of the velocity field is
+  nonzero. This is now fixed.
+  <br>
+  (Wolfgang Bangerth 2013/11/25)
+
+  <li>Fixed: The composition and temperature statistics postprocessors
+  incorrectly computed the maximal compositional values and maximal
+  temperature if this maximum was less than or equal to zero. This
+  is now fixed.
+  <br>
+  (Wolfgang Bangerth 2013/11/25)
+
+  <li>New: One can now select in the input file that the model should
+  include latent heat. The generation of latent heat then needs to be
+  described in the material model.
+  <br>
+  (Juliane Dannberg 2013/11/24)
+
+  <li>New: It is now possible to prescribe boundary values for
+  compositional fields in cases where there is inflow through
+  a segment of the boundary. This is implemented through a set
+  of plugins for boundary values in the same way as is done for
+  temperature boundary values.
+  <br>
+  (Juliane Dannberg 2013/11/24)
+
+  <li>New: There is now a refinement criterion "topography" that makes sure
+  the mesh is always refined at the surface of the domain.
+  <br>
+  (Juliane Dannberg 2013/11/24)
+
   <li>Fixed: When using compressible models with nonlinear iterations
   such as "Stokes", "iterated IMPES" or "iterated Stokes" and prescribed
   boundary values, there were numerous bugs that should now be fixed.
@@ -44,7 +95,7 @@ All entries are signed with the names of the author.
   <br>
   (Timo Heister 2013/10/28)
 
-  <li>Fixed: moved particle generation to a class, changed particle 
+  <li>Fixed: moved particle generation to a class, changed particle
   integration and generation to be factory patterned classes. There
   should be no effect on the user but this will allow for easier
   extension of particle functionality in the future.

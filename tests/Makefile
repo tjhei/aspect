@@ -39,7 +39,7 @@ RM = /w/bangerth/share/software/bin/cmake -E remove -f
 EQUALS = =
 
 # The program to use to edit the cache.
-CMAKE_EDIT_COMMAND = /w/bangerth/share/software/cmake-2.8.9/bin/ccmake
+CMAKE_EDIT_COMMAND = /w/bangerth/share/software/bin/ccmake
 
 # The top-level source directory on which CMake was run.
 CMAKE_SOURCE_DIR = /w/dannberg/aspect_my_branch
@@ -53,7 +53,7 @@ CMAKE_BINARY_DIR = /w/dannberg/aspect_my_branch
 # Special rule for the target edit_cache
 edit_cache:
 	@$(CMAKE_COMMAND) -E cmake_echo_color --switch=$(COLOR) --cyan "Running CMake cache editor..."
-	/w/bangerth/share/software/cmake-2.8.9/bin/ccmake -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
+	/w/bangerth/share/software/bin/ccmake -H$(CMAKE_SOURCE_DIR) -B$(CMAKE_BINARY_DIR)
 .PHONY : edit_cache
 
 # Special rule for the target edit_cache
@@ -602,6 +602,90 @@ composition-passive-tracers.statistics.diff/fast:
 .PHONY : composition-passive-tracers.statistics.diff/fast
 
 # Convenience name for target.
+tests/CMakeFiles/compositional_boundary_values.run.dir/rule:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/compositional_boundary_values.run.dir/rule
+.PHONY : tests/CMakeFiles/compositional_boundary_values.run.dir/rule
+
+# Convenience name for target.
+compositional_boundary_values.run: tests/CMakeFiles/compositional_boundary_values.run.dir/rule
+.PHONY : compositional_boundary_values.run
+
+# fast build rule for target.
+compositional_boundary_values.run/fast:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/compositional_boundary_values.run.dir/build.make tests/CMakeFiles/compositional_boundary_values.run.dir/build
+.PHONY : compositional_boundary_values.run/fast
+
+# Convenience name for target.
+tests/CMakeFiles/compositional_boundary_values.screen-output.diff.dir/rule:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/compositional_boundary_values.screen-output.diff.dir/rule
+.PHONY : tests/CMakeFiles/compositional_boundary_values.screen-output.diff.dir/rule
+
+# Convenience name for target.
+compositional_boundary_values.screen-output.diff: tests/CMakeFiles/compositional_boundary_values.screen-output.diff.dir/rule
+.PHONY : compositional_boundary_values.screen-output.diff
+
+# fast build rule for target.
+compositional_boundary_values.screen-output.diff/fast:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/compositional_boundary_values.screen-output.diff.dir/build.make tests/CMakeFiles/compositional_boundary_values.screen-output.diff.dir/build
+.PHONY : compositional_boundary_values.screen-output.diff/fast
+
+# Convenience name for target.
+tests/CMakeFiles/compositional_boundary_values_02.run.dir/rule:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/compositional_boundary_values_02.run.dir/rule
+.PHONY : tests/CMakeFiles/compositional_boundary_values_02.run.dir/rule
+
+# Convenience name for target.
+compositional_boundary_values_02.run: tests/CMakeFiles/compositional_boundary_values_02.run.dir/rule
+.PHONY : compositional_boundary_values_02.run
+
+# fast build rule for target.
+compositional_boundary_values_02.run/fast:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/compositional_boundary_values_02.run.dir/build.make tests/CMakeFiles/compositional_boundary_values_02.run.dir/build
+.PHONY : compositional_boundary_values_02.run/fast
+
+# Convenience name for target.
+tests/CMakeFiles/compositional_boundary_values_02.screen-output.diff.dir/rule:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/compositional_boundary_values_02.screen-output.diff.dir/rule
+.PHONY : tests/CMakeFiles/compositional_boundary_values_02.screen-output.diff.dir/rule
+
+# Convenience name for target.
+compositional_boundary_values_02.screen-output.diff: tests/CMakeFiles/compositional_boundary_values_02.screen-output.diff.dir/rule
+.PHONY : compositional_boundary_values_02.screen-output.diff
+
+# fast build rule for target.
+compositional_boundary_values_02.screen-output.diff/fast:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/compositional_boundary_values_02.screen-output.diff.dir/build.make tests/CMakeFiles/compositional_boundary_values_02.screen-output.diff.dir/build
+.PHONY : compositional_boundary_values_02.screen-output.diff/fast
+
+# Convenience name for target.
+tests/CMakeFiles/compositional_boundary_values_03.run.dir/rule:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/compositional_boundary_values_03.run.dir/rule
+.PHONY : tests/CMakeFiles/compositional_boundary_values_03.run.dir/rule
+
+# Convenience name for target.
+compositional_boundary_values_03.run: tests/CMakeFiles/compositional_boundary_values_03.run.dir/rule
+.PHONY : compositional_boundary_values_03.run
+
+# fast build rule for target.
+compositional_boundary_values_03.run/fast:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/compositional_boundary_values_03.run.dir/build.make tests/CMakeFiles/compositional_boundary_values_03.run.dir/build
+.PHONY : compositional_boundary_values_03.run/fast
+
+# Convenience name for target.
+tests/CMakeFiles/compositional_boundary_values_03.screen-output.diff.dir/rule:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/compositional_boundary_values_03.screen-output.diff.dir/rule
+.PHONY : tests/CMakeFiles/compositional_boundary_values_03.screen-output.diff.dir/rule
+
+# Convenience name for target.
+compositional_boundary_values_03.screen-output.diff: tests/CMakeFiles/compositional_boundary_values_03.screen-output.diff.dir/rule
+.PHONY : compositional_boundary_values_03.screen-output.diff
+
+# fast build rule for target.
+compositional_boundary_values_03.screen-output.diff/fast:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/compositional_boundary_values_03.screen-output.diff.dir/build.make tests/CMakeFiles/compositional_boundary_values_03.screen-output.diff.dir/build
+.PHONY : compositional_boundary_values_03.screen-output.diff/fast
+
+# Convenience name for target.
 tests/CMakeFiles/compressibility.dir/rule:
 	cd /w/dannberg/aspect_my_branch && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/compressibility.dir/rule
 .PHONY : tests/CMakeFiles/compressibility.dir/rule
@@ -1036,6 +1120,132 @@ inclusion_adaptive.statistics.diff/fast:
 .PHONY : inclusion_adaptive.statistics.diff/fast
 
 # Convenience name for target.
+tests/CMakeFiles/no_adiabatic_heating.dir/rule:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/no_adiabatic_heating.dir/rule
+.PHONY : tests/CMakeFiles/no_adiabatic_heating.dir/rule
+
+# Convenience name for target.
+no_adiabatic_heating: tests/CMakeFiles/no_adiabatic_heating.dir/rule
+.PHONY : no_adiabatic_heating
+
+# fast build rule for target.
+no_adiabatic_heating/fast:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/no_adiabatic_heating.dir/build.make tests/CMakeFiles/no_adiabatic_heating.dir/build
+.PHONY : no_adiabatic_heating/fast
+
+# Convenience name for target.
+tests/CMakeFiles/no_adiabatic_heating.run.dir/rule:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/no_adiabatic_heating.run.dir/rule
+.PHONY : tests/CMakeFiles/no_adiabatic_heating.run.dir/rule
+
+# Convenience name for target.
+no_adiabatic_heating.run: tests/CMakeFiles/no_adiabatic_heating.run.dir/rule
+.PHONY : no_adiabatic_heating.run
+
+# fast build rule for target.
+no_adiabatic_heating.run/fast:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/no_adiabatic_heating.run.dir/build.make tests/CMakeFiles/no_adiabatic_heating.run.dir/build
+.PHONY : no_adiabatic_heating.run/fast
+
+# Convenience name for target.
+tests/CMakeFiles/no_adiabatic_heating.screen-output.diff.dir/rule:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/no_adiabatic_heating.screen-output.diff.dir/rule
+.PHONY : tests/CMakeFiles/no_adiabatic_heating.screen-output.diff.dir/rule
+
+# Convenience name for target.
+no_adiabatic_heating.screen-output.diff: tests/CMakeFiles/no_adiabatic_heating.screen-output.diff.dir/rule
+.PHONY : no_adiabatic_heating.screen-output.diff
+
+# fast build rule for target.
+no_adiabatic_heating.screen-output.diff/fast:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/no_adiabatic_heating.screen-output.diff.dir/build.make tests/CMakeFiles/no_adiabatic_heating.screen-output.diff.dir/build
+.PHONY : no_adiabatic_heating.screen-output.diff/fast
+
+# Convenience name for target.
+tests/CMakeFiles/no_adiabatic_heating_02.dir/rule:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/no_adiabatic_heating_02.dir/rule
+.PHONY : tests/CMakeFiles/no_adiabatic_heating_02.dir/rule
+
+# Convenience name for target.
+no_adiabatic_heating_02: tests/CMakeFiles/no_adiabatic_heating_02.dir/rule
+.PHONY : no_adiabatic_heating_02
+
+# fast build rule for target.
+no_adiabatic_heating_02/fast:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/no_adiabatic_heating_02.dir/build.make tests/CMakeFiles/no_adiabatic_heating_02.dir/build
+.PHONY : no_adiabatic_heating_02/fast
+
+# Convenience name for target.
+tests/CMakeFiles/no_adiabatic_heating_02.run.dir/rule:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/no_adiabatic_heating_02.run.dir/rule
+.PHONY : tests/CMakeFiles/no_adiabatic_heating_02.run.dir/rule
+
+# Convenience name for target.
+no_adiabatic_heating_02.run: tests/CMakeFiles/no_adiabatic_heating_02.run.dir/rule
+.PHONY : no_adiabatic_heating_02.run
+
+# fast build rule for target.
+no_adiabatic_heating_02.run/fast:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/no_adiabatic_heating_02.run.dir/build.make tests/CMakeFiles/no_adiabatic_heating_02.run.dir/build
+.PHONY : no_adiabatic_heating_02.run/fast
+
+# Convenience name for target.
+tests/CMakeFiles/no_adiabatic_heating_02.screen-output.diff.dir/rule:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/no_adiabatic_heating_02.screen-output.diff.dir/rule
+.PHONY : tests/CMakeFiles/no_adiabatic_heating_02.screen-output.diff.dir/rule
+
+# Convenience name for target.
+no_adiabatic_heating_02.screen-output.diff: tests/CMakeFiles/no_adiabatic_heating_02.screen-output.diff.dir/rule
+.PHONY : no_adiabatic_heating_02.screen-output.diff
+
+# fast build rule for target.
+no_adiabatic_heating_02.screen-output.diff/fast:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/no_adiabatic_heating_02.screen-output.diff.dir/build.make tests/CMakeFiles/no_adiabatic_heating_02.screen-output.diff.dir/build
+.PHONY : no_adiabatic_heating_02.screen-output.diff/fast
+
+# Convenience name for target.
+tests/CMakeFiles/no_adiabatic_heating_03.dir/rule:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/no_adiabatic_heating_03.dir/rule
+.PHONY : tests/CMakeFiles/no_adiabatic_heating_03.dir/rule
+
+# Convenience name for target.
+no_adiabatic_heating_03: tests/CMakeFiles/no_adiabatic_heating_03.dir/rule
+.PHONY : no_adiabatic_heating_03
+
+# fast build rule for target.
+no_adiabatic_heating_03/fast:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/no_adiabatic_heating_03.dir/build.make tests/CMakeFiles/no_adiabatic_heating_03.dir/build
+.PHONY : no_adiabatic_heating_03/fast
+
+# Convenience name for target.
+tests/CMakeFiles/no_adiabatic_heating_03.run.dir/rule:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/no_adiabatic_heating_03.run.dir/rule
+.PHONY : tests/CMakeFiles/no_adiabatic_heating_03.run.dir/rule
+
+# Convenience name for target.
+no_adiabatic_heating_03.run: tests/CMakeFiles/no_adiabatic_heating_03.run.dir/rule
+.PHONY : no_adiabatic_heating_03.run
+
+# fast build rule for target.
+no_adiabatic_heating_03.run/fast:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/no_adiabatic_heating_03.run.dir/build.make tests/CMakeFiles/no_adiabatic_heating_03.run.dir/build
+.PHONY : no_adiabatic_heating_03.run/fast
+
+# Convenience name for target.
+tests/CMakeFiles/no_adiabatic_heating_03.screen-output.diff.dir/rule:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/no_adiabatic_heating_03.screen-output.diff.dir/rule
+.PHONY : tests/CMakeFiles/no_adiabatic_heating_03.screen-output.diff.dir/rule
+
+# Convenience name for target.
+no_adiabatic_heating_03.screen-output.diff: tests/CMakeFiles/no_adiabatic_heating_03.screen-output.diff.dir/rule
+.PHONY : no_adiabatic_heating_03.screen-output.diff
+
+# fast build rule for target.
+no_adiabatic_heating_03.screen-output.diff/fast:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/no_adiabatic_heating_03.screen-output.diff.dir/build.make tests/CMakeFiles/no_adiabatic_heating_03.screen-output.diff.dir/build
+.PHONY : no_adiabatic_heating_03.screen-output.diff/fast
+
+# Convenience name for target.
 tests/CMakeFiles/no_flow.run.dir/rule:
 	cd /w/dannberg/aspect_my_branch && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/no_flow.run.dir/rule
 .PHONY : tests/CMakeFiles/no_flow.run.dir/rule
@@ -1216,6 +1426,34 @@ plugin.screen-output.diff: tests/CMakeFiles/plugin.screen-output.diff.dir/rule
 plugin.screen-output.diff/fast:
 	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/plugin.screen-output.diff.dir/build.make tests/CMakeFiles/plugin.screen-output.diff.dir/build
 .PHONY : plugin.screen-output.diff/fast
+
+# Convenience name for target.
+tests/CMakeFiles/refinement_topography.run.dir/rule:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/refinement_topography.run.dir/rule
+.PHONY : tests/CMakeFiles/refinement_topography.run.dir/rule
+
+# Convenience name for target.
+refinement_topography.run: tests/CMakeFiles/refinement_topography.run.dir/rule
+.PHONY : refinement_topography.run
+
+# fast build rule for target.
+refinement_topography.run/fast:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/refinement_topography.run.dir/build.make tests/CMakeFiles/refinement_topography.run.dir/build
+.PHONY : refinement_topography.run/fast
+
+# Convenience name for target.
+tests/CMakeFiles/refinement_topography.screen-output.diff.dir/rule:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/refinement_topography.screen-output.diff.dir/rule
+.PHONY : tests/CMakeFiles/refinement_topography.screen-output.diff.dir/rule
+
+# Convenience name for target.
+refinement_topography.screen-output.diff: tests/CMakeFiles/refinement_topography.screen-output.diff.dir/rule
+.PHONY : refinement_topography.screen-output.diff
+
+# fast build rule for target.
+refinement_topography.screen-output.diff/fast:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/refinement_topography.screen-output.diff.dir/build.make tests/CMakeFiles/refinement_topography.screen-output.diff.dir/build
+.PHONY : refinement_topography.screen-output.diff/fast
 
 # Convenience name for target.
 tests/CMakeFiles/shear-thinning.dir/rule:
@@ -2338,6 +2576,48 @@ tests.composition-passive-tracers/fast:
 .PHONY : tests.composition-passive-tracers/fast
 
 # Convenience name for target.
+tests/CMakeFiles/tests.compositional_boundary_values.dir/rule:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/tests.compositional_boundary_values.dir/rule
+.PHONY : tests/CMakeFiles/tests.compositional_boundary_values.dir/rule
+
+# Convenience name for target.
+tests.compositional_boundary_values: tests/CMakeFiles/tests.compositional_boundary_values.dir/rule
+.PHONY : tests.compositional_boundary_values
+
+# fast build rule for target.
+tests.compositional_boundary_values/fast:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/tests.compositional_boundary_values.dir/build.make tests/CMakeFiles/tests.compositional_boundary_values.dir/build
+.PHONY : tests.compositional_boundary_values/fast
+
+# Convenience name for target.
+tests/CMakeFiles/tests.compositional_boundary_values_02.dir/rule:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/tests.compositional_boundary_values_02.dir/rule
+.PHONY : tests/CMakeFiles/tests.compositional_boundary_values_02.dir/rule
+
+# Convenience name for target.
+tests.compositional_boundary_values_02: tests/CMakeFiles/tests.compositional_boundary_values_02.dir/rule
+.PHONY : tests.compositional_boundary_values_02
+
+# fast build rule for target.
+tests.compositional_boundary_values_02/fast:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/tests.compositional_boundary_values_02.dir/build.make tests/CMakeFiles/tests.compositional_boundary_values_02.dir/build
+.PHONY : tests.compositional_boundary_values_02/fast
+
+# Convenience name for target.
+tests/CMakeFiles/tests.compositional_boundary_values_03.dir/rule:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/tests.compositional_boundary_values_03.dir/rule
+.PHONY : tests/CMakeFiles/tests.compositional_boundary_values_03.dir/rule
+
+# Convenience name for target.
+tests.compositional_boundary_values_03: tests/CMakeFiles/tests.compositional_boundary_values_03.dir/rule
+.PHONY : tests.compositional_boundary_values_03
+
+# fast build rule for target.
+tests.compositional_boundary_values_03/fast:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/tests.compositional_boundary_values_03.dir/build.make tests/CMakeFiles/tests.compositional_boundary_values_03.dir/build
+.PHONY : tests.compositional_boundary_values_03/fast
+
+# Convenience name for target.
 tests/CMakeFiles/tests.compressibility.dir/rule:
 	cd /w/dannberg/aspect_my_branch && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/tests.compressibility.dir/rule
 .PHONY : tests/CMakeFiles/tests.compressibility.dir/rule
@@ -2464,6 +2744,48 @@ tests.inclusion_adaptive/fast:
 .PHONY : tests.inclusion_adaptive/fast
 
 # Convenience name for target.
+tests/CMakeFiles/tests.no_adiabatic_heating.dir/rule:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/tests.no_adiabatic_heating.dir/rule
+.PHONY : tests/CMakeFiles/tests.no_adiabatic_heating.dir/rule
+
+# Convenience name for target.
+tests.no_adiabatic_heating: tests/CMakeFiles/tests.no_adiabatic_heating.dir/rule
+.PHONY : tests.no_adiabatic_heating
+
+# fast build rule for target.
+tests.no_adiabatic_heating/fast:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/tests.no_adiabatic_heating.dir/build.make tests/CMakeFiles/tests.no_adiabatic_heating.dir/build
+.PHONY : tests.no_adiabatic_heating/fast
+
+# Convenience name for target.
+tests/CMakeFiles/tests.no_adiabatic_heating_02.dir/rule:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/tests.no_adiabatic_heating_02.dir/rule
+.PHONY : tests/CMakeFiles/tests.no_adiabatic_heating_02.dir/rule
+
+# Convenience name for target.
+tests.no_adiabatic_heating_02: tests/CMakeFiles/tests.no_adiabatic_heating_02.dir/rule
+.PHONY : tests.no_adiabatic_heating_02
+
+# fast build rule for target.
+tests.no_adiabatic_heating_02/fast:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/tests.no_adiabatic_heating_02.dir/build.make tests/CMakeFiles/tests.no_adiabatic_heating_02.dir/build
+.PHONY : tests.no_adiabatic_heating_02/fast
+
+# Convenience name for target.
+tests/CMakeFiles/tests.no_adiabatic_heating_03.dir/rule:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/tests.no_adiabatic_heating_03.dir/rule
+.PHONY : tests/CMakeFiles/tests.no_adiabatic_heating_03.dir/rule
+
+# Convenience name for target.
+tests.no_adiabatic_heating_03: tests/CMakeFiles/tests.no_adiabatic_heating_03.dir/rule
+.PHONY : tests.no_adiabatic_heating_03
+
+# fast build rule for target.
+tests.no_adiabatic_heating_03/fast:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/tests.no_adiabatic_heating_03.dir/build.make tests/CMakeFiles/tests.no_adiabatic_heating_03.dir/build
+.PHONY : tests.no_adiabatic_heating_03/fast
+
+# Convenience name for target.
 tests/CMakeFiles/tests.no_flow.dir/rule:
 	cd /w/dannberg/aspect_my_branch && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/tests.no_flow.dir/rule
 .PHONY : tests/CMakeFiles/tests.no_flow.dir/rule
@@ -2518,6 +2840,20 @@ tests.plugin: tests/CMakeFiles/tests.plugin.dir/rule
 tests.plugin/fast:
 	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/tests.plugin.dir/build.make tests/CMakeFiles/tests.plugin.dir/build
 .PHONY : tests.plugin/fast
+
+# Convenience name for target.
+tests/CMakeFiles/tests.refinement_topography.dir/rule:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f CMakeFiles/Makefile2 tests/CMakeFiles/tests.refinement_topography.dir/rule
+.PHONY : tests/CMakeFiles/tests.refinement_topography.dir/rule
+
+# Convenience name for target.
+tests.refinement_topography: tests/CMakeFiles/tests.refinement_topography.dir/rule
+.PHONY : tests.refinement_topography
+
+# fast build rule for target.
+tests.refinement_topography/fast:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/tests.refinement_topography.dir/build.make tests/CMakeFiles/tests.refinement_topography.dir/build
+.PHONY : tests.refinement_topography/fast
 
 # Convenience name for target.
 tests/CMakeFiles/tests.shear-thinning.dir/rule:
@@ -2917,6 +3253,78 @@ compressibility_iterated_stokes.cc.s:
 	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/compressibility_iterated_stokes.dir/build.make tests/CMakeFiles/compressibility_iterated_stokes.dir/compressibility_iterated_stokes.cc.s
 .PHONY : compressibility_iterated_stokes.cc.s
 
+no_adiabatic_heating.o: no_adiabatic_heating.cc.o
+.PHONY : no_adiabatic_heating.o
+
+# target to build an object file
+no_adiabatic_heating.cc.o:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/no_adiabatic_heating.dir/build.make tests/CMakeFiles/no_adiabatic_heating.dir/no_adiabatic_heating.cc.o
+.PHONY : no_adiabatic_heating.cc.o
+
+no_adiabatic_heating.i: no_adiabatic_heating.cc.i
+.PHONY : no_adiabatic_heating.i
+
+# target to preprocess a source file
+no_adiabatic_heating.cc.i:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/no_adiabatic_heating.dir/build.make tests/CMakeFiles/no_adiabatic_heating.dir/no_adiabatic_heating.cc.i
+.PHONY : no_adiabatic_heating.cc.i
+
+no_adiabatic_heating.s: no_adiabatic_heating.cc.s
+.PHONY : no_adiabatic_heating.s
+
+# target to generate assembly for a file
+no_adiabatic_heating.cc.s:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/no_adiabatic_heating.dir/build.make tests/CMakeFiles/no_adiabatic_heating.dir/no_adiabatic_heating.cc.s
+.PHONY : no_adiabatic_heating.cc.s
+
+no_adiabatic_heating_02.o: no_adiabatic_heating_02.cc.o
+.PHONY : no_adiabatic_heating_02.o
+
+# target to build an object file
+no_adiabatic_heating_02.cc.o:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/no_adiabatic_heating_02.dir/build.make tests/CMakeFiles/no_adiabatic_heating_02.dir/no_adiabatic_heating_02.cc.o
+.PHONY : no_adiabatic_heating_02.cc.o
+
+no_adiabatic_heating_02.i: no_adiabatic_heating_02.cc.i
+.PHONY : no_adiabatic_heating_02.i
+
+# target to preprocess a source file
+no_adiabatic_heating_02.cc.i:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/no_adiabatic_heating_02.dir/build.make tests/CMakeFiles/no_adiabatic_heating_02.dir/no_adiabatic_heating_02.cc.i
+.PHONY : no_adiabatic_heating_02.cc.i
+
+no_adiabatic_heating_02.s: no_adiabatic_heating_02.cc.s
+.PHONY : no_adiabatic_heating_02.s
+
+# target to generate assembly for a file
+no_adiabatic_heating_02.cc.s:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/no_adiabatic_heating_02.dir/build.make tests/CMakeFiles/no_adiabatic_heating_02.dir/no_adiabatic_heating_02.cc.s
+.PHONY : no_adiabatic_heating_02.cc.s
+
+no_adiabatic_heating_03.o: no_adiabatic_heating_03.cc.o
+.PHONY : no_adiabatic_heating_03.o
+
+# target to build an object file
+no_adiabatic_heating_03.cc.o:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/no_adiabatic_heating_03.dir/build.make tests/CMakeFiles/no_adiabatic_heating_03.dir/no_adiabatic_heating_03.cc.o
+.PHONY : no_adiabatic_heating_03.cc.o
+
+no_adiabatic_heating_03.i: no_adiabatic_heating_03.cc.i
+.PHONY : no_adiabatic_heating_03.i
+
+# target to preprocess a source file
+no_adiabatic_heating_03.cc.i:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/no_adiabatic_heating_03.dir/build.make tests/CMakeFiles/no_adiabatic_heating_03.dir/no_adiabatic_heating_03.cc.i
+.PHONY : no_adiabatic_heating_03.cc.i
+
+no_adiabatic_heating_03.s: no_adiabatic_heating_03.cc.s
+.PHONY : no_adiabatic_heating_03.s
+
+# target to generate assembly for a file
+no_adiabatic_heating_03.cc.s:
+	cd /w/dannberg/aspect_my_branch && $(MAKE) -f tests/CMakeFiles/no_adiabatic_heating_03.dir/build.make tests/CMakeFiles/no_adiabatic_heating_03.dir/no_adiabatic_heating_03.cc.s
+.PHONY : no_adiabatic_heating_03.cc.s
+
 plugin.o: plugin.cc.o
 .PHONY : plugin.o
 
@@ -3006,6 +3414,12 @@ help:
 	@echo "... composition-passive-tracers.run"
 	@echo "... composition-passive-tracers.screen-output.diff"
 	@echo "... composition-passive-tracers.statistics.diff"
+	@echo "... compositional_boundary_values.run"
+	@echo "... compositional_boundary_values.screen-output.diff"
+	@echo "... compositional_boundary_values_02.run"
+	@echo "... compositional_boundary_values_02.screen-output.diff"
+	@echo "... compositional_boundary_values_03.run"
+	@echo "... compositional_boundary_values_03.screen-output.diff"
 	@echo "... compressibility"
 	@echo "... compressibility.run"
 	@echo "... compressibility.screen-output.diff"
@@ -3038,6 +3452,15 @@ help:
 	@echo "... inclusion_adaptive.run"
 	@echo "... inclusion_adaptive.screen-output.diff"
 	@echo "... inclusion_adaptive.statistics.diff"
+	@echo "... no_adiabatic_heating"
+	@echo "... no_adiabatic_heating.run"
+	@echo "... no_adiabatic_heating.screen-output.diff"
+	@echo "... no_adiabatic_heating_02"
+	@echo "... no_adiabatic_heating_02.run"
+	@echo "... no_adiabatic_heating_02.screen-output.diff"
+	@echo "... no_adiabatic_heating_03"
+	@echo "... no_adiabatic_heating_03.run"
+	@echo "... no_adiabatic_heating_03.screen-output.diff"
 	@echo "... no_flow.run"
 	@echo "... no_flow.screen-output.diff"
 	@echo "... no_flow.statistics.diff"
@@ -3052,6 +3475,8 @@ help:
 	@echo "... plugin.run"
 	@echo "... plugin.screen-output.diff"
 	@echo "... rebuild_cache"
+	@echo "... refinement_topography.run"
+	@echo "... refinement_topography.screen-output.diff"
 	@echo "... shear-thinning"
 	@echo "... shear-thinning.run"
 	@echo "... shear-thinning.screen-output.diff"
@@ -3133,6 +3558,9 @@ help:
 	@echo "... tests.box-steady-state-terminate"
 	@echo "... tests.composition-active"
 	@echo "... tests.composition-passive-tracers"
+	@echo "... tests.compositional_boundary_values"
+	@echo "... tests.compositional_boundary_values_02"
+	@echo "... tests.compositional_boundary_values_03"
 	@echo "... tests.compressibility"
 	@echo "... tests.compressibility_iterated_stokes"
 	@echo "... tests.conservative_with_mpi"
@@ -3142,10 +3570,14 @@ help:
 	@echo "... tests.inclusion_2"
 	@echo "... tests.inclusion_4"
 	@echo "... tests.inclusion_adaptive"
+	@echo "... tests.no_adiabatic_heating"
+	@echo "... tests.no_adiabatic_heating_02"
+	@echo "... tests.no_adiabatic_heating_03"
 	@echo "... tests.no_flow"
 	@echo "... tests.non_conservative_with_mpi"
 	@echo "... tests.passive_comp"
 	@echo "... tests.plugin"
+	@echo "... tests.refinement_topography"
 	@echo "... tests.shear-thinning"
 	@echo "... tests.sol_cx_2"
 	@echo "... tests.sol_cx_2_conservative"
@@ -3177,6 +3609,15 @@ help:
 	@echo "... compressibility_iterated_stokes.o"
 	@echo "... compressibility_iterated_stokes.i"
 	@echo "... compressibility_iterated_stokes.s"
+	@echo "... no_adiabatic_heating.o"
+	@echo "... no_adiabatic_heating.i"
+	@echo "... no_adiabatic_heating.s"
+	@echo "... no_adiabatic_heating_02.o"
+	@echo "... no_adiabatic_heating_02.i"
+	@echo "... no_adiabatic_heating_02.s"
+	@echo "... no_adiabatic_heating_03.o"
+	@echo "... no_adiabatic_heating_03.i"
+	@echo "... no_adiabatic_heating_03.s"
 	@echo "... plugin.o"
 	@echo "... plugin.i"
 	@echo "... plugin.s"

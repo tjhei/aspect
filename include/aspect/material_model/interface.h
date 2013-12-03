@@ -333,7 +333,7 @@ namespace aspect
                             const NonlinearDependence::Dependence dependence) const;
 
         /**
-        * Return the partial derivative of the compressibility function on the
+	 * Return the partial derivative of the compressibility function on the
         * variable indicates as last argument.
         *
         * The default implementation of this function returns zero
@@ -663,6 +663,10 @@ namespace aspect
          * Return the compressibility coefficient
          * $\frac 1\rho \frac{\partial\rho}{\partial p}$ of the model as a
          * function of temperature, pressure and position.
+	 *
+	 * The compressibility can equivalently be computed as
+	 * $-\frac 1V \frac{\partial V}{\partial p}$. Note the difference
+	 * in sign.
          */
         virtual double compressibility (const double temperature,
                                         const double pressure,
@@ -685,6 +689,10 @@ namespace aspect
         * $\alpha=-\frac{1}{\rho} \frac{d\rho}{dT}$. Since the density
         * <i>decreases</i> with temperature for almost all models,
         * $\alpha$ is usually positive.
+	*
+	* The thermal expansion coefficient can equivalently be computed as
+	* $\frac 1V \frac{\partial V}{\partial T}$. Note the difference
+	* in sign.
         *
         * This function has a default implementation that computes $\alpha$
         * through its definition above, using the density() and density_derivative()
@@ -701,21 +709,21 @@ namespace aspect
        * (if this is the pressure derivative) or the product of the
        * former two and the Clapeyron slope (if this is the
        * temperature derivative).
-      * The entropy change across a phase transition can be calculated
-      * as $\frac{\gamma \Delta\rho}{\rho_\text{light} \rho_\text{heavy}}$.
-      * $\gamma$ is the Clapeyron slope of the phase transition,
-      * $\Delta\rho$ is the density jump across the phase transition,
-      * $\rho_\text{light}$ is the density of the light material
-      * (above the phase transition) and $\rho_\text{heavy}$ the
-      * density of the heavy material (below the phase transition).
-      * The phase function hat values ranging from 0 to 1 indicating
-      * which percentage of the material has already undergone the phase
-      * transition. Its argument is usually the excess pressure
-      * $\pi = p - p_0 - \gamma T$, where $p_0$ is the zero-degree
-      * transition pressure.
-      *
+       * The entropy change across a phase transition can be calculated
+       * as $\frac{\gamma \Delta\rho}{\rho_\text{light} \rho_\text{heavy}}$.
+       * $\gamma$ is the Clapeyron slope of the phase transition,
+       * $\Delta\rho$ is the density jump across the phase transition,
+       * $\rho_\text{light}$ is the density of the light material
+       * (above the phase transition) and $\rho_\text{heavy}$ the
+       * density of the heavy material (below the phase transition).
+       * The phase function hat values ranging from 0 to 1 indicating
+       * which percentage of the material has already undergone the phase
+       * transition. Its argument is usually the excess pressure
+       * $\pi = p - p_0 - \gamma T$, where $p_0$ is the zero-degree
+       * transition pressure.
+       *
       * This function has a default implementation that sets
-      * the entropy gradient to zero (assuming no phase changes).
+       * the entropy gradient to zero (assuming no phase changes).
        */
       virtual double entropy_derivative (const double      temperature,
                                          const double      pressure,
@@ -751,23 +759,23 @@ namespace aspect
                                     const unsigned int compositional_variable) const;
 
       /**
-       * Return the thermal conductivity $k$ of the model as a function of temperature,
-       * pressure and position. The units of $k$ are $\textrm{W} / \textrm{m} / \textrm{K}$
-       * in 3d, and $\textrm{W} / \textrm{K}$ in 2d. This is easily see by considering that
-       * $k$ is the heat flux density (i.e., Watts per unit area perpendicular to the heat
-       * flux direction) per unit temperature gradient (i.e., Kelvin per meter). The unit
-       * area has units $m^2$ in 3d, but only $m$ in 2d, yielding the stated units for $k$.
-       *
-       * Note that the thermal <i>conductivity</i> $k$ is related to the thermal
-       * <i>diffusivity</i> $\kappa$ as $k = \kappa \rho c_p$. In essence, the conductivity
-       * relates to the question of how thermal energy diffuses whereas the diffusivity
-       * relates to the question of how the temperature diffuses. $\kappa$ has units
-       * $\textrm{m}^2/\textrm{s}$.
-       */
-      virtual double thermal_conductivity (const double temperature,
-                                           const double pressure,
-                                           const std::vector<double> &compositional_fields,
-                                           const Point<dim> &position) const=0;
+         * Return the thermal conductivity $k$ of the model as a function of temperature,
+         * pressure and position. The units of $k$ are $\textrm{W} / \textrm{m} / \textrm{K}$
+         * in 3d, and $\textrm{W} / \textrm{K}$ in 2d. This is easily see by considering that
+         * $k$ is the heat flux density (i.e., Watts per unit area perpendicular to the heat
+         * flux direction) per unit temperature gradient (i.e., Kelvin per meter). The unit
+         * area has units $m^2$ in 3d, but only $m$ in 2d, yielding the stated units for $k$.
+         *
+         * Note that the thermal <i>conductivity</i> $k$ is related to the thermal
+         * <i>diffusivity</i> $\kappa$ as $k = \kappa \rho c_p$. In essence, the conductivity
+         * relates to the question of how thermal energy diffuses whereas the diffusivity
+         * relates to the question of how the temperature diffuses. $\kappa$ has units
+         * $\textrm{m}^2/\textrm{s}$.
+         */
+        virtual double thermal_conductivity (const double temperature,
+                                             const double pressure,
+                                             const std::vector<double> &compositional_fields,
+                                             const Point<dim> &position) const=0;
 
         /**
          * The evaluate() function is implemented to call the individual

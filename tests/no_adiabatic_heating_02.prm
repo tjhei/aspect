@@ -1,29 +1,12 @@
-# A variation on the 'compressibility' testcase. here, we compute not
-# only the first iteration of a nonlinear fixed point scheme, but in
-# fact the first several. This should iterate out the
-# continuity equation,
-#    div u = -1/rho drho/dp u^ . g
-# and so should lead to an upward expansion of the flux.
-#
-# with the original testcase, the iteration does not converge. rather,
-# we need a much smaller compressibility to make things converge. we
-# choose a velocity profile
-#   u_z = 1+z/100
-# with corresponding density profile
-#   rho = 1/(1+z/100)
-# so that the continuity equation is satisfied. From the density one
-# can compute a pressure profile (here, the pressure equals the hydrostatic
-# pressure because all second derivatives of the velocity vanish). This gives
-# p(z), which we can invert for z=z(p) and enter into the density equation
-# to get
-#   rho = 10.0/11.0*exp(pressure/100.0)
-# which corresponds to compressibility=0.01. This is implemented in
-# the .cc file corresponding to this testcase.
+# Like 'no_adiabatic_heating' but here we actually switch on friction
+# heating. We also set the viscosity to zero, so there should still
+# be no change in temperature
 
 set Dimension = 2
+
 set CFL number                             = 1.0
-set End time                               = 0
-set Output directory                       = output-compressibility_iterated_stokes
+set End time                               = 1
+set Output directory                       = output-no_adiabatic_heating_02
 set Start time                             = 0
 set Adiabatic surface temperature          = 0
 set Surface pressure                       = 0
@@ -32,7 +15,7 @@ set Use years in output instead of seconds = false  # default: true
 set Nonlinear solver scheme                = Stokes only
 set Max nonlinear iterations               = 5
 
-set Additional shared libraries = ./libcompressibility_iterated_stokes.so
+set Additional shared libraries = ./libno_adiabatic_heating_02.so
 
 
 subsection Boundary temperature model
@@ -76,7 +59,7 @@ end
 
 
 subsection Material model
-  set Model name = compressibility iterated stokes
+  set Model name = no adiabatic heating
 
   subsection Simple model
     set Reference density             = 1    # default: 3300
@@ -91,7 +74,7 @@ end
 
 subsection Mesh refinement
   set Initial adaptive refinement        = 0
-  set Initial global refinement          = 5
+  set Initial global refinement          = 4
 end
 
 
@@ -100,7 +83,8 @@ subsection Model settings
   set Tangential velocity boundary indicators = 0, 1
   set Zero velocity boundary indicators       =
   set Prescribed velocity boundary indicators = 2: function
-  set Include shear heating = false
+  set Include shear heating = true
+  set Include adiabatic heating = false
 end
 
 subsection Boundary velocity model
@@ -111,13 +95,9 @@ subsection Boundary velocity model
 end
 
 subsection Postprocess
-  set List of postprocessors = compressibility
+  set List of postprocessors = temperature statistics, velocity statistics
 
   subsection Visualization
-
-    set List of output variables      = density
-    set Number of grouped files       = 0
-    set Output format                 = vtu
-    set Time between graphical output = 0                                                                                # default: 1e8
+    set Time between graphical output = 0.1
   end
 end

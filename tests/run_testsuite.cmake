@@ -132,6 +132,13 @@ IF("${CTEST_SOURCE_DIRECTORY}" STREQUAL "")
   #
   SET(CTEST_SOURCE_DIRECTORY ${CMAKE_CURRENT_LIST_DIR})
 
+  # The code above set the source directory of that of the run_testsuite.cmake
+  # script, but we need the directory of aspect, which is simply one level
+  # higher
+  IF ("${CTEST_SOURCE_DIRECTORY}" MATCHES "/tests")
+    SET(CTEST_SOURCE_DIRECTORY ${CMAKE_CURRENT_LIST_DIR}/../)
+  ENDIF()
+
   IF(NOT EXISTS ${CTEST_SOURCE_DIRECTORY}/CMakeLists.txt)
     MESSAGE(FATAL_ERROR "
 Could not find a suitable source directory. Please, set
@@ -256,20 +263,6 @@ ENDIF()
 
 # Pass all relevant variables down to configure:
 GET_CMAKE_PROPERTY(_variables VARIABLES)
-  # TODO
-  #FOREACH(_var ${_variables})
-  #  IF( _var MATCHES "^(TEST|DEAL_II|ALLOW|WITH|FORCE|COMPONENT)_" OR
-  #      _var MATCHES "^(COMPAT_FILES|DOCUMENTATION|EXAMPLES|MESH_CONVERTER|PARAMETER_GUI)" OR
-  #      _var MATCHES "^(ARPACK|BOOST|FUNCTIONPARSER|HDF5|METIS|MPI|MUMPS)_" OR
-  #      _var MATCHES "^(NETCDF|P4EST|PETSC|SLEPC|THREADS|TBB|TRILINOS)_" OR
-  #      _var MATCHES "^(UMFPACK|ZLIB|LAPACK)_" OR
-  #      _var MATCHES "^(CMAKE|DEAL_II)_(C|CXX|Fortran|BUILD)_(COMPILER|FLAGS)" OR
-  #      _var MATCHES "^CMAKE_BUILD_TYPE$" OR
-  #      _var MATCHES "MAKEOPTS" OR
-  #      ( NOT _var MATCHES "^[_]*CMAKE" AND _var MATCHES "_DIR$" ) )
-  #    LIST(APPEND _options "-D${_var}=${${_var}}")
-  #  ENDIF()
-  #ENDFOREACH()
 
 #
 # CTEST_BUILD_NAME:
@@ -515,15 +508,3 @@ IF(NOT "${_svn_WC_REVISION}" STREQUAL "")
 </Update>"
     )
 ENDIF()
-
-#
-# And finally submit:
-#
-
-MESSAGE("-- Running CTEST_SUBMIT()")
-CTEST_SUBMIT(RETURN_VALUE _res)
-
-IF("${_res}" STREQUAL "0")
-  MESSAGE("-- Submission successful. Goodbye!")
-ENDIF()
-

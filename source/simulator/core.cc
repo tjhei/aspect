@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012 by the authors of the ASPECT code.
+  Copyright (C) 2011, 2012, 2013 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -99,7 +99,13 @@ namespace aspect
     material_model (MaterialModel::create_material_model<dim>(prm)),
     gravity_model (GravityModel::create_gravity_model<dim>(prm)),
     boundary_temperature (BoundaryTemperature::create_boundary_temperature<dim>(prm)),
-    boundary_composition (BoundaryComposition::create_boundary_composition<dim>(prm)),
+    // create a boundary composition model, but only if we actually need
+    // it. otherwise, allow the user to simply specify nothing at all
+    boundary_composition (parameters.fixed_composition_boundary_indicators.empty()
+			  ?
+			  0
+			  :
+			  BoundaryComposition::create_boundary_composition<dim>(prm)),
     compositional_initial_conditions (CompositionalInitialConditions::create_initial_conditions (prm,
                                       *geometry_model)),
     adiabatic_conditions(),
@@ -184,13 +190,21 @@ namespace aspect
                        ExcMessage ("One of the boundary indicators listed in the input file "
                                    "is not used by the geometry model."));
 
-      // now do the same for the fixed temperature indicators
+      // now do the same for the fixed temperature indicators and the
+      // compositional indicators
       for (typename std::set<types::boundary_id>::const_iterator
            p = parameters.fixed_temperature_boundary_indicators.begin();
            p != parameters.fixed_temperature_boundary_indicators.end(); ++p)
         AssertThrow (all_boundary_indicators.find (*p)
                      != all_boundary_indicators.end(),
-                     ExcMessage ("One of the fixed boundary indicators listed in the input file "
+                     ExcMessage ("One of the fixed boundary temperature indicators listed in the input file "
+                                 "is not used by the geometry model."));
+      for (typename std::set<types::boundary_id>::const_iterator
+           p = parameters.fixed_composition_boundary_indicators.begin();
+           p != parameters.fixed_composition_boundary_indicators.end(); ++p)
+        AssertThrow (all_boundary_indicators.find (*p)
+                     != all_boundary_indicators.end(),
+                     ExcMessage ("One of the fixed boundary composition indicators listed in the input file "
                                  "is not used by the geometry model."));
     }
 
@@ -198,15 +212,15 @@ namespace aspect
     // or another in the member initializer list above
 
     // if any plugin wants access to the Simulator by deriving from SimulatorAccess, initialize it:
-    if (SimulatorAccess<dim> *sim = dynamic_cast<SimulatorAccess<dim>*>(&*geometry_model))
+    if (SimulatorAccess<dim> *sim = dynamic_cast<SimulatorAccess<dim>*>(geometry_model.get()))
       sim->initialize (*this);
-    if (SimulatorAccess<dim> *sim = dynamic_cast<SimulatorAccess<dim>*>(&*material_model))
+    if (SimulatorAccess<dim> *sim = dynamic_cast<SimulatorAccess<dim>*>(material_model.get()))
       sim->initialize (*this);
-    if (SimulatorAccess<dim> *sim = dynamic_cast<SimulatorAccess<dim>*>(&*gravity_model))
+    if (SimulatorAccess<dim> *sim = dynamic_cast<SimulatorAccess<dim>*>(gravity_model.get()))
       sim->initialize (*this);
-    if (SimulatorAccess<dim> *sim = dynamic_cast<SimulatorAccess<dim>*>(&*boundary_temperature))
+    if (SimulatorAccess<dim> *sim = dynamic_cast<SimulatorAccess<dim>*>(boundary_temperature.get()))
       sim->initialize (*this);
-    if (SimulatorAccess<dim> *sim = dynamic_cast<SimulatorAccess<dim>*>(&*boundary_composition))
+    if (SimulatorAccess<dim> *sim = dynamic_cast<SimulatorAccess<dim>*>(boundary_composition.get()))
       sim->initialize (*this);
 
     adiabatic_conditions.reset(new AdiabaticConditions<dim> (*geometry_model,
@@ -221,7 +235,7 @@ namespace aspect
                                                                             *geometry_model,
                                                                             *boundary_temperature,
                                                                             *adiabatic_conditions));
-    if (SimulatorAccess<dim> *sim = dynamic_cast<SimulatorAccess<dim>*>(&*initial_conditions))
+    if (SimulatorAccess<dim> *sim = dynamic_cast<SimulatorAccess<dim>*>(initial_conditions.get()))
       sim->initialize (*this);
 
     postprocess_manager.parse_parameters (prm);
@@ -679,10 +693,10 @@ namespace aspect
     constraints.reinit(introspection.index_sets.system_relevant_set);
     DoFTools::make_hanging_node_constraints (dof_handler,
                                              constraints);
-    
+
     //Now set up the constraints for periodic boundary conditions
     {
-      typedef std::set< std::pair< std::pair< types::boundary_id, types::boundary_id>, unsigned int> > 
+      typedef std::set< std::pair< std::pair< types::boundary_id, types::boundary_id>, unsigned int> >
                periodic_boundary_set;
       periodic_boundary_set pbs = geometry_model->get_periodic_boundary_pairs();
 
@@ -698,18 +712,18 @@ namespace aspect
                   parameters.prescribed_velocity_boundary_indicators.find( (*p).first.first)
                              == parameters.prescribed_velocity_boundary_indicators.end() &&
                   parameters.prescribed_velocity_boundary_indicators.find( (*p).first.second)
-                             == parameters.prescribed_velocity_boundary_indicators.end(), 
+                             == parameters.prescribed_velocity_boundary_indicators.end(),
                   ExcInternalError());
 
 #if (DEAL_II_MAJOR*100 + DEAL_II_MINOR) >= 801
-          DoFTools::make_periodicity_constraints(dof_handler, 
+          DoFTools::make_periodicity_constraints(dof_handler,
                                                  (*p).first.first,  //first boundary id
                                                  (*p).first.second, //second boundary id
                                                  (*p).second,       //cartesian direction for translational symmetry
                                                  constraints);
 #endif
         }
- 
+
 
     }
     // then compute constraints for the velocity. the constraints we compute
@@ -752,7 +766,7 @@ namespace aspect
           Assert (is_element (*p, geometry_model->get_used_boundary_indicators()),
                   ExcInternalError());
           VectorTools::interpolate_boundary_values (dof_handler,
-                                                    *p,
+                                                 *p,
                                                     VectorFunctionFromScalarFunctionObject<dim>(std_cxx1x::bind (&BoundaryTemperature::Interface<dim>::temperature,
                                                         std_cxx1x::cref(*boundary_temperature),
                                                         std_cxx1x::cref(*geometry_model),
@@ -765,7 +779,7 @@ namespace aspect
 
         }
 
-      // now do the same for the composition variable
+      // now do the same for the composition variable:
       // obtain the boundary indicators that belong to Dirichlet-type
       // composition boundary conditions and interpolate the composition
       // there
@@ -788,7 +802,6 @@ namespace aspect
                                                           introspection.n_components),
                                                       constraints,
                                                       introspection.component_masks.compositional_fields[c]);
-
           }
     }
     constraints.close();
@@ -1210,7 +1223,9 @@ namespace aspect
             {
               // rebuild the matrix if it actually depends on the solution
               // of the previous iteration.
-              if (stokes_matrix_depends_on_solution() == true)
+              if ((stokes_matrix_depends_on_solution() == true)
+                  ||
+                  (parameters.prescribed_velocity_boundary_indicators.size() > 0))
                 rebuild_stokes_matrix = rebuild_stokes_preconditioner = true;
 
               assemble_stokes_system();
