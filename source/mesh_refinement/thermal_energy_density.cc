@@ -65,7 +65,8 @@ namespace aspect
       std::vector<std::vector<double> > composition_values (quadrature.size(),
                                                             std::vector<double> (this->n_compositional_fields()));
 
-      typename MaterialModel::Interface<dim>::MaterialModelInputs in(quadrature.size(), this->n_compositional_fields());
+      typename MaterialModel::Interface<dim>::MaterialModelInputs in(quadrature.size(), this->n_compositional_fields(),
+                                                                                          this->include_melt_transport());
       typename MaterialModel::Interface<dim>::MaterialModelOutputs out(quadrature.size(), this->n_compositional_fields());
 
       typename DoFHandler<dim>::active_cell_iterator

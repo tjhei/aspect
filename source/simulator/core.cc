@@ -85,7 +85,7 @@ namespace aspect
                              ParameterHandler &prm)
     :
     parameters (prm),
-    introspection (parameters.n_compositional_fields),
+    introspection (parameters.n_compositional_fields, parameters.include_melt_transport),
     mpi_communicator (Utilities::MPI::duplicate_communicator (mpi_communicator_)),
     pcout (std::cout,
            (Utilities::MPI::
@@ -108,6 +108,8 @@ namespace aspect
 			  BoundaryComposition::create_boundary_composition<dim>(prm)),
     compositional_initial_conditions (CompositionalInitialConditions::create_initial_conditions (prm,
                                       *geometry_model)),
+    porosity_initial_conditions (PorosityInitialConditions::create_initial_conditions (prm,
+                                 *geometry_model)),
     adiabatic_conditions(),
     initial_conditions (),
 
@@ -137,7 +139,9 @@ namespace aspect
                    FE_Q<dim>(parameters.temperature_degree),
                    1,
                    FE_Q<dim>(parameters.composition_degree),
-                   parameters.n_compositional_fields),
+                   parameters.n_compositional_fields,
+                   FE_Q<dim>(parameters.porosity_degree),
+                   (parameters.include_melt_transport ? 1 : 0)),
 
     dof_handler (triangulation),
 
@@ -229,7 +233,8 @@ namespace aspect
                                                              *compositional_initial_conditions,
                                                              parameters.surface_pressure,
                                                              parameters.adiabatic_surface_temperature,
-                                                             parameters.n_compositional_fields));
+                                                             parameters.n_compositional_fields,
+                                                             parameters.include_melt_transport));
 
     initial_conditions.reset (InitialConditions::create_initial_conditions (prm,
                                                                             *geometry_model,
@@ -585,6 +590,8 @@ namespace aspect
       for (unsigned int c=0; c<parameters.n_compositional_fields; ++c)
         coupling[x.compositional_fields[c]][x.compositional_fields[c]]
           = DoFTools::always;
+      if (parameters.include_melt_transport)
+    	coupling[x.porosity][x.porosity] = DoFTools::always;
     }
 
     DoFTools::make_sparsity_pattern (dof_handler,
@@ -607,6 +614,7 @@ namespace aspect
     Mp_preconditioner.reset ();
     T_preconditioner.reset ();
     C_preconditioner.reset ();
+    Phi_preconditioner.reset ();
 
     system_preconditioner_matrix.clear ();
 
@@ -842,6 +850,8 @@ namespace aspect
         for (unsigned int c=0; c<parameters.n_compositional_fields; ++c)
           introspection.component_masks.compositional_fields
           .push_back (finite_element.component_mask(introspection.extractors.compositional_fields[c]));
+        introspection.component_masks.porosity
+          = finite_element.component_mask (introspection.extractors.porosity);
       }
 
 
@@ -858,6 +868,7 @@ namespace aspect
       for (unsigned int c=0; c<parameters.n_compositional_fields; ++c)
         n_C[c] = introspection.system_dofs_per_block
                  [introspection.block_indices.compositional_fields[c]];
+      const types::global_dof_index n_Phi = introspection.system_dofs_per_block[3+parameters.n_compositional_fields];
 
 
       IndexSet system_index_set = dof_handler.locally_owned_dofs();
@@ -888,6 +899,11 @@ namespace aspect
                                                                              n_u+n_p+n_T+n_C_so_far+n_C[c]));
             n_C_so_far += n_C[c];
           }
+        introspection.index_sets.system_partitioning.push_back(system_index_set.get_view(n_u+n_p+n_T+n_C_so_far,
+        		                                               n_u+n_p+n_T+n_C_so_far+n_Phi));
+        introspection.index_sets.system_relevant_partitioning
+        .push_back(introspection.index_sets.system_relevant_set.get_view(n_u+n_p+n_T+n_C_so_far,
+        		                                                         n_u+n_p+n_T+n_C_so_far+n_Phi));
       }
     }
 
@@ -1030,24 +1046,31 @@ namespace aspect
       {
         case NonlinearSolver::IMPES:
         {
-          assemble_advection_system (TemperatureOrComposition::temperature());
-          build_advection_preconditioner(TemperatureOrComposition::temperature(),
+          assemble_advection_system (AdvectionField::temperature());
+          build_advection_preconditioner(AdvectionField::temperature(),
                                          T_preconditioner);
-          solve_advection(TemperatureOrComposition::temperature());
+          solve_advection(AdvectionField::temperature());
 
           current_linearization_point.block(introspection.block_indices.temperature)
             = solution.block(introspection.block_indices.temperature);
 
           for (unsigned int c=0; c<parameters.n_compositional_fields; ++c)
             {
-              assemble_advection_system (TemperatureOrComposition::composition(c));
-              build_advection_preconditioner(TemperatureOrComposition::composition(c),
+              assemble_advection_system (AdvectionField::composition(c));
+              build_advection_preconditioner(AdvectionField::composition(c),
                                              C_preconditioner);
-              solve_advection(TemperatureOrComposition::composition(c)); // this is correct, 0 would be temperature
+              solve_advection(AdvectionField::composition(c)); // this is correct, 0 would be temperature
               current_linearization_point.block(introspection.block_indices.compositional_fields[c])
                 = solution.block(introspection.block_indices.compositional_fields[c]);
             }
 
+          assemble_advection_system (AdvectionField::porosity());
+          build_advection_preconditioner(AdvectionField::porosity(),
+                                         Phi_preconditioner);
+          solve_advection(AdvectionField::porosity());
+
+          current_linearization_point.block(introspection.block_indices.porosity)
+            = solution.block(introspection.block_indices.porosity);
 
           // the Stokes matrix depends on the viscosity. if the viscosity
           // depends on other solution variables, then after we need to
@@ -1111,18 +1134,19 @@ namespace aspect
           double initial_temperature_residual = 0;
           double initial_stokes_residual      = 0;
           std::vector<double> initial_composition_residual (parameters.n_compositional_fields,0);
+          double initial_porosity_residual = 0;
 
           unsigned int iteration = 0;
 
           do
             {
-              assemble_advection_system(TemperatureOrComposition::temperature());
+              assemble_advection_system(AdvectionField::temperature());
 
               if (iteration == 0)
-                build_advection_preconditioner(TemperatureOrComposition::temperature(),
+                build_advection_preconditioner(AdvectionField::temperature(),
                                                T_preconditioner);
 
-              const double temperature_residual = solve_advection(TemperatureOrComposition::temperature());
+              const double temperature_residual = solve_advection(AdvectionField::temperature());
 
               current_linearization_point.block(introspection.block_indices.pressure)
                 = solution.block(introspection.block_indices.pressure);
@@ -1131,14 +1155,25 @@ namespace aspect
 
               for (unsigned int c=0; c<parameters.n_compositional_fields; ++c)
                 {
-                  assemble_advection_system (TemperatureOrComposition::composition(c));
-                  build_advection_preconditioner(TemperatureOrComposition::composition(c),
+                  assemble_advection_system (AdvectionField::composition(c));
+                  build_advection_preconditioner(AdvectionField::composition(c),
                                                  C_preconditioner);
                   composition_residual[c]
-                    = solve_advection(TemperatureOrComposition::composition(c));
+                    = solve_advection(AdvectionField::composition(c));
                   current_linearization_point.block(introspection.block_indices.compositional_fields[c])
                     = solution.block(introspection.block_indices.compositional_fields[c]);
                 }
+
+              assemble_advection_system(AdvectionField::porosity());
+
+              if (iteration == 0)
+                build_advection_preconditioner(AdvectionField::porosity(),
+                                               Phi_preconditioner);
+
+              const double porosity_residual = solve_advection(AdvectionField::porosity());
+
+              current_linearization_point.block(introspection.block_indices.porosity)
+                = solution.block(introspection.block_indices.porosity);
 
               // the Stokes matrix depends on the viscosity. if the viscosity
               // depends on other solution variables, then after we need to
@@ -1171,6 +1206,7 @@ namespace aspect
                   for (unsigned int c=0; c<parameters.n_compositional_fields; ++c)
                     initial_composition_residual[c] = composition_residual[c];
                   initial_stokes_residual      = stokes_residual;
+                  initial_porosity_residual = porosity_residual;
                 }
               else
                 {
@@ -1179,6 +1215,7 @@ namespace aspect
                     max = std::max(composition_residual[c]/initial_composition_residual[c],max);
                   max = std::max(stokes_residual/initial_stokes_residual, max);
                   max = std::max(temperature_residual/initial_temperature_residual, max);
+                  max = std::max(porosity_residual/initial_porosity_residual, max);
                   pcout << "      residual: " << max << std::endl;
                   if (max < parameters.nonlinear_tolerance)
                     break;
@@ -1195,23 +1232,30 @@ namespace aspect
         case NonlinearSolver::iterated_Stokes:
         {
           // solve the temperature system once...
-          assemble_advection_system (TemperatureOrComposition::temperature());
-          build_advection_preconditioner (TemperatureOrComposition::temperature (),
+          assemble_advection_system (AdvectionField::temperature());
+          build_advection_preconditioner (AdvectionField::temperature (),
                                           T_preconditioner);
-          solve_advection(TemperatureOrComposition::temperature());
+          solve_advection(AdvectionField::temperature());
           current_linearization_point.block(introspection.block_indices.temperature)
             = solution.block(introspection.block_indices.temperature);
 
           for (unsigned int c=0; c<parameters.n_compositional_fields; ++c)
             {
-              assemble_advection_system (TemperatureOrComposition::composition(c));
-              build_advection_preconditioner (TemperatureOrComposition::composition (c),
+              assemble_advection_system (AdvectionField::composition(c));
+              build_advection_preconditioner (AdvectionField::composition (c),
                                               C_preconditioner);
-              solve_advection(TemperatureOrComposition::composition(c));
+              solve_advection(AdvectionField::composition(c));
               current_linearization_point.block(introspection.block_indices.compositional_fields[c])
                 = solution.block(introspection.block_indices.compositional_fields[c]);
             }
 
+          // solve the porosity system once...
+          assemble_advection_system (AdvectionField::porosity());
+          build_advection_preconditioner (AdvectionField::porosity (),
+                                          Phi_preconditioner);
+          solve_advection(AdvectionField::porosity());
+          current_linearization_point.block(introspection.block_indices.porosity)
+            = solution.block(introspection.block_indices.porosity);
 
           // residual vector (only for the velocity)
           LinearAlgebra::Vector residual (introspection.index_sets.system_partitioning[0], mpi_communicator);

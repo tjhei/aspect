@@ -60,7 +60,8 @@ namespace aspect
                            const CompositionalInitialConditions::Interface<dim> &compositional_initial_conditions,
                            const double                         surface_pressure,
                            const double                         surface_temperature,
-                           const unsigned int                   n_compositional_fields);
+                           const unsigned int                   n_compositional_fields,
+                           const bool                           include_melt_transport);
 
       /**
        * Return the adiabatic temperature at a given point of the domain.

@@ -66,14 +66,14 @@ namespace aspect
     double max_sum_comp = 0.0;
     double global_max = 0.0;
 
-    for (unsigned int n=0; n<1+parameters.n_compositional_fields; ++n)
+    for (unsigned int n=0; n<1+parameters.n_compositional_fields+(parameters.include_melt_transport ? 1 : 0); ++n)
       {
         initial_solution.reinit(system_rhs,false);
 
         // base element in the finite element is 2 for temperature (n=0) and 3 for
         // compositional fields (n>0)
 //TODO: can we use introspection here, instead of the hard coded numbers?
-        const unsigned int base_element = (n==0 ? 2 : 3);
+        const unsigned int base_element = (n==0 ? 2 : (n==1+parameters.n_compositional_fields) ? 4 : 3);
 
         // get the temperature/composition support points
         const std::vector<Point<dim> > support_points
@@ -100,18 +100,20 @@ namespace aspect
               for (unsigned int i=0; i<finite_element.base_element(base_element).dofs_per_cell; ++i)
                 {
                   const unsigned int system_local_dof
-                    = finite_element.component_to_system_index(/*temperature/composition component=*/dim+1+n,
+                    = finite_element.component_to_system_index(/*temperature/composition/porosity component=*/dim+1+n,
                         /*dof index within component=*/i);
 
                   double value =
                     (base_element == 2 ?
                      initial_conditions->initial_temperature(fe_values.quadrature_point(i))
-                     : compositional_initial_conditions->initial_composition(fe_values.quadrature_point(i),n-1));
+                     : (base_element == 4 ?
+                    	porosity_initial_conditions->initial_porosity(fe_values.quadrature_point(i))
+                    	: compositional_initial_conditions->initial_composition(fe_values.quadrature_point(i),n-1)));
                   initial_solution(local_dof_indices[system_local_dof]) = value;
 
                   if (base_element != 2)
                     Assert (value >= 0,
-                            ExcMessage("Invalid initial conditions: Composition is negative"));
+                            ExcMessage("Invalid initial conditions: Composition/porosity is negative"));
 
                   // if it is specified in the parameter file that the sum of all compositional fields
                   // must not exceed one, this should be checked
@@ -194,7 +196,7 @@ namespace aspect
                                                                                std_cxx1x::cref (*adiabatic_conditions),
                                                                                std_cxx1x::_1),
                                                                                dim,
-                                                                               dim+2+parameters.n_compositional_fields),
+                                                                               dim+2+parameters.n_compositional_fields+(parameters.include_melt_transport ? 1 : 0)),
                                   system_tmp);
 
         // we may have hanging nodes, so apply constraints

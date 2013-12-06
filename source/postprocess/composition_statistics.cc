@@ -44,7 +44,7 @@ namespace aspect
       // create a quadrature formula based on the compositional element alone.
       // be defensive about determining that what we think is the temperature
       // element is it in fact
-      Assert (this->get_fe().n_base_elements() == 4,
+      Assert (this->get_fe().n_base_elements() == (this->include_melt_transport() ? 5 : 4),
               ExcNotImplemented());
       const QGauss<dim> quadrature_formula (this->get_fe().base_element(3).degree+1);
       const unsigned int n_q_points = quadrature_formula.size();

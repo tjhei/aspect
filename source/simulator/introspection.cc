@@ -71,13 +71,13 @@ namespace aspect
 
 
   template <int dim>
-  Introspection<dim>::Introspection(const unsigned int n_compositional_fields)
+  Introspection<dim>::Introspection(const unsigned int n_compositional_fields, const bool include_melt_transport)
     :
-    n_components (dim+2+n_compositional_fields),
-    n_blocks (3+n_compositional_fields),
-    extractors (n_compositional_fields),
-    component_indices (n_compositional_fields),
-    block_indices (n_compositional_fields),
+    n_components (dim+2+n_compositional_fields+(include_melt_transport ? 1 : 0)),
+    n_blocks (3+n_compositional_fields+(include_melt_transport ? 1 : 0)),
+    extractors (n_compositional_fields, include_melt_transport),
+    component_indices (n_compositional_fields, include_melt_transport),
+    block_indices (n_compositional_fields, include_melt_transport),
     components_to_blocks (component_to_block_mapping<dim>(n_components)),
     system_dofs_per_block (n_blocks)
   {}
@@ -99,17 +99,29 @@ namespace aspect
 
   template <int dim>
   Introspection<dim>::ComponentIndices::
-  ComponentIndices (const unsigned int n_compositional_fields)
+  ComponentIndices (const unsigned int n_compositional_fields,
+		            const bool include_melt_transport)
     :
-    compositional_fields (half_open_sequence(dim+2, dim+2+n_compositional_fields))
+    compositional_fields (half_open_sequence(dim+2, dim+2+n_compositional_fields)),
+    porosity(include_melt_transport
+    		 ?
+    		 dim+2+n_compositional_fields
+    		 :
+    		 numbers::invalid_unsigned_int)
   {}
 
 
   template <int dim>
   Introspection<dim>::BlockIndices::
-  BlockIndices (const unsigned int n_compositional_fields)
+  BlockIndices (const unsigned int n_compositional_fields,
+                const bool include_melt_transport)
     :
-    compositional_fields (half_open_sequence(3, 3+n_compositional_fields))
+    compositional_fields (half_open_sequence(3, 3+n_compositional_fields)),
+    porosity(include_melt_transport
+   		     ?
+   		     3+n_compositional_fields
+   		     :
+   		     numbers::invalid_unsigned_int)
   {}
 
 
@@ -127,14 +139,19 @@ namespace aspect
   }
 
   template <int dim>
-  Introspection<dim>::Extractors::Extractors (const unsigned int n_compositional_fields)
+  Introspection<dim>::Extractors::Extractors (const unsigned int n_compositional_fields,
+		                                      const bool include_melt_transport)
     :
     velocities (0),
     pressure (dim),
     temperature (dim+1),
-    compositional_fields (half_open_extractor_sequence (dim+2, dim+2+n_compositional_fields))
-  {
-  }
+    compositional_fields (half_open_extractor_sequence (dim+2, dim+2+n_compositional_fields)),
+    porosity (include_melt_transport
+    		  ?
+    		  FEValuesExtractors::Scalar(dim+2+n_compositional_fields)
+              :
+    		  FEValuesExtractors::Scalar())
+  {}
 }
 
 

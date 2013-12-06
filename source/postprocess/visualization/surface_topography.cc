@@ -81,6 +81,7 @@ namespace aspect
                                                               std::vector<double> (n_q_points));
         std::vector<double> composition_values_at_q_point (this->n_compositional_fields());
         std::vector<SymmetricTensor<2,dim> > strain_rate(n_q_points);
+        std::vector<double> porosity_values(this->include_melt_transport() ? n_q_points : 0);
 
         double local_topography_integral = 0;
         double local_length_integral = 0;
@@ -102,6 +103,9 @@ namespace aspect
               for (unsigned int c=0; c<this->n_compositional_fields(); ++c)
                 fe_values[this->introspection().extractors.compositional_fields[c]].get_function_values(this->get_solution(),
                     composition_values[c]);
+              if (this->include_melt_transport())
+                fe_values[this->introspection().extractors.porosity].get_function_values (this->get_solution(),
+                                                                                             porosity_values);
               fe_values[this->introspection().extractors.velocities].get_function_symmetric_gradients(this->get_solution(),
                                                                                                       strain_rate);
 
@@ -129,13 +133,16 @@ namespace aspect
               if (cell->at_boundary() && depth < cell_depth)
               {
                 // evaluate material properties
-                typename MaterialModel::Interface<dim>::MaterialModelInputs in(1, this->n_compositional_fields());
+                typename MaterialModel::Interface<dim>::MaterialModelInputs in(1, this->n_compositional_fields(),
+                                                                                   this->include_melt_transport());
                 typename MaterialModel::Interface<dim>::MaterialModelOutputs out(1, this->n_compositional_fields());
                 in.position[0] = fe_values.quadrature_point(0);
                 in.temperature[0] = temperature_values[0];
                 in.pressure[0] = pressure_values[0];
                 for (unsigned int c=0; c<this->n_compositional_fields(); ++c)
                   in.composition[0][c] = composition_values_at_q_point[c];
+                if (this->include_melt_transport())
+                  in.porosity[0] = porosity_values[0];
                 in.strain_rate[0] = strain_rate[0];
 
                 this->get_material_model().evaluate(in, out);

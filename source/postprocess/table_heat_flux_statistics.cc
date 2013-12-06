@@ -66,7 +66,8 @@ namespace aspect
       std::map<types::boundary_id, double> local_boundary_fluxes;
 
       typename MaterialModel::Interface<dim>::MaterialModelInputs in(quadrature.size(),
-                                                                     this->n_compositional_fields());
+                                                                     this->n_compositional_fields(),
+                                                                     this->include_melt_transport());
       typename MaterialModel::Interface<dim>::MaterialModelOutputs out(quadrature.size(),
           this->n_compositional_fields());
 

@@ -38,7 +38,7 @@ namespace aspect
       // create a quadrature formula based on the temperature element alone.
       // be defensive about determining that what we think is the temperature
       // element, is it in fact
-      Assert (this->get_fe().n_base_elements() == 3+(this->n_compositional_fields()>0 ? 1 : 0),
+      Assert (this->get_fe().n_base_elements() == 3+(this->n_compositional_fields()>0 ? 1 : 0)+(this->include_melt_transport() ? 1 : 0),
               ExcNotImplemented());
       const QGauss<dim-1> quadrature_formula (this->get_fe().base_element(2).degree+1);
 
@@ -58,7 +58,9 @@ namespace aspect
       cell = this->get_dof_handler().begin_active(),
       endc = this->get_dof_handler().end();
 
-      typename MaterialModel::Interface<dim>::MaterialModelInputs in(fe_face_values.n_quadrature_points, this->n_compositional_fields());
+      typename MaterialModel::Interface<dim>::MaterialModelInputs in(fe_face_values.n_quadrature_points,
+    		                                                         this->n_compositional_fields(),
+                                                                     this->include_melt_transport());
       typename MaterialModel::Interface<dim>::MaterialModelOutputs out(fe_face_values.n_quadrature_points, this->n_compositional_fields());
 
       // for every surface face on which it makes sense to compute a
@@ -85,6 +87,9 @@ namespace aspect
                 for (unsigned int c=0; c<this->n_compositional_fields(); ++c)
                   fe_face_values[this->introspection().extractors.compositional_fields[c]].get_function_values(this->get_solution(),
                       composition_values[c]);
+                if (this->include_melt_transport())
+                  fe_face_values[this->introspection().extractors.porosity].get_function_values (this->get_solution(),
+                	  in.porosity);
 
                 in.position = fe_face_values.get_quadrature_points();
 

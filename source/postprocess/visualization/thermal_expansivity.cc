@@ -55,10 +55,12 @@ namespace aspect
         const unsigned int n_quadrature_points = uh.size();
         Assert (computed_quantities.size() == n_quadrature_points,    ExcInternalError());
         Assert (computed_quantities[0].size() == 1,                   ExcInternalError());
-        Assert (uh[0].size() == dim+2+this->n_compositional_fields(), ExcInternalError());
+        Assert (uh[0].size() == dim+2+this->n_compositional_fields()
+        		+(this->include_melt_transport() ? 1 : 0),            ExcInternalError());
 
         typename MaterialModel::Interface<dim>::MaterialModelInputs in(n_quadrature_points,
-                                                                       this->n_compositional_fields());
+                                                                       this->n_compositional_fields(),
+                                                                       this->include_melt_transport());
         typename MaterialModel::Interface<dim>::MaterialModelOutputs out(n_quadrature_points,
             this->n_compositional_fields());
 
@@ -72,6 +74,9 @@ namespace aspect
 
             for (unsigned int c=0; c<this->n_compositional_fields(); ++c)
               in.composition[q][c] = uh[q][dim+2+c];
+
+            if (this->include_melt_transport())
+              in.porosity[q]=uh[q][dim+2+this->n_compositional_fields()];
 
           }
 

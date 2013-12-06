@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012 by the authors of the ASPECT code.
+  Copyright (C) 2013 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -17,11 +17,11 @@
   along with ASPECT; see the file doc/COPYING.  If not see
   <http://www.gnu.org/licenses/>.
 */
-/*  $Id$  */
+/*  $Id: interface.h 1252 2012-10-05 19:52:00Z dannberg $  */
 
 
-#ifndef __aspect__compositional_initial_conditions_interface_h
-#define __aspect__compositional_initial_conditions_interface_h
+#ifndef __aspect__porosity_initial_conditions_interface_h
+#define __aspect__porosity_initial_conditions_interface_h
 
 #include <aspect/plugins.h>
 #include <aspect/geometry_model/interface.h>
@@ -33,18 +33,18 @@ namespace aspect
 {
   /**
    * A namespace in which we define everything that has to do with defining
-   * the initial conditions.
+   * the porosity initial conditions.
    *
-   * @ingroup InitialConditionsModels
+   * @ingroup PorosityInitialConditionsModels
    */
-  namespace CompositionalInitialConditions
+  namespace PorosityInitialConditions
   {
     using namespace dealii;
 
     /**
      * A base class for parameterizations of initial conditions.
      *
-     * @ingroup InitialConditionsModels
+     * @ingroup PorosityInitialConditionsModels
      */
     template <int dim>
     class Interface
@@ -57,18 +57,17 @@ namespace aspect
         virtual ~Interface();
 
         /**
-         * Initialization function. Take references to the geometry model, the
-         * object that describes the temperature boundary values, and the
-         * adiabatic conditions and store them so that derived classes can access them.
+         * Initialization function. Take references to the geometry model
+         * and store it so that derived classes can access it.
          */
         void
         initialize (const GeometryModel::Interface<dim>       &geometry_model);
 
         /**
-         * Return the initial composition as a function of position.
+         * Return the initial porosity as a function of position.
          */
         virtual
-        double initial_composition (const Point<dim> &position, const unsigned int n_comp) const = 0;
+        double initial_porosity (const Point<dim> &position) const = 0;
 
 
         /**
@@ -96,7 +95,6 @@ namespace aspect
          * Pointer to the geometry object in use.
          */
         const GeometryModel::Interface<dim>       *geometry_model;
-
     };
 
 
@@ -129,7 +127,7 @@ namespace aspect
      *
      * This function makes the newly created object read its parameters from the
      * input parameter object, and then initializes it with the given geometry
-     * model, boundary values object, and adiabatic conditions object.
+     * model.
      *
      * @ingroup InitialConditionsModels
      */
@@ -156,16 +154,16 @@ namespace aspect
      *
      * @ingroup InitialConditionsModels
      */
-#define ASPECT_REGISTER_COMPOSITIONAL_INITIAL_CONDITIONS(classname,name,description) \
+#define ASPECT_REGISTER_POROSITY_INITIAL_CONDITIONS(classname,name,description) \
   template class classname<2>; \
   template class classname<3>; \
-  namespace ASPECT_REGISTER_COMPOSITIONAL_INITIAL_CONDITIONS_ ## classname \
+  namespace ASPECT_REGISTER_POROSITY_INITIAL_CONDITIONS_ ## classname \
   { \
     aspect::internal::Plugins::RegisterHelper<Interface<2>,classname<2> > \
-    dummy_ ## classname ## _2d (&aspect::CompositionalInitialConditions::register_initial_conditions_model<2>, \
+    dummy_ ## classname ## _2d (&aspect::PorosityInitialConditions::register_initial_conditions_model<2>, \
                                 name, description); \
     aspect::internal::Plugins::RegisterHelper<Interface<3>,classname<3> > \
-    dummy_ ## classname ## _3d (&aspect::CompositionalInitialConditions::register_initial_conditions_model<3>, \
+    dummy_ ## classname ## _3d (&aspect::PorosityInitialConditions::register_initial_conditions_model<3>, \
                                 name, description); \
   }
   }

@@ -61,7 +61,8 @@ namespace aspect
        * that will be used in this simulation. This is used in initializing
        * the fields of this class.
        */
-      Introspection (const unsigned int n_compositional_fields);
+      Introspection (const unsigned int n_compositional_fields,
+    		         const bool include_melt_transport);
 
       /**
        * @name Things that are independent of the current mesh
@@ -90,12 +91,14 @@ namespace aspect
        */
       struct Extractors
       {
-        Extractors (const unsigned int n_compositional_fields);
+        Extractors (const unsigned int n_compositional_fields,
+        		    const bool include_melt_transport);
 
         const FEValuesExtractors::Vector              velocities;
         const FEValuesExtractors::Scalar              pressure;
         const FEValuesExtractors::Scalar              temperature;
         const std::vector<FEValuesExtractors::Scalar> compositional_fields;
+        const FEValuesExtractors::Scalar              porosity;
       };
       /**
        * A variable that contains extractors for every block
@@ -110,12 +113,14 @@ namespace aspect
        */
       struct ComponentIndices
       {
-        ComponentIndices (const unsigned int n_compositional_fields);
+        ComponentIndices (const unsigned int n_compositional_fields,
+    		              const bool include_melt_transport);
 
         static const unsigned int       velocities[dim];
         static const unsigned int       pressure    = dim;
         static const unsigned int       temperature = dim+1;
         const std::vector<unsigned int> compositional_fields;
+        const unsigned int              porosity;
       };
       /**
        * A variable that enumerates the vector components of the finite
@@ -129,12 +134,14 @@ namespace aspect
        */
       struct BlockIndices
       {
-        BlockIndices (const unsigned int n_compositional_fields);
+        BlockIndices (const unsigned int n_compositional_fields,
+    		          const bool include_melt_transport);
 
         static const unsigned int       velocities  = 0;
         static const unsigned int       pressure    = 1;
         static const unsigned int       temperature = 2;
         const std::vector<unsigned int> compositional_fields;
+        const unsigned int              porosity;
       };
       /**
        * A variable that enumerates the vector blocks of the finite
@@ -154,6 +161,7 @@ namespace aspect
         ComponentMask              pressure;
         ComponentMask              temperature;
         std::vector<ComponentMask> compositional_fields;
+        ComponentMask              porosity;
       };
       /**
        * A variable that contains component masks for each of the variables

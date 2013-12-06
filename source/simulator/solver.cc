@@ -276,22 +276,28 @@ namespace aspect
   }
 
   template <int dim>
-  double Simulator<dim>::solve_advection (const TemperatureOrComposition &temperature_or_composition)
+  double Simulator<dim>::solve_advection (const AdvectionField &advection_field)
   {
     double advection_solver_tolerance = -1;
-    unsigned int block_number = temperature_or_composition.block_index(introspection);
+    unsigned int block_number = advection_field.block_index(introspection);
 
-    if (temperature_or_composition.is_temperature())
+    if (advection_field.is_temperature())
       {
         computing_timer.enter_section ("   Solve temperature system");
         pcout << "   Solving temperature system... " << std::flush;
         advection_solver_tolerance = parameters.temperature_solver_tolerance;
       }
-    else
+    else if (advection_field.is_porosity())
+    {
+      computing_timer.enter_section ("   Solve porosity system");
+      pcout << "   Solving porosity system... " << std::flush;
+      advection_solver_tolerance = parameters.porosity_solver_tolerance;
+    }
+  else
       {
         computing_timer.enter_section ("   Solve composition system");
         pcout << "   Solving composition system "
-              << temperature_or_composition.compositional_variable+1
+              << advection_field.compositional_variable+1
               << "... " << std::flush;
         advection_solver_tolerance = parameters.composition_solver_tolerance;
       }
@@ -329,11 +335,15 @@ namespace aspect
     solver.solve (system_matrix.block(block_number,block_number),
                   distributed_solution.block(block_number),
                   system_rhs.block(block_number),
-                  (temperature_or_composition.is_temperature()
+                  (advection_field.is_temperature()
                    ?
                    *T_preconditioner
                    :
-                   *C_preconditioner));
+                   (advection_field.is_porosity()
+                           ?
+                           *Phi_preconditioner
+                           :
+                           *C_preconditioner)));
 
     current_constraints.distribute (distributed_solution);
     solution.block(block_number) = distributed_solution.block(block_number);
@@ -343,12 +353,15 @@ namespace aspect
     pcout << solver_control.last_step()
           << " iterations." << std::endl;
 
-    if (temperature_or_composition.is_temperature())
+    if (advection_field.is_temperature())
       statistics.add_value("Iterations for temperature solver",
                            solver_control.last_step());
-    else
+    else if (advection_field.is_porosity())
+      statistics.add_value("Iterations for porosity solver",
+                           solver_control.last_step());
+      else
       statistics.add_value("Iterations for composition solver " +
-                           Utilities::int_to_string(temperature_or_composition.compositional_variable+1),
+                           Utilities::int_to_string(advection_field.compositional_variable+1),
                            solver_control.last_step());
 
     computing_timer.exit_section();
@@ -509,7 +522,7 @@ namespace aspect
 namespace aspect
 {
 #define INSTANTIATE(dim) \
-  template double Simulator<dim>::solve_advection (const TemperatureOrComposition &); \
+  template double Simulator<dim>::solve_advection (const AdvectionField &); \
   template double Simulator<dim>::solve_stokes ();
 
   ASPECT_INSTANTIATE(INSTANTIATE)

@@ -48,6 +48,7 @@
 #include <aspect/boundary_composition/interface.h>
 #include <aspect/initial_conditions/interface.h>
 #include <aspect/compositional_initial_conditions/interface.h>
+#include <aspect/porosity_initial_conditions/interface.h>
 #include <aspect/velocity_boundary_conditions/interface.h>
 #include <aspect/mesh_refinement/interface.h>
 #include <aspect/termination_criteria/interface.h>
@@ -174,6 +175,7 @@ namespace aspect
         unsigned int                   n_cheap_stokes_solver_steps;
         double                         temperature_solver_tolerance;
         double                         composition_solver_tolerance;
+        double                         porosity_solver_tolerance;
         /**
          * @}
          */
@@ -185,6 +187,7 @@ namespace aspect
         bool                           include_shear_heating;
         bool                           include_adiabatic_heating;
         bool                           include_latent_heat;
+        bool                           include_melt_transport;
         double                         radiogenic_heating_rate;
         std::set<types::boundary_id> fixed_temperature_boundary_indicators;
         std::set<types::boundary_id> fixed_composition_boundary_indicators;
@@ -245,6 +248,7 @@ namespace aspect
         bool                           use_locally_conservative_discretization;
         unsigned int                   temperature_degree;
         unsigned int                   composition_degree;
+        unsigned int                   porosity_degree;
         std::string                    pressure_normalization;
         /**
          * @}
@@ -315,17 +319,17 @@ namespace aspect
 
       /**
        * A structure that is used as an argument to functions that can
-       * work on both the temperature and the compositional variables
-       * and that need to be told which one of the two, as well as on
-       * which of the compositional variables.
+       * work on the temperature, the compositional variables and the
+       * porosity and that need to be told which one of the three,
+       * as well as on which of the compositional variables.
        */
-      struct TemperatureOrComposition
+      struct AdvectionField
       {
         /**
          * An enum indicating whether the identified variable is the
          * temperature or one of the compositional fields.
          */
-        enum FieldType { temperature_field, compositional_field };
+        enum FieldType { temperature_field, compositional_field, porosity_field };
 
         /**
          * A variable indicating whether the identified variable is the
@@ -351,8 +355,8 @@ namespace aspect
          * This function is implemented in
          * <code>source/simulator/helper_functions.cc</code>.
          */
-        TemperatureOrComposition (const FieldType field_type,
-                                  const unsigned int compositional_variable = numbers::invalid_unsigned_int);
+        AdvectionField (const FieldType field_type,
+                        const unsigned int compositional_variable = numbers::invalid_unsigned_int);
 
         /**
          * A static function that creates an object identifying the temperature.
@@ -361,7 +365,7 @@ namespace aspect
          * <code>source/simulator/helper_functions.cc</code>.
          */
         static
-        TemperatureOrComposition temperature ();
+        AdvectionField temperature ();
 
         /**
          * A static function that creates an object identifying given
@@ -371,13 +375,28 @@ namespace aspect
          * <code>source/simulator/helper_functions.cc</code>.
          */
         static
-        TemperatureOrComposition composition (const unsigned int compositional_variable);
+        AdvectionField composition (const unsigned int compositional_variable);
+
+        /**
+         * A static function that creates an object identifying the temperature.
+         *
+         * This function is implemented in
+         * <code>source/simulator/helper_functions.cc</code>.
+         */
+        static
+        AdvectionField porosity ();
 
         /**
          * Return whether this object refers to the temperature field.
          */
         bool
         is_temperature () const;
+
+        /**
+         * Return whether this object refers to the porosity field.
+         */
+        bool
+        is_porosity () const;
 
         /**
          * Look up the block index for this temperature or compositional field i.
@@ -479,7 +498,7 @@ namespace aspect
        * This function is implemented in
        * <code>source/simulator/assembly.cc</code>.
        */
-      void build_advection_preconditioner (const TemperatureOrComposition &temperature_or_composition,
+      void build_advection_preconditioner (const AdvectionField &advection_field,
                                            std_cxx1x::shared_ptr<aspect::LinearAlgebra::PreconditionILU> &preconditioner);
 
       /**
@@ -497,7 +516,7 @@ namespace aspect
        * This function is implemented in
        * <code>source/simulator/assembly.cc</code>.
        */
-      void assemble_advection_system (const TemperatureOrComposition &temperature_or_composition);
+      void assemble_advection_system (const AdvectionField &advection_field);
 
       /**
        * Solve one block of the the temperature/composition linear system. Return the initial
@@ -508,7 +527,7 @@ namespace aspect
        * This function is implemented in
        * <code>source/simulator/solver.cc</code>.
        */
-      double solve_advection (const TemperatureOrComposition &temperature_or_composition);
+      double solve_advection (const AdvectionField &advection_field);
 
       /**
        * Solve the Stokes linear system. Return the initial nonlinear residual,
@@ -685,7 +704,7 @@ namespace aspect
         * <code>source/simulator/assembly.cc</code>.
         */
       void
-      local_assemble_advection_system (const TemperatureOrComposition &temperature_or_composition,
+      local_assemble_advection_system (const AdvectionField &advection_field,
                                        const std::pair<double,double> global_field_range,
                                        const double                   global_max_velocity,
                                        const double                   global_entropy_variation,
@@ -705,7 +724,7 @@ namespace aspect
       double compute_heating_term(const internal::Assembly::Scratch::AdvectionSystem<dim>  &scratch,
                                   typename MaterialModel::Interface<dim>::MaterialModelInputs &material_model_inputs,
                                   typename MaterialModel::Interface<dim>::MaterialModelOutputs &material_model_outputs,
-                                  const TemperatureOrComposition &temperature_or_composition,
+                                  const AdvectionField &advection_field,
                                   const unsigned int q) const;
 
 
@@ -773,7 +792,7 @@ namespace aspect
        * This function is implemented in
        * <code>source/simulator/helper_functions.cc</code>.
        */
-      void compute_depth_average_field(const TemperatureOrComposition &temperature_or_composition,
+      void compute_depth_average_field(const AdvectionField &advection_field,
                                        std::vector<double> &values) const;
 
       /**
@@ -884,7 +903,7 @@ namespace aspect
        * <code>source/simulator/assembly.cc</code>.
        */
       double get_entropy_variation (const double average_value,
-                                    const TemperatureOrComposition &temperature_or_composition) const;
+                                    const AdvectionField &advection_field) const;
 
       /**
        * Compute the minimal and maximal temperature througout the domain from a
@@ -895,7 +914,7 @@ namespace aspect
        * <code>source/simulator/helper_functions.cc</code>.
        */
       std::pair<double,double>
-      get_extrapolated_temperature_or_composition_range (const TemperatureOrComposition &temperature_or_composition) const;
+      get_extrapolated_advection_field_range (const AdvectionField &advection_field) const;
 
       /**
        * Compute the size of the next time step from the mesh size and
@@ -926,7 +945,7 @@ namespace aspect
                         const double                        average_temperature,
                         const double                        global_entropy_variation,
                         const double                        cell_diameter,
-                        const TemperatureOrComposition     &temperature_or_composition) const;
+                        const AdvectionField     &advection_field) const;
 
       /**
        * Compute the residual of one advection equation to be used
@@ -940,7 +959,7 @@ namespace aspect
       void
       compute_advection_system_residual(internal::Assembly::Scratch::AdvectionSystem<dim> &scratch,
                                         const double                        average_field,
-                                        const TemperatureOrComposition     &temperature_or_composition,
+                                        const AdvectionField     &advection_field,
                                         double                             &max_residual,
                                         double                             &max_velocity,
                                         double                             &max_density,
@@ -1069,6 +1088,7 @@ namespace aspect
       const std::auto_ptr<BoundaryTemperature::Interface<dim> >      boundary_temperature;
       const std::auto_ptr<BoundaryComposition::Interface<dim> >      boundary_composition;
       std::auto_ptr<CompositionalInitialConditions::Interface<dim> > compositional_initial_conditions;
+      std::auto_ptr<PorosityInitialConditions::Interface<dim> >      porosity_initial_conditions;
       std::auto_ptr<const AdiabaticConditions<dim> >                 adiabatic_conditions;
       std::auto_ptr<InitialConditions::Interface<dim> >              initial_conditions;
       std::map<types::boundary_id,std_cxx1x::shared_ptr<VelocityBoundaryConditions::Interface<dim> > > velocity_boundary_conditions;
@@ -1166,6 +1186,7 @@ namespace aspect
       std_cxx1x::shared_ptr<LinearAlgebra::PreconditionILU>     T_preconditioner;
 //TODO: use n_compositional_field separate preconditioners
       std_cxx1x::shared_ptr<LinearAlgebra::PreconditionILU>     C_preconditioner;
+      std_cxx1x::shared_ptr<LinearAlgebra::PreconditionILU>     Phi_preconditioner;
 
       bool                                                      rebuild_stokes_matrix;
       bool                                                      rebuild_stokes_preconditioner;

@@ -92,6 +92,7 @@ namespace aspect
         pressure             = 2,
         strain_rate          = 4,
         compositional_fields = 8,
+        porosity             = 16,
 
         any_variable         = 0xffff
       };
@@ -494,7 +495,7 @@ namespace aspect
          */
         struct MaterialModelInputs
         {
-          MaterialModelInputs(unsigned int n_points, unsigned int n_comp);
+          MaterialModelInputs(unsigned int n_points, unsigned int n_comp, bool include_melt_transport);
 
           /**
            * Vector with global positions where the material has to be evaluated in evaluate().
@@ -527,6 +528,11 @@ namespace aspect
            * \nabla \mathbf u^T) - \frac 13 \nabla \cdot \mathbf u \mathbf 1$.
            */
           std::vector<SymmetricTensor<2,dim> > strain_rate;
+          /**
+           * Porosity (volume fraction of melt) values at the points given in
+           * the #position vector.
+           */
+          std::vector<double> porosity;
         };
 
         /**
@@ -578,6 +584,10 @@ namespace aspect
            * change in compositional field c at point i.
            */
           std::vector<std::vector<double> > reaction_terms;
+          /**
+           * The mass production rate of melt at the given positions.
+           */
+          std::vector<double> melt_production_rate;
         };
 
         /**
@@ -758,10 +768,32 @@ namespace aspect
                                     const Point<dim> &position,
                                     const unsigned int compositional_variable) const;
 
+
+      /**
+       * Return the mass production rate of melt (or crystallization rate, if
+       * this is negative). The units of $\Gamma$ are $\textrm{kg} / \textrm{m}^3
+       * / \textrm{s}$.
+      *
+      * This should not be confused with the rate of change of porosity, as the
+      * melt production rate normally only depends on temperature, pressure and
+      * how much of the material is already molten (compositional fields), whereas
+      * the porosity field includes advection of material and is also a volume
+      * fraction.
+      *
+      * This function has a default implementation that sets
+      * the melt production rate to zero (assuming no melting/crystallization).
+       */
+      virtual double melt_production_rate (const double      temperature,
+                                           const double      pressure,
+                                           const std::vector<double> &compositional_fields,
+                                           const Point<dim> &position) const;
+
+
+
       /**
          * Return the thermal conductivity $k$ of the model as a function of temperature,
          * pressure and position. The units of $k$ are $\textrm{W} / \textrm{m} / \textrm{K}$
-         * in 3d, and $\textrm{W} / \textrm{K}$ in 2d. This is easily see by considering that
+         * in 3d, and $\textrm{W} / \textrm{K}$ in 2d. This is easily seen by considering that
          * $k$ is the heat flux density (i.e., Watts per unit area perpendicular to the heat
          * flux direction) per unit temperature gradient (i.e., Kelvin per meter). The unit
          * area has units $m^2$ in 3d, but only $m$ in 2d, yielding the stated units for $k$.

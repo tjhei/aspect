@@ -134,6 +134,8 @@ namespace aspect
       solution_names.push_back ("T");
       for (unsigned int c=0; c<this->n_compositional_fields(); ++c)
         solution_names.push_back ("C_" + boost::lexical_cast<std::string>(c+1));
+      if (this->include_melt_transport())
+    	solution_names.push_back ("Phi");
 
 
       std::vector<DataComponentInterpretation::DataComponentInterpretation>
@@ -142,6 +144,8 @@ namespace aspect
       interpretation.push_back (DataComponentInterpretation::component_is_scalar);
       interpretation.push_back (DataComponentInterpretation::component_is_scalar);
       for (unsigned int c=0; c<this->n_compositional_fields(); ++c)
+        interpretation.push_back (DataComponentInterpretation::component_is_scalar);
+      if (this->include_melt_transport())
         interpretation.push_back (DataComponentInterpretation::component_is_scalar);
 
       data_out.add_data_vector (this->get_solution(),

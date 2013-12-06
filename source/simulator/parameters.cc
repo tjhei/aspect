@@ -246,6 +246,12 @@ namespace aspect
                        "the composition system gets solved. See 'linear solver "
                        "tolerance' for more details.");
 
+    prm.declare_entry ("Porosity solver tolerance", "1e-12",
+                       Patterns::Double(0,1),
+                       "The relative tolerance up to which the linear system for "
+                       "the porosity system gets solved. See 'linear solver "
+                       "tolerance' for more details.");
+
     prm.enter_subsection ("Model settings");
     {
       prm.declare_entry ("Include shear heating", "true",
@@ -267,6 +273,11 @@ namespace aspect
                          "always be used but may be undesirable when comparing results with known "
                          "benchmarks that do not include this term in the temperature equation "
                          "or when dealing with a model without phase transitions.");
+      prm.declare_entry ("Include melt transport", "false",
+                         Patterns::Bool (),
+                         "Whether to include the transport of melt into the model or not. If this "
+                         "is set to true, an additional equation for the transport of molten "
+                         "material according to Darcy's law will be solved.");
       prm.declare_entry ("Radiogenic heating rate", "0e0",
                          Patterns::Double (),
                          "H0");
@@ -427,6 +438,10 @@ namespace aspect
                          Patterns::Integer (1),
                          "The polynomial degree to use for the composition variable(s). "
                          "Units: None.");
+      prm.declare_entry ("Porosity polynomial degree", "2",
+                         Patterns::Integer (1),
+                         "The polynomial degree to use for the porosity variable. "
+                         "Units: None.");
       prm.declare_entry ("Use locally conservative discretization", "false",
                          Patterns::Bool (),
                          "Whether to use a Stokes discretization that is locally "
@@ -580,6 +595,7 @@ namespace aspect
     n_cheap_stokes_solver_steps   = prm.get_integer ("Number of cheap Stokes solver steps");
     temperature_solver_tolerance  = prm.get_double ("Temperature solver tolerance");
     composition_solver_tolerance  = prm.get_double ("Composition solver tolerance");
+    porosity_solver_tolerance     = prm.get_double ("Porosity solver tolerance");
 
     prm.enter_subsection ("Mesh refinement");
     {
@@ -619,6 +635,7 @@ namespace aspect
       include_shear_heating = prm.get_bool ("Include shear heating");
       include_adiabatic_heating = prm.get_bool ("Include adiabatic heating");
       include_latent_heat = prm.get_bool ("Include latent heat");
+      include_melt_transport = prm.get_bool ("Include melt transport");
       radiogenic_heating_rate = prm.get_double ("Radiogenic heating rate");
 
       const std::vector<int> x_fixed_temperature_boundary_indicators
@@ -709,6 +726,7 @@ namespace aspect
       stokes_velocity_degree = prm.get_integer ("Stokes velocity polynomial degree");
       temperature_degree     = prm.get_integer ("Temperature polynomial degree");
       composition_degree     = prm.get_integer ("Composition polynomial degree");
+      porosity_degree        = prm.get_integer ("Porosity polynomial degree");
       use_locally_conservative_discretization
         = prm.get_bool ("Use locally conservative discretization");
 
@@ -750,6 +768,7 @@ namespace aspect
     GravityModel::declare_parameters<dim> (prm);
     InitialConditions::declare_parameters<dim> (prm);
     CompositionalInitialConditions::declare_parameters<dim> (prm);
+    PorosityInitialConditions::declare_parameters<dim> (prm);
     BoundaryTemperature::declare_parameters<dim> (prm);
     BoundaryComposition::declare_parameters<dim> (prm);
     VelocityBoundaryConditions::declare_parameters<dim> (prm);

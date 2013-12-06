@@ -44,7 +44,9 @@ namespace aspect
                 ||
                 (dependence == strain_rate)
                 ||
-                (dependence == compositional_fields));
+                (dependence == compositional_fields)
+                ||
+                (dependence == porosity));
       }
 
     }
@@ -86,7 +88,7 @@ namespace aspect
       //TODO: surely this could be done in a more efficient way?
       //      we could move this to helper_functions.compute_thermal_diffusivity()?
 
-      typename MaterialModel::Interface<dim>::MaterialModelInputs in(1, compositional_fields.size());
+      typename MaterialModel::Interface<dim>::MaterialModelInputs in(1, compositional_fields.size(), false/*this->include_melt_transport()*/);
       typename MaterialModel::Interface<dim>::MaterialModelOutputs out(1, compositional_fields.size());
 
       in.position[0] = position;
@@ -324,7 +326,9 @@ namespace aspect
     }
 
     template <int dim>
-    Interface<dim>::MaterialModelInputs::MaterialModelInputs(unsigned int n_points, unsigned int n_comp)
+    Interface<dim>::MaterialModelInputs::MaterialModelInputs(unsigned int n_points, unsigned int n_comp,
+    		                                                    bool include_melt_transport)
+    // TODO: set include_melt_transport to default value after everything in aspect is changed
     {
       position.resize(n_points);
       temperature.resize(n_points);
@@ -333,6 +337,7 @@ namespace aspect
       for (unsigned int i=0; i<n_points; ++i)
         composition[i].resize(n_comp);
       strain_rate.resize(n_points);
+      porosity.resize(include_melt_transport ? n_points : 0);
     }
 
     template <int dim>
@@ -347,6 +352,7 @@ namespace aspect
       entropy_derivative_pressure.resize(n_points);
       entropy_derivative_temperature.resize(n_points);
       reaction_terms.resize(n_points);
+      melt_production_rate.resize(n_points);
       for (unsigned int i=0; i<n_points; ++i)
         reaction_terms[i].resize(n_comp);
     }
@@ -388,6 +394,18 @@ namespace aspect
                    const std::vector<double> &compositional_fields,
                    const Point<dim> &position,
                    const unsigned int compositional_variable) const
+    {
+      return 0.0;
+    }
+
+
+    template <int dim>
+    double
+    InterfaceCompatibility<dim>::
+    melt_production_rate (const double temperature,
+                          const double pressure,
+                          const std::vector<double> &compositional_fields,
+                          const Point<dim> &position) const
     {
       return 0.0;
     }
