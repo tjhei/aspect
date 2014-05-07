@@ -850,8 +850,9 @@ namespace aspect
         for (unsigned int c=0; c<parameters.n_compositional_fields; ++c)
           introspection.component_masks.compositional_fields
           .push_back (finite_element.component_mask(introspection.extractors.compositional_fields[c]));
-        introspection.component_masks.porosity
-          = finite_element.component_mask (introspection.extractors.porosity);
+        if (parameters.include_melt_transport)
+          introspection.component_masks.porosity
+            = finite_element.component_mask (introspection.extractors.porosity);
       }
 
 
@@ -868,7 +869,9 @@ namespace aspect
       for (unsigned int c=0; c<parameters.n_compositional_fields; ++c)
         n_C[c] = introspection.system_dofs_per_block
                  [introspection.block_indices.compositional_fields[c]];
-      const types::global_dof_index n_Phi = introspection.system_dofs_per_block[3+parameters.n_compositional_fields];
+      types::global_dof_index n_Phi;
+        if (parameters.include_melt_transport)
+          n_Phi = introspection.system_dofs_per_block[3+parameters.n_compositional_fields];
 
 
       IndexSet system_index_set = dof_handler.locally_owned_dofs();
@@ -899,11 +902,14 @@ namespace aspect
                                                                              n_u+n_p+n_T+n_C_so_far+n_C[c]));
             n_C_so_far += n_C[c];
           }
-        introspection.index_sets.system_partitioning.push_back(system_index_set.get_view(n_u+n_p+n_T+n_C_so_far,
-        		                                               n_u+n_p+n_T+n_C_so_far+n_Phi));
-        introspection.index_sets.system_relevant_partitioning
-        .push_back(introspection.index_sets.system_relevant_set.get_view(n_u+n_p+n_T+n_C_so_far,
-        		                                                         n_u+n_p+n_T+n_C_so_far+n_Phi));
+        if (parameters.include_melt_transport)
+          {
+          introspection.index_sets.system_partitioning.push_back(system_index_set.get_view(n_u+n_p+n_T+n_C_so_far,
+        		                                                 n_u+n_p+n_T+n_C_so_far+n_Phi));
+          introspection.index_sets.system_relevant_partitioning
+          .push_back(introspection.index_sets.system_relevant_set.get_view(n_u+n_p+n_T+n_C_so_far,
+        		                                                           n_u+n_p+n_T+n_C_so_far+n_Phi));
+          }
       }
     }
 
@@ -1064,13 +1070,16 @@ namespace aspect
                 = solution.block(introspection.block_indices.compositional_fields[c]);
             }
 
-          assemble_advection_system (AdvectionField::porosity());
-          build_advection_preconditioner(AdvectionField::porosity(),
-                                         Phi_preconditioner);
-          solve_advection(AdvectionField::porosity());
+          if (parameters.include_melt_transport)
+          {
+            assemble_advection_system (AdvectionField::porosity());
+            build_advection_preconditioner(AdvectionField::porosity(),
+                                           Phi_preconditioner);
+            solve_advection(AdvectionField::porosity());
 
-          current_linearization_point.block(introspection.block_indices.porosity)
-            = solution.block(introspection.block_indices.porosity);
+            current_linearization_point.block(introspection.block_indices.porosity)
+              = solution.block(introspection.block_indices.porosity);
+          }
 
           // the Stokes matrix depends on the viscosity. if the viscosity
           // depends on other solution variables, then after we need to
