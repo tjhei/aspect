@@ -484,6 +484,9 @@ namespace aspect
     if (parameters.n_compositional_fields > 0)
       statistics.add_value("Number of composition degrees of freedom",
                            introspection.system_dofs_per_block[3]);
+    if (parameters.include_melt_transport)
+      statistics.add_value("Number of porosity degrees of freedom",
+                           introspection.system_dofs_per_block[(parameters.n_compositional_fields > 0 ? 4 : 3)]);
 
 
     // then interpolate the current boundary velocities. this adds to
@@ -501,7 +504,7 @@ namespace aspect
         {
           p->second->set_current_time (time);
           VectorFunctionFromVelocityFunctionObject<dim> vel
-          (parameters.n_compositional_fields,
+          (parameters.n_compositional_fields+(parameters.include_melt_transport ? 1 : 0),
            std_cxx1x::bind (&VelocityBoundaryConditions::Interface<dim>::boundary_velocity,
                             p->second,
                             std_cxx1x::_1));

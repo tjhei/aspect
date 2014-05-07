@@ -70,12 +70,14 @@ namespace aspect
       {
         initial_solution.reinit(system_rhs,false);
 
-        // base element in the finite element is 2 for temperature (n=0) and 3 for
-        // compositional fields (n>0)
+        // base element in the finite element is 2 for temperature (n=0), 3 for
+        // compositional fields (n>0) and 4 for porosity (or 3, if there are no
+        // compositional fields)
 //TODO: can we use introspection here, instead of the hard coded numbers?
-        const unsigned int base_element = (n==0 ? 2 : (n==1+parameters.n_compositional_fields) ? 4 : 3);
+        const unsigned int base_element = (n==0 ? 2 : (n==1+parameters.n_compositional_fields
+        		                                       && parameters.n_compositional_fields>0) ? 4 : 3);
 
-        // get the temperature/composition support points
+        // get the temperature/composition/porosity support points
         const std::vector<Point<dim> > support_points
           = finite_element.base_element(base_element).get_unit_support_points();
         Assert (support_points.size() != 0,
@@ -94,8 +96,8 @@ namespace aspect
             {
               fe_values.reinit (cell);
 
-              // go through the temperature/composition dofs and set their global values
-              // to the temperature/composition field interpolated at these points
+              // go through the temperature/composition/porosity dofs and set their global values
+              // to the temperature/composition/porosity field interpolated at these points
               cell->get_dof_indices (local_dof_indices);
               for (unsigned int i=0; i<finite_element.base_element(base_element).dofs_per_cell; ++i)
                 {
@@ -106,9 +108,9 @@ namespace aspect
                   double value =
                     (base_element == 2 ?
                      initial_conditions->initial_temperature(fe_values.quadrature_point(i))
-                     : (base_element == 4 ?
-                    	porosity_initial_conditions->initial_porosity(fe_values.quadrature_point(i))
-                    	: compositional_initial_conditions->initial_composition(fe_values.quadrature_point(i),n-1)));
+                     : (base_element == 3 && parameters.n_compositional_fields > 0 ?
+                    	compositional_initial_conditions->initial_composition(fe_values.quadrature_point(i),n-1)
+                    	: porosity_initial_conditions->initial_porosity(fe_values.quadrature_point(i))));
                   initial_solution(local_dof_indices[system_local_dof]) = value;
 
                   if (base_element != 2)
