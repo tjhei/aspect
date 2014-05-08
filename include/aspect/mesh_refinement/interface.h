@@ -89,8 +89,19 @@ namespace aspect
          */
         virtual
         void
-        execute (Vector<float> &error_indicators) const = 0;
+        execute (Vector<float> &error_indicators) const;
 
+        /**
+         * After cells have been marked for coarsening/refinement, apply
+         * additional criteria independent of the error estimate.
+         *
+         * @param[in] max_grid_level The maximum refinement level of the
+         * mesh
+         */
+        virtual
+        void
+        tag_additional_cells (unsigned int max_grid_level) const;
+      
         /**
          * Declare the parameters this class takes through input files.
          * Derived classes should overload this function if they actually
@@ -156,6 +167,15 @@ namespace aspect
         virtual
         void
         execute (Vector<float> &error_indicators) const;
+
+        /**
+         * Apply additional refinement criteria independent of the error
+         * estimate for all of the mesh refinement objects that have been
+         * requested in the input file.
+         */
+        virtual
+        void
+        tag_additional_cells (unsigned int max_grid_level) const;
 
         /**
          * Declare the parameters of all known mesh refinement plugins, as
