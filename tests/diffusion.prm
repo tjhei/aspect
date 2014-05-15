@@ -45,7 +45,6 @@ set End time                               = 4e7
 
 # The name of the directory into which all output files should be placed. This
 # may be an absolute or a relative path.
-set Output directory                       = output-diffusion
 
 # A flag indicating whether the computation should be resumed from a
 # previously saved state (if true) or start from scratch (if false).
@@ -372,7 +371,7 @@ subsection Postprocess
   # into files that can be read by a graphical visualization program.
   # Additional run time parameters are read from the parameter subsection
   # 'Visualization'.
-  set List of postprocessors = temperature statistics, heat flux statistics
+  set List of postprocessors = temperature statistics, heat flux statistics, depth average
 
   subsection Depth average
     # The time interval between each generation of graphical output files. A

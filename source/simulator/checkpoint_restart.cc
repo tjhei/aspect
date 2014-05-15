@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012, 2013 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2014 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -135,16 +135,45 @@ namespace aspect
   template <int dim>
   void Simulator<dim>::resume_from_snapshot()
   {
+    // first check existence of the two restart files
+    {
+      const std::string filename = parameters.output_directory + "restart.mesh";
+      std::ifstream in (filename.c_str());
+      if (!in)
+        AssertThrow (false,
+                     ExcMessage (std::string("You are trying to restart a previous computation, "
+                                             "but the restart file <")
+                                 +
+                                 filename
+                                 +
+                                 "> does not appear to exist!"));
+    }
+    {
+      const std::string filename = parameters.output_directory + "restart.resume.z";
+      std::ifstream in (filename.c_str());
+      if (!in)
+        AssertThrow (false,
+                     ExcMessage (std::string("You are trying to restart a previous computation, "
+                                             "but the restart file <")
+                                 +
+                                 filename
+                                 +
+                                 "> does not appear to exist!"));
+    }
+
+    pcout << "*** Resuming from snapshot!" << std::endl << std::endl;
+
     try
       {
         triangulation.load ((parameters.output_directory + "restart.mesh").c_str());
       }
     catch (...)
       {
-        AssertThrow(false, ExcMessage("Cannot open snapshot mesh file."));
+        AssertThrow(false, ExcMessage("Cannot open snapshot mesh file or read the triangulation stored there."));
       }
     global_volume = GridTools::volume (triangulation, mapping);
     setup_dofs();
+
 
     LinearAlgebra::BlockVector
     distributed_system (system_rhs);
@@ -166,33 +195,51 @@ namespace aspect
     old_solution = old_distributed_system;
     old_old_solution = old_old_distributed_system;
 
-    //read zlib compressed resume.z
-    {
-      std::ifstream ifs ((parameters.output_directory + "restart.resume.z").c_str());
-      AssertThrow(ifs.is_open(), ExcMessage("Cannot open snapshot resume file."));
-      uint32_t compression_header[4];
-      ifs.read((char *)compression_header, 4 * sizeof(compression_header[0]));
-      Assert(compression_header[0]==1, ExcInternalError());
 
-      std::vector<char> compressed(compression_header[3]);
-      std::vector<char> uncompressed(compression_header[1]);
-      ifs.read(&compressed[0],compression_header[3]);
-      uLongf uncompressed_size = compression_header[1];
-      uncompress((Bytef *)&uncompressed[0], &uncompressed_size, (Bytef *)&compressed[0], compression_header[3]);
-
+    // read zlib compressed resume.z
+    try
       {
-        std::stringstream ifs;
-        // this puts the data of uncompressed into the stringstream
-        ifs.rdbuf()->pubsetbuf(&uncompressed[0], uncompressed_size);
-        aspect::iarchive ia (ifs);
-        ia >> (*this);
+        std::ifstream ifs ((parameters.output_directory + "restart.resume.z").c_str());
+        AssertThrow(ifs.is_open(),
+                    ExcMessage("Cannot open snapshot resume file."));
+
+        uint32_t compression_header[4];
+        ifs.read((char *)compression_header, 4 * sizeof(compression_header[0]));
+        Assert(compression_header[0]==1, ExcInternalError());
+
+        std::vector<char> compressed(compression_header[3]);
+        std::vector<char> uncompressed(compression_header[1]);
+        ifs.read(&compressed[0],compression_header[3]);
+        uLongf uncompressed_size = compression_header[1];
+
+        const int err = uncompress((Bytef *)&uncompressed[0], &uncompressed_size,
+                                   (Bytef *)&compressed[0], compression_header[3]);
+        AssertThrow (err == Z_OK,
+                     ExcMessage (std::string("Uncompressing the data buffer resulted in an error with code <")
+                                 +
+                                 Utilities::int_to_string(err)));
+
+        {
+          std::istringstream ss;
+          ss.str(std::string (&uncompressed[0], uncompressed_size));
+          aspect::iarchive ia (ss);
+          ia >> (*this);
+        }
       }
-    }
+    catch (std::exception &e)
+      {
+        AssertThrow (false,
+                     ExcMessage (std::string("Cannot seem to deserialize the data previously stored!\n")
+                                 +
+                                 "Some part of the machinery generated an exception that says <"
+                                 +
+                                 e.what()
+                                 +
+                                 ">"));
+      }
 
     // re-initialize the postprocessors with the current object
     postprocess_manager.initialize (*this);
-
-    pcout << "*** Resuming from snapshot!" << std::endl << std::endl;
   }
 
 }

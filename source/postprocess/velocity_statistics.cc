@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2014 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -41,7 +41,7 @@ namespace aspect
     VelocityStatistics<dim>::execute (TableHandler &statistics)
     {
       const QGauss<dim> quadrature_formula (this->get_fe()
-                                            .base_element(0).degree+1);
+                                            .base_element(this->introspection().base_elements.velocities).degree+1);
       const unsigned int n_q_points = quadrature_formula.size();
 
       FEValues<dim> fe_values (this->get_mapping(),

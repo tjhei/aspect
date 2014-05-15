@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012, 2013 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2014 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -24,6 +24,7 @@
 
 #include <deal.II/base/utilities.h>
 #include <deal.II/base/mpi.h>
+#include <deal.II/base/multithread_info.h>
 
 #include <dlfcn.h>
 
@@ -117,6 +118,7 @@ void possibly_load_shared_libs (const std::string &parameter_filename)
                                   "Additional shared libraries");
   if (shared_libs.size() > 0)
     {
+#if ASPECT_USE_SHARED_LIBS==1
       const std::vector<std::string>
       shared_libs_list = Utilities::split_string_list (shared_libs);
 
@@ -135,7 +137,22 @@ void possibly_load_shared_libs (const std::string &parameter_filename)
                                    + dlerror() + ">."));
         }
 
-      std::cout << std::endl;
+      if (Utilities::MPI::this_mpi_process (MPI_COMM_WORLD) == 0)
+        std::cout << std::endl;
+#else
+      if (Utilities::MPI::this_mpi_process (MPI_COMM_WORLD) == 0)
+        {
+          std::cerr << std::endl << std::endl
+                    << "----------------------------------------------------"
+                    << std::endl;
+          std::cerr << "You can not load additional shared libraries on " << std::endl
+                    << "systems where you link ASPECT as a static executable."
+                    << std::endl
+                    << "----------------------------------------------------"
+                    << std::endl;
+        }
+      std::exit (1);
+#endif
     }
 }
 
@@ -143,21 +160,51 @@ void possibly_load_shared_libs (const std::string &parameter_filename)
 int main (int argc, char *argv[])
 {
   using namespace dealii;
+
+  // disable the use of thread. if that is not what you want,
   // use numbers::invalid_unsigned_int instead of 1 to use as many threads
   // as deemed useful by TBB
-  unsigned int n_threads = 1;
-  Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, n_threads);
+  Utilities::MPI::MPI_InitFinalize mpi_initialization(argc, argv, /*n_threads =*/ 1);
 
   try
     {
       deallog.depth_console(0);
 
+      // print some status messages at the top
+      if (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0)
+        {
+          const int n_tasks = Utilities::MPI::n_mpi_processes(MPI_COMM_WORLD);
+
+          std::cout << "-----------------------------------------------------------------------------\n"
+                    << "-- This is ASPECT, the Advanced Solver for Problems in Earth's ConvecTion.\n"
+#ifdef DEBUG
+                    << "--     . running in DEBUG mode\n"
+#else
+                    << "--     . running in OPTIMIZED mode\n"
+#endif
+                    << "--     . running with " << n_tasks << " MPI process" << (n_tasks == 1 ? "\n" : "es\n");
+#if (DEAL_II_MAJOR*100 + DEAL_II_MINOR) >= 801
+          const int n_threads = multithread_info.n_threads();
+          if (n_threads>1)
+            std::cout << "--     . using " << n_threads << " threads " << (n_tasks == 1 ? "\n" : "each\n");
+#endif
+#ifdef USE_PETSC
+          std::cout << "--     . using PETSc\n";
+#else
+          std::cout << "--     . using Trilinos\n";
+#endif
+          std::cout << "-----------------------------------------------------------------------------\n"
+                    << std::endl;
+        }
+
+      if (argc < 2)
+        {
+          std::cout << "\tUsage: ./aspect <parameter_file.prm>" << std::endl;
+          return 0;
+        }
+
       // see which parameter file to use
-      std::string parameter_filename;
-      if (argc >= 2)
-        parameter_filename = argv[1];
-      else
-        parameter_filename = "box.prm";
+      std::string parameter_filename = argv[1];
 
       // verify that it can be opened
       {

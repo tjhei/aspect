@@ -1,3 +1,6 @@
+# A description of convection in a 2d box. See the manual for more information.
+
+
 # At the top, we define the number of space dimensions we would like to
 # work in:
 set Dimension                              = 2
@@ -14,8 +17,8 @@ set Output directory                       = output
 # be normalized. Here, we choose a zero average pressure
 # at the surface of the domain (for the current geometry, the
 # surface is defined as the top boundary).
-set Linear solver tolerance                = 1e-15
-set Temperature solver tolerance           = 1e-15
+set Linear solver tolerance                = 1e-10
+set Temperature solver tolerance           = 1e-10
 
 set Pressure normalization                 = surface
 set Surface pressure                       = 0

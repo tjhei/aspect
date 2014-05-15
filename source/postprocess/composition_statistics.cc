@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012, 2013 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2014 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -42,11 +42,11 @@ namespace aspect
         return std::pair<std::string,std::string>();
 
       // create a quadrature formula based on the compositional element alone.
-      // be defensive about determining that what we think is the temperature
-      // element is it in fact
-      Assert (this->get_fe().n_base_elements() == (this->include_melt_transport() ? 5 : 4),
-              ExcNotImplemented());
-      const QGauss<dim> quadrature_formula (this->get_fe().base_element(3).degree+1);
+      // be defensive about determining that a compositional field actually exists
+      AssertThrow (this->introspection().base_elements.compositional_fields
+                   != numbers::invalid_unsigned_int,
+                   ExcMessage("This postprocessor cannot be used without compositional fields."));
+      const QGauss<dim> quadrature_formula (this->get_fe().base_element(this->introspection().base_elements.compositional_fields).degree+1);
       const unsigned int n_q_points = quadrature_formula.size();
 
       FEValues<dim> fe_values (this->get_mapping(),
@@ -93,15 +93,18 @@ namespace aspect
                                                   -std::numeric_limits<double>::max());
 
       for (unsigned int c=0; c<this->n_compositional_fields(); ++c)
-        for (unsigned int i=0; i<this->get_solution().block(3+c).local_size(); ++i)
-          {
-            local_min_compositions[c]
-              = std::min<double> (local_min_compositions[c],
-                                  this->get_solution().block(3+c).trilinos_vector()[0][i]);
-            local_max_compositions[c]
-              = std::max<double> (local_max_compositions[c],
-                                  this->get_solution().block(3+c).trilinos_vector()[0][i]);
-          }
+        {
+          IndexSet range = this->get_solution().block(this->introspection().block_indices.compositional_fields[c]).locally_owned_elements();
+          for (unsigned int i=0; i<range.n_elements(); ++i)
+            {
+              const unsigned int idx = range.nth_index_in_set(i);
+              const double val =  this->get_solution().block(this->introspection().block_indices.compositional_fields[c])(idx);
+
+              local_min_compositions[c] = std::min<double> (local_min_compositions[c], val);
+              local_max_compositions[c] = std::max<double> (local_max_compositions[c], val);
+            }
+
+        }
 
       // now do the reductions over all processors. we can use Utilities::MPI::max
       // for the maximal values. unfortunately, there is currently no matching

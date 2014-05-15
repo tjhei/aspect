@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2014 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -21,6 +21,7 @@
 
 
 #include <aspect/postprocess/table_heat_flux_statistics.h>
+#include <aspect/material_model/table.h>
 #include <aspect/geometry_model/spherical_shell.h>
 #include <aspect/geometry_model/box.h>
 #include <aspect/simulator_access.h>
@@ -37,12 +38,14 @@ namespace aspect
     std::pair<std::string,std::string>
     TableHeatfluxStatistics<dim>::execute (TableHandler &statistics)
     {
+      Assert (dynamic_cast<const MaterialModel::Table<dim> *>(&this->get_material_model())
+              != 0,
+              ExcMessage ("This postprocessor can only be used when using "
+                          "the MaterialModel::Table implementation of the "
+                          "material model interface."));
+
       // create a quadrature formula based on the temperature element alone.
-      // be defensive about determining that what we think is the temperature
-      // element is it in fact
-      Assert (this->get_fe().n_base_elements() == 3,
-              ExcNotImplemented());
-      const QGauss<dim-1> quadrature (this->get_fe().base_element(2).degree+1);
+      const QGauss<dim-1> quadrature (this->get_fe().base_element(this->introspection().base_elements.temperature).degree+1);
 
       FEFaceValues<dim> fe_face_values (this->get_mapping(),
                                         this->get_fe(),
@@ -69,7 +72,7 @@ namespace aspect
                                                                      this->n_compositional_fields(),
                                                                      this->include_melt_transport());
       typename MaterialModel::Interface<dim>::MaterialModelOutputs out(quadrature.size(),
-          this->n_compositional_fields());
+                                                                       this->n_compositional_fields());
 
       typename DoFHandler<dim>::active_cell_iterator
       cell = this->get_dof_handler().begin_active(),

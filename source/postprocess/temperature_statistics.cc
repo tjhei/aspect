@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012, 2013 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2014 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -39,11 +39,7 @@ namespace aspect
     TemperatureStatistics<dim>::execute (TableHandler &statistics)
     {
       // create a quadrature formula based on the temperature element alone.
-      // be defensive about determining that what we think is the temperature
-      // element is it in fact
-      Assert (this->get_fe().n_base_elements() == 3+(this->n_compositional_fields()>0 ? 1 : 0)+(this->include_melt_transport() ? 1 : 0),
-              ExcNotImplemented());
-      const QGauss<dim> quadrature_formula (this->get_fe().base_element(2).degree+1);
+      const QGauss<dim> quadrature_formula (this->get_fe().base_element(this->introspection().base_elements.temperature).degree+1);
       const unsigned int n_q_points = quadrature_formula.size();
 
       FEValues<dim> fe_values (this->get_mapping(),
@@ -85,14 +81,14 @@ namespace aspect
       // picture of their true values
       double local_min_temperature = std::numeric_limits<double>::max();
       double local_max_temperature = -std::numeric_limits<double>::max();
-      for (unsigned int i=0; i<this->get_solution().block(2).local_size(); ++i)
+      IndexSet range = this->get_solution().block(2).locally_owned_elements();
+      for (unsigned int i=0; i<range.n_elements(); ++i)
         {
-          local_min_temperature
-            = std::min<double> (local_min_temperature,
-                                this->get_solution().block(2).trilinos_vector()[0][i]);
-          local_max_temperature
-            = std::max<double> (local_max_temperature,
-                                this->get_solution().block(2).trilinos_vector()[0][i]);
+          const unsigned int idx = range.nth_index_in_set(i);
+          const double val =  this->get_solution().block(2)(idx);
+
+          local_min_temperature = std::min<double> (local_min_temperature, val);
+          local_max_temperature = std::max<double> (local_max_temperature, val);
         }
 
       const double global_temperature_integral
@@ -114,28 +110,45 @@ namespace aspect
         global_max_temperature = global_values[1];
       }
 
+      double global_mean_temperature = global_temperature_integral / this->get_volume();
       statistics.add_value ("Minimal temperature (K)",
                             global_min_temperature);
       statistics.add_value ("Average temperature (K)",
-                            global_temperature_integral / this->get_volume());
+                            global_mean_temperature);
       statistics.add_value ("Maximal temperature (K)",
                             global_max_temperature);
-      statistics.add_value ("Average nondimensional temperature (K)",
-                            global_temperature_integral / this->get_volume() /
-                            this->get_boundary_temperature().maximal_temperature(this->get_fixed_temperature_boundary_indicators()));
+      if ((this->get_fixed_temperature_boundary_indicators().size() > 0)
+          &&
+          (this->get_boundary_temperature().maximal_temperature(this->get_fixed_temperature_boundary_indicators())
+           !=
+           this->get_boundary_temperature().minimal_temperature(this->get_fixed_temperature_boundary_indicators())))
+        statistics.add_value ("Average nondimensional temperature (K)",
+                              (global_mean_temperature - global_min_temperature) /
+                              (this->get_boundary_temperature().maximal_temperature(this->get_fixed_temperature_boundary_indicators())
+                               -
+                               this->get_boundary_temperature().minimal_temperature(this->get_fixed_temperature_boundary_indicators())));
 
       // also make sure that the other columns filled by the this object
       // all show up with sufficient accuracy and in scientific notation
       {
         const char *columns[] = { "Minimal temperature (K)",
                                   "Average temperature (K)",
-                                  "Maximal temperature (K)",
-                                  "Average nondimensional temperature (K)"
+                                  "Maximal temperature (K)"
                                 };
         for (unsigned int i=0; i<sizeof(columns)/sizeof(columns[0]); ++i)
           {
             statistics.set_precision (columns[i], 8);
             statistics.set_scientific (columns[i], true);
+          }
+
+        if ((this->get_fixed_temperature_boundary_indicators().size() > 0)
+            &&
+            (this->get_boundary_temperature().maximal_temperature(this->get_fixed_temperature_boundary_indicators())
+             !=
+             this->get_boundary_temperature().minimal_temperature(this->get_fixed_temperature_boundary_indicators())))
+          {
+            statistics.set_precision ("Average nondimensional temperature (K)", 8);
+            statistics.set_scientific ("Average nondimensional temperature (K)", true);
           }
       }
 

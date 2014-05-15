@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012, 2013 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2014 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -62,18 +62,25 @@ namespace aspect
     // need to write into it and we can not
     // write into vectors with ghost elements
     LinearAlgebra::BlockVector initial_solution;
-    bool normalize_composition = false;
     double max_sum_comp = 0.0;
-    double global_max = 0.0;
 
+    // we need to track whether we need to normalize the totality of fields
+    bool normalize_composition = false;
+
+//TODO: The code here is confusing. We should be using something
+// like the TemperatureOrComposition class instead of just a single
+// integer 'n'
     for (unsigned int n=0; n<1+parameters.n_compositional_fields+(parameters.include_melt_transport ? 1 : 0); ++n)
       {
-        initial_solution.reinit(system_rhs,false);
+        initial_solution.reinit(system_rhs, false);
 
         // base element in the finite element is 2 for temperature (n=0) and 3 for
         // compositional fields (n>0)
-//TODO: can we use introspection here, instead of the hard coded numbers?
-        const unsigned int base_element = (n==0 ? 2 : (n==1+parameters.n_compositional_fields) ? 4 : 3);
+        // TODO:
+        Assert(!parameters.include_melt_transport, ExcNotImplemented());
+        const unsigned int base_element = (n==0 ?
+                                           introspection.base_elements.temperature :
+                                           introspection.base_elements.compositional_fields);
 
         // get the temperature/composition support points
         const std::vector<Point<dim> > support_points
@@ -99,19 +106,21 @@ namespace aspect
               cell->get_dof_indices (local_dof_indices);
               for (unsigned int i=0; i<finite_element.base_element(base_element).dofs_per_cell; ++i)
                 {
+//TODO: Use introspection here
                   const unsigned int system_local_dof
                     = finite_element.component_to_system_index(/*temperature/composition/porosity component=*/dim+1+n,
                         /*dof index within component=*/i);
 
-                  double value =
-                    (base_element == 2 ?
+                  const double value =
+                    (n == 0
+                     ?
                      initial_conditions->initial_temperature(fe_values.quadrature_point(i))
-                     : (base_element == 4 ?
+                     : (false ? // TODO
                     	porosity_initial_conditions->initial_porosity(fe_values.quadrature_point(i))
                     	: compositional_initial_conditions->initial_composition(fe_values.quadrature_point(i),n-1)));
                   initial_solution(local_dof_indices[system_local_dof]) = value;
 
-                  if (base_element != 2)
+                  if (n > 0)
                     Assert (value >= 0,
                             ExcMessage("Invalid initial conditions: Composition/porosity is negative"));
 
@@ -122,9 +131,9 @@ namespace aspect
                       double sum = 0;
                       for (unsigned int m=0; m<parameters.normalized_fields.size(); ++m)
                         sum += compositional_initial_conditions->initial_composition(fe_values.quadrature_point(i),parameters.normalized_fields[m]);
-                      if (abs(sum) > 1.0+1e-6)
+                      if (std::abs(sum) > 1.0+1e-6)
                         {
-                          max_sum_comp = std::max(sum,max_sum_comp);
+                          max_sum_comp = std::max(sum, max_sum_comp);
                           normalize_composition = true;
                         }
                     }
@@ -143,15 +152,20 @@ namespace aspect
 
         // if at least one processor decides that it needs
         // to normalize, do the same on all processors.
-        int my_normalize_decision = normalize_composition;
-        int global_dec = Utilities::MPI::max (my_normalize_decision, mpi_communicator);
-
-        if (global_dec>0)
+        if (Utilities::MPI::max (normalize_composition ? 1 : 0,
+                                 mpi_communicator)
+            == 1)
           {
-            global_max = Utilities::MPI::max (max_sum_comp, mpi_communicator);
-            if (n==1) pcout << "Sum of compositional fields is not one, fields will be normalized" << std::endl;
+            const double global_max
+              = Utilities::MPI::max (max_sum_comp, mpi_communicator);
+
+            if (n==1)
+              pcout << "Sum of compositional fields is not one, fields will be normalized"
+                    << std::endl;
+
             for (unsigned int m=0; m<parameters.normalized_fields.size(); ++m)
-              if (n-1==parameters.normalized_fields[m]) initial_solution/=global_max;
+              if (n-1==parameters.normalized_fields[m])
+                initial_solution /= global_max;
           }
 
         // then apply constraints and copy the
@@ -209,7 +223,7 @@ namespace aspect
         // implement the local projection for the discontinuous pressure
         // element. this is only going to work if, indeed, the element
         // is discontinuous
-        const FiniteElement<dim> &system_pressure_fe = finite_element.base_element(1);
+        const FiniteElement<dim> &system_pressure_fe = finite_element.base_element(introspection.base_elements.pressure);
         Assert (system_pressure_fe.dofs_per_face == 0,
                 ExcNotImplemented());
 

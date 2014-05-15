@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2012, 2013 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2014 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -83,41 +83,50 @@ namespace aspect
                                                 : 0.0;
 
       // set the initial temperature perturbation
-      // first: get the center of the perturbation, then check the distance to the evaluation point
+      // first: get the center of the perturbation, then check the distance to the
+      // evaluation point. the center is supposed to lie at the center of the bottom
+      // surface.
       Point<dim> mid_point;
       if (perturbation_position == "center")
         {
           if (const GeometryModel::SphericalShell<dim> *
-              geometry_model = dynamic_cast <const GeometryModel::SphericalShell<dim>*> (this->geometry_model))
+              shell_geometry_model = dynamic_cast <const GeometryModel::SphericalShell<dim>*> (this->geometry_model))
             {
-              const double pi = 3.14159265;
-              double inner_radius = geometry_model->inner_radius();
-              double angle = pi/180.0 * 0.5 * geometry_model->opening_angle();
+              const double inner_radius = shell_geometry_model->inner_radius();
+              const double half_opening_angle = numbers::PI/180.0 * 0.5 * shell_geometry_model->opening_angle();
               if (dim==2)
                 {
-                  mid_point(0) = inner_radius * sin(angle),
-                  mid_point(1) = inner_radius * cos(angle);
+                  // choose the center of the perturbation at half angle along the inner radius
+                  mid_point(0) = inner_radius * std::sin(half_opening_angle),
+                  mid_point(1) = inner_radius * std::cos(half_opening_angle);
                 }
               else if (dim==3)
                 {
-                  if (geometry_model->opening_angle() == 90)
-            	  {
-            		mid_point(0) = std::sqrt(inner_radius*inner_radius/3),
-            		mid_point(1) = std::sqrt(inner_radius*inner_radius/3),
-            		mid_point(2) = std::sqrt(inner_radius*inner_radius/3);
-            	  }
+                  // if the opening angle is 90 degrees (an eighth of a full spherical
+                  // shell, then choose the point on the inner surface along the first
+                  // diagonal
+                  if (shell_geometry_model->opening_angle() == 90)
+                    {
+                      mid_point(0) = inner_radius*std::sqrt(1./3),
+                      mid_point(1) = inner_radius*std::sqrt(1./3),
+                      mid_point(2) = inner_radius*std::sqrt(1./3);
+                    }
                   else
-                  {
-                    mid_point(0) = inner_radius * sin(angle) * cos(angle),
-                    mid_point(1) = inner_radius * sin(angle) * sin(angle),
-                    mid_point(2) = inner_radius * cos(angle);
-		  }
-		}
-	    }
+                    {
+                      // otherwise do the same as in 2d
+                      mid_point(0) = inner_radius * std::sin(half_opening_angle) * std::cos(half_opening_angle),
+                      mid_point(1) = inner_radius * std::sin(half_opening_angle) * std::sin(half_opening_angle),
+                      mid_point(2) = inner_radius * std::cos(half_opening_angle);
+                    }
+                }
+            }
           else if (const GeometryModel::Box<dim> *
-                   geometry_model = dynamic_cast <const GeometryModel::Box<dim>*> (this->geometry_model))
+                   box_geometry_model = dynamic_cast <const GeometryModel::Box<dim>*> (this->geometry_model))
+            // for the box geometry, choose a point at the center of the bottom face.
+            // (note that the loop only runs over the first dim-1 coordinates, leaving
+            // the depth variable at zero)
             for (unsigned int i=0; i<dim-1; ++i)
-              mid_point(i) += 0.5 * geometry_model->get_extents()[i];
+              mid_point(i) += 0.5 * box_geometry_model->get_extents()[i];
           else
             AssertThrow (false,
                          ExcMessage ("Not a valid geometry model for the initial conditions model"
@@ -136,9 +145,17 @@ namespace aspect
       if (nondimesional_depth > 0)
         subadiabatic_T = -subadiabaticity * nondimesional_depth * nondimesional_depth;
 
+      // If adiabatic heating is disabled, apply all perturbations to
+      // constant adiabatic surface temperature instead of adiabatic profile.
+      const double temperature_profile = (this->include_adiabatic_heating())
+                                         ?
+                                         this->adiabatic_conditions->temperature(position)
+                                         :
+                                         adiabatic_surface_temperature;
+
       // return sum of the adiabatic profile, the boundary layer temperatures and the initial
-      // temperature perturbation
-      return this->adiabatic_conditions->temperature(position) + surface_cooling_temperature
+      // temperature perturbation.
+      return temperature_profile + surface_cooling_temperature
              + (perturbation > 0.0 ? std::max(bottom_heating_temperature + subadiabatic_T,perturbation)
                 : bottom_heating_temperature + subadiabatic_T);
     }
@@ -176,10 +193,13 @@ namespace aspect
                              "boundary layer. Instead, the maximum of the perturbation and the bottom "
                              "boundary layer temperature will be used.");
           prm.declare_entry ("Position", "center",
-                             Patterns::Selection ("center|"
-                                                  "boundary"),
-                             "Where the initial temperature perturbation should be placed (in the "
-                             "center or at the boundary of the model domain).");
+                             Patterns::Selection ("center"),
+                             "Where the initial temperature perturbation should be placed. If 'center' is "
+                             "given, then the perturbation will be centered along a 'midpoint' of some "
+                             "sort of the bottom boundary. For example, in the case of a box geometry, "
+                             "this is the center of the bottom face; in the case of a spherical shell "
+                             "geometry, it is along the inner surface halfway between the bounding "
+                             "radial lines.");
           prm.declare_entry ("Subadiabaticity", "0e0",
                              Patterns::Double (0),
                              "If this value is larger than 0, the initial temperature profile will "

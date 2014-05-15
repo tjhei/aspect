@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2014 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -102,9 +102,9 @@ namespace aspect
   }
 
   template <int dim>
-  void AdiabaticConditions<dim>::get_adiabatic_temperature_profile(std::vector<double> &values,unsigned int num_slices) const
+  void AdiabaticConditions<dim>::get_adiabatic_temperature_profile(std::vector<double> &values) const
   {
-    values.resize(num_slices);
+    const unsigned int num_slices = values.size();
     const double max_depth = geometry_model.maximal_depth();
     double depth = 0.0;
 

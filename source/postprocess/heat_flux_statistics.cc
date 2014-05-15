@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012, 2013 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2014 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -36,11 +36,7 @@ namespace aspect
     HeatFluxStatistics<dim>::execute (TableHandler &statistics)
     {
       // create a quadrature formula based on the temperature element alone.
-      // be defensive about determining that what we think is the temperature
-      // element, is it in fact
-      Assert (this->get_fe().n_base_elements() == 3+(this->n_compositional_fields()>0 ? 1 : 0)+(this->include_melt_transport() ? 1 : 0),
-              ExcNotImplemented());
-      const QGauss<dim-1> quadrature_formula (this->get_fe().base_element(2).degree+1);
+      const QGauss<dim-1> quadrature_formula (this->get_fe().base_element(this->introspection().base_elements.temperature).degree+1);
 
       FEFaceValues<dim> fe_face_values (this->get_mapping(),
                                         this->get_fe(),
@@ -93,13 +89,13 @@ namespace aspect
 
                 in.position = fe_face_values.get_quadrature_points();
 
-		// since we are not reading the viscosity and the viscosity
-		// is the only coefficient that depends on the strain rate,
-		// we need not compute the strain rate. set the corresponding
-		// array to empty, to prevent accidental use and skip the
+                // since we are not reading the viscosity and the viscosity
+                // is the only coefficient that depends on the strain rate,
+                // we need not compute the strain rate. set the corresponding
+                // array to empty, to prevent accidental use and skip the
                 // evaluation of the strain rate in evaluate().
                 in.strain_rate.resize(0);
-		
+
                 for (unsigned int i=0; i<fe_face_values.n_quadrature_points; ++i)
                   {
                     for (unsigned int c=0; c<this->n_compositional_fields(); ++c)
@@ -192,6 +188,22 @@ namespace aspect
     ASPECT_REGISTER_POSTPROCESSOR(HeatFluxStatistics,
                                   "heat flux statistics",
                                   "A postprocessor that computes some statistics about "
-                                  "the heat flux across boundaries.")
+                                  "the (conductive) heat flux across boundaries. For each boundary "
+                                  "indicator (see your geometry description for which boundary "
+                                  "indicators are used), the heat flux is computed in outward "
+                                  "direction, i.e., from the domain to the outside, using the "
+                                  "formula $\\int_{\\Gamma_i} k \\nabla T \\cdot \\mathbf n$ "
+                                  "where $\\Gamma_i$ is the part of the boundary with indicator $i$, "
+                                  "$k$ is the thermal conductivity as reported by the material model, "
+                                  "$T$ is the temperature, and $\\mathbf n$ is the outward normal. "
+                                  "Note that the quantity so computed does not include any energy "
+                                  "transported across the boundary by material transport in cases "
+                                  "where $\\mathbf u \\cdot \\mathbf n \\neq 0$."
+                                  "\n\n"
+                                  "As stated, this postprocessor computes the \\textit{outbound} heat "
+                                  "flux. If you "
+                                  "are interested in the opposite direction, for example from "
+                                  "the core into the mantle when the domain describes the "
+                                  "mantle, then you need to multiply the result by -1.")
   }
 }

@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2013 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2014 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -50,49 +50,10 @@ namespace aspect
                           "in fact a box."));
 
       Assert (boundary_indicator<2*dim, ExcMessage ("Unknown boundary indicator."));
-      return composition_[boundary_indicator];
+      return composition_values[boundary_indicator][compositional_field];
     }
 
 
-    template <int dim>
-    double
-    Box<dim>::
-    minimal_composition (const std::set<types::boundary_id>& fixed_boundary_ids) const
-    {
-      if (fixed_boundary_ids.empty())
-    	return *std::min_element(composition_, composition_+2*dim);
-      else
-      {
-        double min = maximal_composition(fixed_boundary_ids);
-        for (typename std::set<types::boundary_id>::const_iterator
-             p = fixed_boundary_ids.begin();
-             p != fixed_boundary_ids.end(); ++p)
-          if (p != fixed_boundary_ids.end())
-            min = std::min(min,composition_[*p]);
-        return min;
-      }
-    }
-
-
-
-    template <int dim>
-    double
-    Box<dim>::
-    maximal_composition (const std::set<types::boundary_id>& fixed_boundary_ids) const
-    {
-      if (fixed_boundary_ids.empty())
-    	return *std::max_element(composition_, composition_+2*dim);
-      else
-      {
-    	double max = std::numeric_limits<double>::min();
-        for (typename std::set<types::boundary_id>::const_iterator
-             p = fixed_boundary_ids.begin();
-             p != fixed_boundary_ids.end(); ++p)
-          if (p != fixed_boundary_ids.end())
-            max = std::max(max,composition_[*p]);
-        return max;
-      }
-    }
 
     template <int dim>
     void
@@ -141,19 +102,19 @@ namespace aspect
           switch (dim)
             {
               case 2:
-                composition_[0] = prm.get_double ("Left composition");
-                composition_[1] = prm.get_double ("Right composition");
-                composition_[2] = prm.get_double ("Bottom composition");
-                composition_[3] = prm.get_double ("Top composition");
+                composition_values[0] = Utilities::string_to_double(Utilities::split_string_list(prm.get ("Left composition")));
+                composition_values[1] = Utilities::string_to_double(Utilities::split_string_list(prm.get ("Right composition")));
+                composition_values[2] = Utilities::string_to_double(Utilities::split_string_list(prm.get ("Bottom composition")));
+                composition_values[3] = Utilities::string_to_double(Utilities::split_string_list(prm.get ("Top composition")));
                 break;
 
               case 3:
-                composition_[0] = prm.get_double ("Left composition");
-                composition_[1] = prm.get_double ("Right composition");
-                composition_[2] = prm.get_double ("Front composition");
-                composition_[3] = prm.get_double ("Back composition");
-                composition_[4] = prm.get_double ("Bottom composition");
-                composition_[5] = prm.get_double ("Top composition");
+                composition_values[0] = Utilities::string_to_double(Utilities::split_string_list(prm.get ("Left composition")));
+                composition_values[1] = Utilities::string_to_double(Utilities::split_string_list(prm.get ("Right composition")));
+                composition_values[2] = Utilities::string_to_double(Utilities::split_string_list(prm.get ("Front composition")));
+                composition_values[3] = Utilities::string_to_double(Utilities::split_string_list(prm.get ("Back composition")));
+                composition_values[4] = Utilities::string_to_double(Utilities::split_string_list(prm.get ("Bottom composition")));
+                composition_values[5] = Utilities::string_to_double(Utilities::split_string_list(prm.get ("Top composition")));
                 break;
 
               default:
@@ -165,6 +126,36 @@ namespace aspect
       prm.leave_subsection ();
     }
 
+
+
+    template <int dim>
+    void
+    Box<dim>::initialize(const Simulator<dim> &simulator)
+    {
+      // first call the corresponding function of the base class.
+      SimulatorAccess<dim>::initialize (simulator);
+
+      // then verify that each of the lists for boundary values
+      // has the requisite number of elements
+      for (unsigned int f=0; f<2*dim; ++f)
+        AssertThrow (composition_values[f].size() == this->n_compositional_fields(),
+                     ExcMessage (std::string("The specification of boundary composition values for the 'box' model "
+                                             "requires as many values on each face of the box as there are compositional "
+                                             "fields. However, for face ")
+                                 +
+                                 Utilities::int_to_string(f)
+                                 +
+                                 ", the input file specifies "
+                                 +
+                                 Utilities::int_to_string(composition_values[f].size())
+                                 +
+                                 " values even though there are "
+                                 +
+                                 Utilities::int_to_string(this->n_compositional_fields())
+                                 +
+                                 " compositional fields."));
+    }
+    
 
   }
 }
