@@ -95,7 +95,7 @@ namespace aspect
     extractors (n_compositional_fields, include_melt_transport),
     component_indices (n_compositional_fields, include_melt_transport),
     block_indices (n_compositional_fields, include_melt_transport),
-    base_elements (n_compositional_fields),
+    base_elements (n_compositional_fields, include_melt_transport),
     components_to_blocks (component_to_block_mapping<dim>(n_components)),
     system_dofs_per_block (n_blocks)
   {}
@@ -145,7 +145,8 @@ namespace aspect
 
   template <int dim>
   Introspection<dim>::BaseElements::
-  BaseElements (const unsigned int n_compositional_fields)
+  BaseElements (const unsigned int n_compositional_fields,
+                const bool include_melt_transport)
     :
     compositional_fields (n_compositional_fields > 0 ? 3 : numbers::invalid_unsigned_int),
     porosity(include_melt_transport

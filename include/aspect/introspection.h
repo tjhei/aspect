@@ -158,12 +158,14 @@ namespace aspect
        */
       struct BaseElements
       {
-        BaseElements (const unsigned int n_compositional_fields);
+        BaseElements (const unsigned int n_compositional_fields,
+		              const bool include_melt_transport);
 
         static const unsigned int       velocities  = 0;
         static const unsigned int       pressure    = 1;
         static const unsigned int       temperature = 2;
         const unsigned int              compositional_fields;
+        const unsigned int              porosity;
       };
       /**
        * A variable that enumerates the base elements of the finite element

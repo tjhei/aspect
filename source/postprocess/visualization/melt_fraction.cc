@@ -212,7 +212,7 @@ namespace aspect
                                  "Exponent of the melting temperature in "
                                  "the melt fraction calculation. "
                                  "Units: non-dimensional.");
-			  prm.declare_entry ("M_cpx", "0.15",
+			  prm.declare_entry ("Mass fraction cpx", "0.15",
                                  Patterns::Double (),
                                  "Mass fraction of clinopyroxene in the "
                                  "peridotite to be molten. "
