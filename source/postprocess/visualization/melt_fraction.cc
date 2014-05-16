@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2013 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2014 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -70,14 +70,14 @@ namespace aspect
 
             // anhydrous melting of peridotite after Katz, 2003
             const double T_solidus  = A1 + 273.15
-            		                + A2 * pressure
-            		                + A3 * pressure * pressure;
+                                      + A2 * pressure
+                                      + A3 * pressure * pressure;
             const double T_lherz_liquidus = B1 + 273.15
-            		                      + B2 * pressure
-            		                      + B3 * pressure * pressure;
+                                            + B2 * pressure
+                                            + B3 * pressure * pressure;
             const double T_liquidus = C1 + 273.15
-            		                + C2 * pressure
-            		                + C3 * pressure * pressure;
+                                      + C2 * pressure
+                                      + C3 * pressure * pressure;
 
             // melt fraction for peridotite with clinopyroxene
             double peridotite_melt_fraction;
@@ -92,16 +92,16 @@ namespace aspect
             const double R_cpx = r1 + r2 * pressure;
             const double F_max = M_cpx / R_cpx;
 
-            if(peridotite_melt_fraction > F_max && temperature < T_liquidus)
-            {
-              const double T_max = std::pow(F_max,1/beta) * (T_lherz_liquidus - T_solidus) + T_solidus;
-              peridotite_melt_fraction = F_max + (1 - F_max) * pow((temperature - T_max) / (T_liquidus - T_max),beta);
-            }
+            if (peridotite_melt_fraction > F_max && temperature < T_liquidus)
+              {
+                const double T_max = std::pow(F_max,1/beta) * (T_lherz_liquidus - T_solidus) + T_solidus;
+                peridotite_melt_fraction = F_max + (1 - F_max) * pow((temperature - T_max) / (T_liquidus - T_max),beta);
+              }
 
             // melting of pyroxenite after Sobolev et al., 2011
             const double T_melting = D1 + 273.15
-  		                           + D2 * pressure
-  		                           + D3 * pressure * pressure;
+                                     + D2 * pressure
+                                     + D3 * pressure * pressure;
 
             const double discriminant = E1*E1/(E2*E2*4) + (temperature-T_melting)/E2;
 
@@ -114,7 +114,7 @@ namespace aspect
               pyroxenite_melt_fraction = -E1/(2*E2) - std::sqrt(discriminant);
 
             double melt_fraction;
-            if(this->n_compositional_fields()>0)
+            if (this->n_compositional_fields()>0)
               melt_fraction = composition[0] * pyroxenite_melt_fraction +
                               (1-composition[0]) * peridotite_melt_fraction;
             else
@@ -129,142 +129,142 @@ namespace aspect
       template <int dim>
       void
       MeltFraction<dim>::declare_parameters (ParameterHandler &prm)
-	  {
-		prm.enter_subsection("Postprocess");
-		{
-		  prm.enter_subsection("Visualization");
-		  {
-			prm.enter_subsection("Melt fraction");
-			{
-			  prm.declare_entry ("A1", "1085.7",
-							     Patterns::Double (),
-							     "Constant parameter in the quadratic "
-							     "function that approximates the solidus "
-							     "of peridotite. "
-							     "Units: $°C$.");
-			  prm.declare_entry ("A2", "1.329e-7",
-							     Patterns::Double (),
-							     "Prefactor of the linear pressure term "
-							     "in the quadratic function that approximates "
-							     "the solidus of peridotite. "
-							     "Units: $°C/Pa$.");
-			  prm.declare_entry ("A3", "-5.1e-18",
-							     Patterns::Double (),
-							     "Prefactor of the quadratic pressure term "
-							     "in the quadratic function that approximates "
-							     "the solidus of peridotite. "
-							     "Units: $°C/(Pa^2)$.");
-			  prm.declare_entry ("B1", "1475.0",
-							     Patterns::Double (),
-							     "Constant parameter in the quadratic "
-							     "function that approximates the lherzolite "
-							     "liquidus used for calculating the fraction "
-							     "of peridotite-derived melt. "
-							     "Units: $°C$.");
-			  prm.declare_entry ("B2", "8.0e-8",
-							     Patterns::Double (),
-							     "Prefactor of the linear pressure term "
-							     "in the quadratic function that approximates "
-							     "the  lherzolite liquidus used for "
-							     "calculating the fraction of peridotite-"
-							     "derived melt. "
-							     "Units: $°C/Pa$.");
-			  prm.declare_entry ("B3", "-3.2e-18",
-							     Patterns::Double (),
-							     "Prefactor of the quadratic pressure term "
-							     "in the quadratic function that approximates "
-							     "the  lherzolite liquidus used for "
-							     "calculating the fraction of peridotite-"
-							     "derived melt. "
-							     "Units: $°C/(Pa^2)$.");
-			  prm.declare_entry ("C1", "1780.0",
-							     Patterns::Double (),
-							     "Constant parameter in the quadratic "
-							     "function that approximates the liquidus "
-							     "of peridotite. "
-							     "Units: $°C$.");
-			  prm.declare_entry ("C2", "4.50e-8",
-							     Patterns::Double (),
-							     "Prefactor of the linear pressure term "
-							     "in the quadratic function that approximates "
-							     "the liquidus of peridotite. "
-							     "Units: $°C/Pa$.");
-			  prm.declare_entry ("C3", "-2.0e-18",
-							     Patterns::Double (),
-							     "Prefactor of the quadratic pressure term "
-							     "in the quadratic function that approximates "
-							     "the liquidus of peridotite. "
-							     "Units: $°C/(Pa^2)$.");
+      {
+        prm.enter_subsection("Postprocess");
+        {
+          prm.enter_subsection("Visualization");
+          {
+            prm.enter_subsection("Melt fraction");
+            {
+              prm.declare_entry ("A1", "1085.7",
+                                 Patterns::Double (),
+                                 "Constant parameter in the quadratic "
+                                 "function that approximates the solidus "
+                                 "of peridotite. "
+                                 "Units: $°C$.");
+              prm.declare_entry ("A2", "1.329e-7",
+                                 Patterns::Double (),
+                                 "Prefactor of the linear pressure term "
+                                 "in the quadratic function that approximates "
+                                 "the solidus of peridotite. "
+                                 "Units: $°C/Pa$.");
+              prm.declare_entry ("A3", "-5.1e-18",
+                                 Patterns::Double (),
+                                 "Prefactor of the quadratic pressure term "
+                                 "in the quadratic function that approximates "
+                                 "the solidus of peridotite. "
+                                 "Units: $°C/(Pa^2)$.");
+              prm.declare_entry ("B1", "1475.0",
+                                 Patterns::Double (),
+                                 "Constant parameter in the quadratic "
+                                 "function that approximates the lherzolite "
+                                 "liquidus used for calculating the fraction "
+                                 "of peridotite-derived melt. "
+                                 "Units: $°C$.");
+              prm.declare_entry ("B2", "8.0e-8",
+                                 Patterns::Double (),
+                                 "Prefactor of the linear pressure term "
+                                 "in the quadratic function that approximates "
+                                 "the  lherzolite liquidus used for "
+                                 "calculating the fraction of peridotite-"
+                                 "derived melt. "
+                                 "Units: $°C/Pa$.");
+              prm.declare_entry ("B3", "-3.2e-18",
+                                 Patterns::Double (),
+                                 "Prefactor of the quadratic pressure term "
+                                 "in the quadratic function that approximates "
+                                 "the  lherzolite liquidus used for "
+                                 "calculating the fraction of peridotite-"
+                                 "derived melt. "
+                                 "Units: $°C/(Pa^2)$.");
+              prm.declare_entry ("C1", "1780.0",
+                                 Patterns::Double (),
+                                 "Constant parameter in the quadratic "
+                                 "function that approximates the liquidus "
+                                 "of peridotite. "
+                                 "Units: $°C$.");
+              prm.declare_entry ("C2", "4.50e-8",
+                                 Patterns::Double (),
+                                 "Prefactor of the linear pressure term "
+                                 "in the quadratic function that approximates "
+                                 "the liquidus of peridotite. "
+                                 "Units: $°C/Pa$.");
+              prm.declare_entry ("C3", "-2.0e-18",
+                                 Patterns::Double (),
+                                 "Prefactor of the quadratic pressure term "
+                                 "in the quadratic function that approximates "
+                                 "the liquidus of peridotite. "
+                                 "Units: $°C/(Pa^2)$.");
 			  prm.declare_entry ("r1", "0.5",
-							     Patterns::Double (),
-							     "Constant in the linear function that "
-							     "approximates the clinopyroxene reaction "
-							     "coefficient. "
-							     "Units: non-dimensional.");
-			  prm.declare_entry ("r2", "8e-11",
-							     Patterns::Double (),
-							     "Prefactor of the linear pressure term "
-							     "in the linear function that approximates "
-							     "the clinopyroxene reaction coefficient. "
-							     "Units: $1/Pa$.");
-			  prm.declare_entry ("beta", "1.5",
-							     Patterns::Double (),
-							     "Exponent of the melting temperature in "
-							     "the melt fraction calculation. "
-							     "Units: non-dimensional.");
+                                 Patterns::Double (),
+                                 "Constant in the linear function that "
+                                 "approximates the clinopyroxene reaction "
+                                 "coefficient. "
+                                 "Units: non-dimensional.");
+              prm.declare_entry ("r2", "8e-11",
+                                 Patterns::Double (),
+                                 "Prefactor of the linear pressure term "
+                                 "in the linear function that approximates "
+                                 "the clinopyroxene reaction coefficient. "
+                                 "Units: $1/Pa$.");
+              prm.declare_entry ("beta", "1.5",
+                                 Patterns::Double (),
+                                 "Exponent of the melting temperature in "
+                                 "the melt fraction calculation. "
+                                 "Units: non-dimensional.");
 			  prm.declare_entry ("M_cpx", "0.15",
-							     Patterns::Double (),
-							     "Mass fraction of clinopyroxene in the "
-							     "peridotite to be molten. "
-							     "Units: non-dimensional.");
-			  prm.declare_entry ("D1", "976.0",
-							     Patterns::Double (),
-							     "Constant parameter in the quadratic "
-							     "function that approximates the solidus "
-							     "of pyroxenite. "
-							     "Units: $°C$.");
-			  prm.declare_entry ("D2", "1.23e-7",
-							     Patterns::Double (),
-							     "Prefactor of the linear pressure term "
-							     "in the quadratic function that approximates "
-							     "the solidus of pyroxenite. "
-							     "Units: $°C/Pa$.");
-			  prm.declare_entry ("D3", "-5.1e-18",
-							     Patterns::Double (),
-							     "Prefactor of the quadratic pressure term "
-							     "in the quadratic function that approximates "
-							     "the solidus of pyroxenite. "
-							     "Units: $°C/(Pa^2)$.");
+                                 Patterns::Double (),
+                                 "Mass fraction of clinopyroxene in the "
+                                 "peridotite to be molten. "
+                                 "Units: non-dimensional.");
+              prm.declare_entry ("D1", "976.0",
+                                 Patterns::Double (),
+                                 "Constant parameter in the quadratic "
+                                 "function that approximates the solidus "
+                                 "of pyroxenite. "
+                                 "Units: $°C$.");
+              prm.declare_entry ("D2", "1.23e-7",
+                                 Patterns::Double (),
+                                 "Prefactor of the linear pressure term "
+                                 "in the quadratic function that approximates "
+                                 "the solidus of pyroxenite. "
+                                 "Units: $°C/Pa$.");
+              prm.declare_entry ("D3", "-5.1e-18",
+                                 Patterns::Double (),
+                                 "Prefactor of the quadratic pressure term "
+                                 "in the quadratic function that approximates "
+                                 "the solidus of pyroxenite. "
+                                 "Units: $°C/(Pa^2)$.");
 			  prm.declare_entry ("E1", "663.8",
-							     Patterns::Double (),
-							     "Prefactor of the linear depletion term "
-							     "in the quadratic function that approximates "
-							     "the melt fraction of pyroxenite. "
-							     "Units: $°C/Pa$.");
-			  prm.declare_entry ("E2", "-611.4",
-							     Patterns::Double (),
-							     "Prefactor of the quadratic depletion term "
-							     "in the quadratic function that approximates "
-							     "the melt fraction of pyroxenite. "
-							     "Units: $°C/(Pa^2)$.");
-	        }
-	        prm.leave_subsection();
-		  }
-		  prm.leave_subsection();
-		}
-		prm.leave_subsection();
-	  }
+                                 Patterns::Double (),
+                                 "Prefactor of the linear depletion term "
+                                 "in the quadratic function that approximates "
+                                 "the melt fraction of pyroxenite. "
+                                 "Units: $°C/Pa$.");
+              prm.declare_entry ("E2", "-611.4",
+                                 Patterns::Double (),
+                                 "Prefactor of the quadratic depletion term "
+                                 "in the quadratic function that approximates "
+                                 "the melt fraction of pyroxenite. "
+                                 "Units: $°C/(Pa^2)$.");
+            }
+            prm.leave_subsection();
+          }
+          prm.leave_subsection();
+        }
+        prm.leave_subsection();
+      }
 
       template <int dim>
       void
       MeltFraction<dim>::parse_parameters (ParameterHandler &prm)
       {
-  		prm.enter_subsection("Postprocess");
-  		{
-  		  prm.enter_subsection("Visualization");
-  		  {
-  			prm.enter_subsection("Melt fraction");
-  			{
+        prm.enter_subsection("Postprocess");
+        {
+          prm.enter_subsection("Visualization");
+          {
+            prm.enter_subsection("Melt fraction");
+            {
               A1              = prm.get_double ("A1");
               A2              = prm.get_double ("A2");
               A3              = prm.get_double ("A3");
@@ -277,7 +277,7 @@ namespace aspect
               r1              = prm.get_double ("r1");
               r2              = prm.get_double ("r2");
               beta            = prm.get_double ("beta");
-              M_cpx           = prm.get_double ("M_cpx");
+              M_cpx           = prm.get_double ("Mass fraction cpx");
               D1              = prm.get_double ("D1");
               D2              = prm.get_double ("D2");
               D3              = prm.get_double ("D3");
@@ -303,7 +303,7 @@ namespace aspect
     namespace VisualizationPostprocessors
     {
       ASPECT_REGISTER_VISUALIZATION_POSTPROCESSOR(MeltFraction,
-                                                  "melt fraction",
+                                                  "melt fraction", // TODO write down equations here
                                                   "A visualization output object that generates output "
                                                   "for the melt fraction at the temperature and "
                                                   "pressure of the current point (batch melting). "

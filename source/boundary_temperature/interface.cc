@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2014 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -108,18 +108,18 @@ namespace aspect
         const std::string pattern_of_names
           = std_cxx1x::get<dim>(registered_plugins).get_pattern_of_names ();
         try
-        {
+          {
             prm.declare_entry ("Model name", "",
                                Patterns::Selection (pattern_of_names),
                                "Select one of the following models:\n\n"
                                +
                                std_cxx1x::get<dim>(registered_plugins).get_description_string());
-        }
+          }
         catch (const ParameterHandler::ExcValueDoesNotMatchPattern &)
-        {
+          {
             // ignore the fact that the default value for this parameter
             // does not match the pattern
-        }
+          }
       }
       prm.leave_subsection ();
 

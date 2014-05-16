@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012, 2013 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2014 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -246,6 +246,9 @@ namespace aspect
 
       std::string solution_file_prefix = "solution-" + Utilities::int_to_string (output_file_number, 5);
       std::string mesh_file_prefix = "mesh-" + Utilities::int_to_string (output_file_number, 5);
+      const double time_in_years_or_seconds = (this->convert_output_to_years() ?
+                                               this->get_time() / year_in_seconds :
+                                               this->get_time());
       if (output_format=="hdf5")
         {
           XDMFEntry new_xdmf_entry;
@@ -268,13 +271,13 @@ namespace aspect
           new_xdmf_entry = data_out.create_xdmf_entry(data_filter,
                                                       last_mesh_file_name.c_str(),
                                                       h5_solution_file_name.c_str(),
-                                                      this->get_time(),
+                                                      time_in_years_or_seconds,
                                                       this->get_mpi_communicator());
 #else
           data_out.write_hdf5_parallel((this->get_output_directory()+h5_solution_file_name).c_str(),
                                        this->get_mpi_communicator());
           new_xdmf_entry = data_out.create_xdmf_entry(h5_solution_file_name.c_str(),
-                                                      this->get_time(),
+                                                      time_in_years_or_seconds,
                                                       this->get_mpi_communicator());
 #endif
           xdmf_entries.push_back(new_xdmf_entry);
@@ -302,7 +305,7 @@ namespace aspect
 
               // now also generate a .pvd file that matches simulation
               // time and corresponding .pvtu record
-              times_and_pvtu_names.push_back(std::make_pair(this->get_time(),
+              times_and_pvtu_names.push_back(std::make_pair(time_in_years_or_seconds,
                                                             pvtu_master_filename));
               const std::string
               pvd_master_filename = (this->get_output_directory() + "solution.pvd");
@@ -339,7 +342,7 @@ namespace aspect
             DataOutBase::VtkFlags vtk_flags;
 #if (DEAL_II_MAJOR*100 + DEAL_II_MINOR) >= 704
             vtk_flags.cycle = this->get_timestep_number();
-            vtk_flags.time = this->get_time();
+            vtk_flags.time = time_in_years_or_seconds;
 #endif
             data_out.set_flags (vtk_flags);
 
@@ -368,7 +371,7 @@ namespace aspect
               // now also generate a .pvd file that matches simulation
               // time and corresponding .pvtu record
               times_and_pvtu_names.push_back(std::pair<double,std::string>
-                                             (this->get_time(), pvtu_master_filename));
+                                             (time_in_years_or_seconds, pvtu_master_filename));
               const std::string
               pvd_master_filename = (this->get_output_directory() + "solution.pvd");
               std::ofstream pvd_master (pvd_master_filename.c_str());
@@ -449,17 +452,25 @@ namespace aspect
         std::strcpy(tmp_filename_x, tmp_filename.c_str());
         const int tmp_file_desc = mkstemp(tmp_filename_x);
         tmp_filename = tmp_filename_x;
-        delete tmp_filename_x;
+        delete []tmp_filename_x;
 
-        // If we failed to create the temp file, just write directly to the target file
+        // If we failed to create the temp file, just write directly to the target file.
+        // We also provide a warning about this fact. There are places where
+        // this fails *on every node*, so we will get a lot of warning messages
+        // into the output; in these cases, just writing multiple pieces to
+        // std::cerr will produce an unreadable mass of text; rather, first
+        // assemble the error message completely, and then output it atomically
         if (tmp_file_desc == -1)
           {
-            std::cerr << "***** WARNING: could not create temporary file, will "
-                      "output directly to final location. This may negatively "
-                      "affect performance."
-                      " (On processor "
-                      << Utilities::MPI::this_mpi_process (MPI_COMM_WORLD) << ".)"
-                      << std::endl;
+            std::string x = std::string(
+                              "***** WARNING: could not create temporary file, will "
+                              "output directly to final location. This may negatively "
+                              "affect performance. (On processor ")
+                            + Utilities::int_to_string(
+                              Utilities::MPI::this_mpi_process (MPI_COMM_WORLD))
+                            + ".)\n";
+
+            std::cerr << x << std::flush;
 
             tmp_filename = *filename;
           }
@@ -556,7 +567,7 @@ namespace aspect
 
           // now also see about the file format we're supposed to write in
           prm.declare_entry ("Output format", "vtu",
-                             Patterns::Selection (DataOutInterface<dim>::get_output_format_names ()),
+                             Patterns::Selection (DataOutBase::get_output_format_names ()),
                              "The file format to be used for graphical output.");
 
           prm.declare_entry ("Number of grouped files", "0",
@@ -637,32 +648,32 @@ namespace aspect
       }
       prm.leave_subsection();
 
-	  // then go through the list, create objects and let them parse
-	  // their own parameters
-	  for (unsigned int name=0; name<viz_names.size(); ++name)
-		{
-		  VisualizationPostprocessors::Interface<dim> *
-		  viz_postprocessor = std_cxx1x::get<dim>(registered_plugins)
-							  .create_plugin (viz_names[name],
-											  "Visualization plugins",
-											  prm);
+      // then go through the list, create objects and let them parse
+      // their own parameters
+      for (unsigned int name=0; name<viz_names.size(); ++name)
+        {
+          VisualizationPostprocessors::Interface<dim> *
+          viz_postprocessor = std_cxx1x::get<dim>(registered_plugins)
+                              .create_plugin (viz_names[name],
+                                              "Visualization plugins",
+                                              prm);
 
-		  // make sure that the postprocessor is indeed of type
-		  // dealii::DataPostprocessor or of type
-		  // VisualizationPostprocessors::CellDataVectorCreator
-		  Assert ((dynamic_cast<DataPostprocessor<dim>*>(viz_postprocessor)
-				   != 0)
-				  ||
-				  (dynamic_cast<VisualizationPostprocessors::CellDataVectorCreator<dim>*>(viz_postprocessor)
-				   != 0)
-				  ,
-				  ExcMessage ("Can't convert visualization postprocessor to type "
-							  "dealii::DataPostprocessor or "
-							  "VisualizationPostprocessors::CellDataVectorCreator!?"));
+          // make sure that the postprocessor is indeed of type
+          // dealii::DataPostprocessor or of type
+          // VisualizationPostprocessors::CellDataVectorCreator
+          Assert ((dynamic_cast<DataPostprocessor<dim>*>(viz_postprocessor)
+                   != 0)
+                  ||
+                  (dynamic_cast<VisualizationPostprocessors::CellDataVectorCreator<dim>*>(viz_postprocessor)
+                   != 0)
+                  ,
+                  ExcMessage ("Can't convert visualization postprocessor to type "
+                              "dealii::DataPostprocessor or "
+                              "VisualizationPostprocessors::CellDataVectorCreator!?"));
 
-		  postprocessors.push_back (std_cxx1x::shared_ptr<VisualizationPostprocessors::Interface<dim> >
-									(viz_postprocessor));
-		}
+          postprocessors.push_back (std_cxx1x::shared_ptr<VisualizationPostprocessors::Interface<dim> >
+                                    (viz_postprocessor));
+        }
     }
 
 

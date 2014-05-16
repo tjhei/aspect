@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012, 2013 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2014 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -37,41 +37,33 @@ namespace aspect
     Box<dim>::
     create_coarse_mesh (parallel::distributed::Triangulation<dim> &coarse_grid) const
     {
+      std::vector<unsigned int> rep_vec(repetitions, repetitions+dim);
       GridGenerator::subdivided_hyper_rectangle (coarse_grid,
-                                      step_sizes,
-                                      Point<dim>(),
-                                      extents,
-                                      false);
-
-      for (typename Triangulation<dim>::active_cell_iterator
-                cell = coarse_grid.begin_active();
-                cell != coarse_grid.end(); ++cell)
-        for (unsigned int f=0; f<GeometryInfo<dim>::faces_per_cell; ++f)
-    	  for (unsigned int i=0;i<dim;++i)
-    	  {
-    		if(cell->face(f)->center()[i] == 0)                         // left/bottom/front boundary
-    		  cell->face(f)->set_boundary_indicator(2*i);
-    		else if(cell->face(f)->center()[i] == extents[i])           // right/top/back boundary
-    		  cell->face(f)->set_boundary_indicator(2*i+1);
-    	  }
+                                                 rep_vec,
+                                                 Point<dim>(),
+                                                 extents,
+                                                 true);
 
       //Tell p4est about the periodicity of the mesh.
-				       //TODO: fix
-/*#if (DEAL_II_MAJOR*100 + DEAL_II_MINOR) >= 801
-      std::vector<std_cxx1x::tuple< typename parallel::distributed::Triangulation<dim>::cell_iterator, unsigned int,
-                                    typename parallel::distributed::Triangulation<dim>::cell_iterator, unsigned int> >
-                                   periodicity_vector;
-      for (unsigned int i=0; i<dim; ++i)
+#if (DEAL_II_MAJOR*100 + DEAL_II_MINOR) >= 801
+
+      // If this does not compile you are probably using 8.1pre, so please update
+      // to a recent svn version or to the 8.1 release.
+      std::vector<GridTools::PeriodicFacePair<typename parallel::distributed::Triangulation<dim>::cell_iterator> >
+      periodicity_vector;
+      for (int i=0; i<dim; ++i)
         if (periodic[i])
-          GridTools::identify_periodic_face_pairs(coarse_grid, 2*i, 2*i+1, i, periodicity_vector);
+          GridTools::collect_periodic_faces
+          ( coarse_grid, /*b_id1*/ 2*i, /*b_id2*/ 2*i+1,
+            /*direction*/ i, periodicity_vector);
 
       if (periodicity_vector.size() > 0)
         coarse_grid.add_periodicity (periodicity_vector);
-	#else*/
-      for( unsigned int i=0; i<dim; ++i)
+#else
+      for ( unsigned int i=0; i<dim; ++i)
         AssertThrow(!periodic[i],
                     ExcMessage("Please update deal.II to the latest version to get support for periodic domains."));
-//#endif
+#endif
     }
 
 
@@ -93,7 +85,7 @@ namespace aspect
     get_periodic_boundary_pairs () const
     {
       std::set< std::pair< std::pair<types::boundary_id, types::boundary_id>, unsigned int> > periodic_boundaries;
-      for( unsigned int i=0; i<dim; ++i)
+      for ( unsigned int i=0; i<dim; ++i)
         if (periodic[i])
           periodic_boundaries.insert( std::make_pair( std::pair<types::boundary_id, types::boundary_id>(2*i, 2*i+1), i) );
       return periodic_boundaries;
@@ -182,18 +174,17 @@ namespace aspect
                              Patterns::Double (0),
                              "Extent of the box in z-direction. This value is ignored "
                              "if the simulation is in 2d Units: m.");
-          prm.declare_entry ("subdivisions X", "",
-        		             Patterns::List (Patterns::Double(0)),
-                             "List of lengths of the subdivisions of the box "
-                             "in x-direction. Units: m.");
-          prm.declare_entry ("subdivisions Y", "",
-                             Patterns::List (Patterns::Double(0)),
-                             "List of lengths of the subdivisions of the box "
-                             "in y-direction. Units: m.");
-          prm.declare_entry ("subdivisions Z", "",
-                             Patterns::List (Patterns::Double(0)),
-                             "List of lengths of the subdivisions of the box "
-                             "in z-direction. Units: m.");
+
+          prm.declare_entry ("X repetitions", "1",
+                             Patterns::Integer (1),
+                             "Number of cells in X direction.");
+          prm.declare_entry ("Y repetitions", "1",
+                             Patterns::Integer (1),
+                             "Number of cells in Y direction.");
+          prm.declare_entry ("Z repetitions", "1",
+                             Patterns::Integer (1),
+                             "Number of cells in Z direction.");
+
           prm.declare_entry ("X periodic", "false",
                              Patterns::Bool (),
                              "Whether the box should be periodic in X direction");
@@ -203,6 +194,7 @@ namespace aspect
           prm.declare_entry ("Z periodic", "false",
                              Patterns::Bool (),
                              "Whether the box should be periodic in Z direction");
+
         }
         prm.leave_subsection();
       }
@@ -221,37 +213,21 @@ namespace aspect
         {
           extents[0] = prm.get_double ("X extent");
           periodic[0] = prm.get_bool ("X periodic");
+          repetitions[0] = prm.get_integer ("X repetitions");
 
           if (dim >= 2)
             {
               extents[1] = prm.get_double ("Y extent");
               periodic[1] = prm.get_bool ("Y periodic");
+              repetitions[1] = prm.get_integer ("Y repetitions");
             }
 
           if (dim >= 3)
             {
               extents[2] = prm.get_double ("Z extent");
               periodic[2] = prm.get_bool ("Z periodic");
+              repetitions[2] = prm.get_integer ("Z repetitions");
             }
-
-          step_sizes.push_back (Utilities::string_to_double
-                               (Utilities::split_string_list(prm.get ("subdivisions X"))));
-          if (dim >= 2)
-            step_sizes.push_back (Utilities::string_to_double
-                                 (Utilities::split_string_list(prm.get ("subdivisions Y"))));
-          if (dim >= 3)
-            step_sizes.push_back (Utilities::string_to_double
-                                 (Utilities::split_string_list(prm.get ("subdivisions Z"))));
-
-          //step sizes must add up to the respective extent
-          for (unsigned int i=0;i<dim;++i)
-          {
-            double sum_of_steps = 0;
-            for(unsigned int j=0;j<step_sizes[i].size();++j)
-        	  sum_of_steps += step_sizes[i][j];
-            if(sum_of_steps != extents[i])
-        	  step_sizes[i].push_back(extents[i]-sum_of_steps);
-          }
         }
         prm.leave_subsection();
       }

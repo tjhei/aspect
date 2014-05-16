@@ -48,13 +48,14 @@ namespace aspect
         void create_coarse_mesh (parallel::distributed::Triangulation<dim> &coarse_grid) const;
 
         /**
-         * Return a point that denotes the upper right corner of the box domain.
+         * Return a point that denotes the upper right corner of the box
+         * domain.
          */
         Point<dim> get_extents () const;
 
         /**
-         * Return the typical length scale one would expect of features in this geometry,
-         * assuming realistic parameters.
+         * Return the typical length scale one would expect of features in
+         * this geometry, assuming realistic parameters.
          *
          * We return 1/100th of the diameter of the box.
          */
@@ -72,13 +73,13 @@ namespace aspect
         double maximal_depth() const;
 
         /**
-         * Return the set of boundary indicators that are used by this model. This
-         * information is used to determine what boundary indicators can be used in
-         * the input file.
+         * Return the set of boundary indicators that are used by this model.
+         * This information is used to determine what boundary indicators can
+         * be used in the input file.
          *
-         * The box model uses boundary indicators zero through 2*dim-1, with the first
-         * two being the faces perpendicular to the x-axis, the next two perpendicular
-         * to the y-axis, etc.
+         * The box model uses boundary indicators zero through 2*dim-1, with
+         * the first two being the faces perpendicular to the x-axis, the next
+         * two perpendicular to the y-axis, etc.
          */
         virtual
         std::set<types::boundary_id>
@@ -99,8 +100,7 @@ namespace aspect
         declare_parameters (ParameterHandler &prm);
 
         /**
-         * Read the parameters this class declares from the parameter
-         * file.
+         * Read the parameters this class declares from the parameter file.
          */
         virtual
         void
@@ -124,6 +124,12 @@ namespace aspect
          * Flag whether the box is periodic in the x-, y-, and z-direction.
          */
         bool periodic[dim];
+
+        /**
+         * The number of cells in each coordinate direction
+         */
+        unsigned int repetitions[dim];
+
     };
   }
 }

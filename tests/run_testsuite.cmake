@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2013 by Matthias Maier
+# Copyright (C) 2013, 2014 by Matthias Maier
 #
 # This file is part of ASPECT.
 #
@@ -86,6 +86,9 @@
 #
 #   MAKEOPTS
 #     - Additional options that will be passed directly to make (or ninja).
+#
+#   SUBMIT
+#     - default OFF, set to ON to submit to our cdash instance
 #
 # Furthermore, the following variables controlling the testsuite can be set
 # and will be automatically handed down to cmake:
@@ -237,7 +240,7 @@ ENDIF()
 MESSAGE("-- CTEST_SITE:             ${CTEST_SITE}")
 
 IF( "${TRACK}" STREQUAL "Regression Tests"
-    AND NOT CTEST_SITE MATCHES "c0541" )
+    AND NOT CTEST_SITE MATCHES "tester" )
   MESSAGE(FATAL_ERROR "
 I'm sorry ${CTEST_SITE}, I'm afraid I can't do that.
 The TRACK \"Regression Tests\" is not for you.
@@ -304,98 +307,80 @@ IF(EXISTS ${CTEST_BINARY_DIRECTORY}/detailed.log)
 ENDIF()
 
 #
-# Query subversion information:
+# Query version information:
 #
 
-# First try native subversion:
-FIND_PACKAGE(Subversion QUIET)
-SET(_result 1)
-IF(SUBVERSION_FOUND)
-  EXECUTE_PROCESS(
-    COMMAND ${Subversion_SVN_EXECUTABLE} info ${CTEST_SOURCE_DIRECTORY}
-    OUTPUT_QUIET ERROR_QUIET
-    RESULT_VARIABLE _result
-    )
+IF (NOT EXISTS  ${CTEST_SOURCE_DIRECTORY}/.git)
+    MESSAGE(FATAL_ERROR "Could not find .git directory")
 ENDIF()
 
-IF(${_result} EQUAL 0)
-  Subversion_WC_INFO(${CTEST_SOURCE_DIRECTORY} _svn)
+FIND_PACKAGE(Git)
 
+IF(NOT GIT_FOUND)
+    MESSAGE(FATAL_ERROR "Could not find git.")
+ENDIF()
+
+
+
+
+#Git_WC_INFO(${CTEST_SOURCE_DIRECTORY} bla)
+
+EXECUTE_PROCESS(
+   COMMAND ${GIT_EXECUTABLE} log -n 1 --pretty=format:"%H %h %ae"
+   WORKING_DIRECTORY ${CTEST_SOURCE_DIRECTORY}
+   OUTPUT_VARIABLE _git_WC_INFO
+   RESULT_VARIABLE _result
+   OUTPUT_STRIP_TRAILING_WHITESPACE
+   )
+
+IF(NOT ${_result} EQUAL 0)
+    MESSAGE(FATAL_ERROR "Could not get git revision.")
+ENDIF()
+
+STRING(REGEX REPLACE "^\"([^ ]+) ([^ ]+) ([^\"]+)\""
+         "\\1" _git_WC_REV "${_git_WC_INFO}")
+
+STRING(REGEX REPLACE "^\"([^ ]+) ([^ ]+) ([^\"]+)\""
+         "\\2" _git_WC_SHORTREV "${_git_WC_INFO}")
+
+STRING(REGEX REPLACE "^\"([^ ]+) ([^ ]+) ([^\"]+)\""
+         "\\3" _git_WC_AUTHOR "${_git_WC_INFO}")
+
+EXECUTE_PROCESS(
+   COMMAND ${GIT_EXECUTABLE} rev-parse --abbrev-ref ${_git_WC_REV}
+   WORKING_DIRECTORY ${CTEST_SOURCE_DIRECTORY}
+   OUTPUT_VARIABLE _git_WC_NAME
+   RESULT_VARIABLE _result
+   OUTPUT_STRIP_TRAILING_WHITESPACE
+   )
+
+IF (NOT "${_git_WC_NAME}" STREQUAL "master")
+  SET(_branch "${_git_WC_NAME}")
 ELSE()
-
-  # Umm, no valid subversion info was found, try again with git-svn:
-  FIND_PACKAGE(Git QUIET)
-  IF(GIT_FOUND)
-    EXECUTE_PROCESS(
-      COMMAND ${GIT_EXECUTABLE} svn info
-      WORKING_DIRECTORY ${CTEST_SOURCE_DIRECTORY}
-      OUTPUT_VARIABLE _svn_WC_INFO
-      RESULT_VARIABLE _result
-      OUTPUT_STRIP_TRAILING_WHITESPACE
-      )
-
-    IF(${_result} EQUAL 0)
-      STRING(REGEX REPLACE "^(.*\n)?URL: ([^\n]+).*"
-        "\\2" _svn_WC_URL "${_svn_WC_INFO}")
-      STRING(REGEX REPLACE "^(.*\n)?Repository Root: ([^\n]+).*"
-        "\\2" _svn_WC_ROOT "${_svn_WC_INFO}")
-      STRING(REGEX REPLACE "^(.*\n)?Revision: ([^\n]+).*"
-        "\\2" _svn_WC_REVISION "${_svn_WC_INFO}")
-      STRING(REGEX REPLACE "^(.*\n)?Last Changed Date: ([^\n]+).*"
-        "\\2" _svn_WC_LAST_CHANGED_DATE "${_svn_WC_INFO}")
-    ELSE()
-      SET(_svn_WC_INFO)
-    ENDIF()
-  ENDIF()
+  SET(_branch "")
 ENDIF()
 
-# If we have a valid (git) svn info use it:
-IF(${_result} EQUAL 0)
 
-  STRING(REGEX REPLACE "^${_svn_WC_ROOT}/" "" _branch ${_svn_WC_URL})
-  STRING(REGEX REPLACE "^branches/" "" _branch ${_branch})
-  STRING(REGEX REPLACE "/aspect$" "" _branch ${_branch})
 
-  SET(CTEST_BUILD_NAME "${CTEST_BUILD_NAME}-${_branch}")
-ENDIF()
+SET(CTEST_BUILD_NAME "${CTEST_BUILD_NAME}-${_branch}")
 
-#
-# We require valid svn information for build tests:
-#
 
-IF( "${TRACK}" STREQUAL "Build Tests"
-    AND NOT DEFINED _svn_WC_REVISION )
-  MESSAGE(FATAL_ERROR "
-TRACK was set to \"Build Tests\" which requires the source directory to be
-under Subversion version control.
-"
-  )
-ENDIF()
 
 #
 # Write revision log:
 #
 
-IF(DEFINED _svn_WC_REVISION)
-  FILE(WRITE ${CTEST_BINARY_DIRECTORY}/revision.log
+FILE(WRITE ${CTEST_BINARY_DIRECTORY}/revision.log
 "###
 #
-#  SVN information:
-#        SVN_WC_URL:               ${_svn_WC_URL}
-#        SVN_WC_REVISION:          ${_svn_WC_REVISION}
-#        SVN_WC_LAST_CHANGED_DATE: ${_svn_WC_LAST_CHANGED_DATE}
+#  git information:
+#        REV-NAME: ${_git_WC_NAME}
+#        SHORTREV: ${_git_WC_SHORTREV}
+#        REV:      ${_git_WC_REV}
+#        AUTHOR:   ${_git_WC_AUTHOR}
 #
 ###"
     )
-ELSE()
-  FILE(WRITE ${CTEST_BINARY_DIRECTORY}/revision.log
-"###
-#
-#  No SVN information available.
-#
-###"
-    )
-ENDIF()
 
 #
 # Append config file name to CTEST_BUILD_NAME:
@@ -422,7 +407,8 @@ MESSAGE("-- CTEST_BUILD_NAME:       ${CTEST_BUILD_NAME}")
 #
 
 SET(CTEST_NOTES_FILES
-  # TODO
+  ${CTEST_BINARY_DIRECTORY}/revision.log
+  ${CTEST_BINARY_DIRECTORY}/detailed.log
   )
 
 MESSAGE("-- CMake Options:          ${_options}")
@@ -495,16 +481,27 @@ IF(CMAKE_SYSTEM_NAME MATCHES "Linux")
   ENDIF()
 ENDIF()
 
-IF(NOT "${_svn_WC_REVISION}" STREQUAL "")
+#IF(NOT "${_svn_WC_REVISION}" STREQUAL "")
   FILE(WRITE ${_path}/Update.xml
 "<?xml version=\"1.0\" encoding=\"UTF-8\"?>
 <Update mode=\"Client\" Generator=\"ctest-${CTEST_VERSION}\">
     <Site>${CTEST_SITE}</Site>
       <BuildName>${CTEST_BUILD_NAME}</BuildName>
         <BuildStamp>${_tag}-${TRACK}</BuildStamp>
-	<UpdateType>SVN</UpdateType>
-	<Revision>${_svn_WC_REVISION}</Revision>
+	<UpdateType>GIT</UpdateType>
+	<Revision>${_git_WC_SHORTREV}</Revision>
         <Path>${_branch}</Path>
 </Update>"
     )
+#ENDIF()
+
+IF("${submit}")
+MESSAGE("-- Running CTEST_SUBMIT()")
+CTEST_SUBMIT(RETURN_VALUE _res)
+
+IF("${_res}" STREQUAL "0")
+  MESSAGE("-- Submission successful. Goodbye!")
+ENDIF()
+ELSE()
+MESSAGE("-- Submission skipped. Run with submit=ON")
 ENDIF()

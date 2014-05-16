@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2014 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -25,7 +25,13 @@
 
 #include <deal.II/lac/solver_gmres.h>
 #include <deal.II/lac/constraint_matrix.h>
+
+#ifdef USE_PETSC
+#include <deal.II/lac/solver_cg.h>
+#else
 #include <deal.II/lac/trilinos_solver.h>
+#endif
+
 #include <deal.II/lac/pointer_matrix.h>
 
 
@@ -72,9 +78,9 @@ namespace aspect
          * two blocks so that we can put it a global system_rhs vector. The
          * other vectors need to have 2 blocks only.
          */
-        double residual (TrilinosWrappers::MPI::BlockVector       &dst,
-                         const TrilinosWrappers::MPI::BlockVector &x,
-                         const TrilinosWrappers::MPI::BlockVector &b) const;
+        double residual (LinearAlgebra::BlockVector       &dst,
+                         const LinearAlgebra::BlockVector &x,
+                         const LinearAlgebra::BlockVector &b) const;
 
 
       private:
@@ -144,9 +150,9 @@ namespace aspect
 
 
 
-    double StokesBlock::residual (TrilinosWrappers::MPI::BlockVector       &dst,
-                                  const TrilinosWrappers::MPI::BlockVector &x,
-                                  const TrilinosWrappers::MPI::BlockVector &b) const
+    double StokesBlock::residual (LinearAlgebra::BlockVector       &dst,
+                                  const LinearAlgebra::BlockVector &x,
+                                  const LinearAlgebra::BlockVector &b) const
     {
       Assert (x.n_blocks() == 2, ExcInternalError());
       Assert (dst.n_blocks() == 2, ExcInternalError());
@@ -157,8 +163,8 @@ namespace aspect
       dst.block(1).sadd (-1, 1, b.block(1));
 
       // clear blocks we didn't want to fill
-      for (unsigned int b=2; b<dst.n_blocks(); ++b)
-        dst.block(b) = 0;
+      for (unsigned int block=2; block<dst.n_blocks(); ++block)
+        dst.block(block) = 0;
 
       return dst.l2_norm();
     }
@@ -240,8 +246,11 @@ namespace aspect
       {
         SolverControl solver_control(5000, 1e-6 * src.block(1).l2_norm());
 
+#ifdef USE_PETSC
+        SolverCG<LinearAlgebra::Vector> solver(solver_control);
+#else
         TrilinosWrappers::SolverCG solver(solver_control);
-
+#endif
         // Trilinos reports a breakdown
         // in case src=dst=0, even
         // though it should return
@@ -265,7 +274,11 @@ namespace aspect
       if (do_solve_A == true)
         {
           SolverControl solver_control(5000, utmp.l2_norm()*1e-2);
+#ifdef USE_PETSC
+          SolverCG<LinearAlgebra::Vector> solver(solver_control);
+#else
           TrilinosWrappers::SolverCG solver(solver_control);
+#endif
           solver.solve(stokes_matrix.block(0,0), dst.block(0), utmp,
                        a_preconditioner);
         }
@@ -303,7 +316,7 @@ namespace aspect
       }
 
     const double tolerance = std::max(1e-50,
-        advection_solver_tolerance*system_rhs.block(block_number).l2_norm());
+                                      advection_solver_tolerance*system_rhs.block(block_number).l2_norm());
     SolverControl solver_control (system_matrix.block(block_number, block_number).m(),
                                   tolerance);
 
@@ -314,21 +327,21 @@ namespace aspect
     // solve for the current block) because only have a ConstraintMatrix
     // for the whole system, current_linearization_point contains our initial guess.
     LinearAlgebra::BlockVector distributed_solution (
-        introspection.index_sets.system_partitioning,
-        mpi_communicator);
+      introspection.index_sets.system_partitioning,
+      mpi_communicator);
     distributed_solution.block(block_number) = current_linearization_point.block (block_number);
 
     // Temporary vector to hold the residual, we don't need a BlockVector here.
     LinearAlgebra::Vector temp (
-        introspection.index_sets.system_partitioning[block_number],
-        mpi_communicator);
+      introspection.index_sets.system_partitioning[block_number],
+      mpi_communicator);
 
     // Compute the residual before we solve and return this at the end.
     // This is used in the nonlinear solver.
-    double initial_residual = system_matrix.block(block_number,block_number).residual
-        (temp,
-         distributed_solution.block(block_number),
-         system_rhs.block(block_number));
+    const double initial_residual = system_matrix.block(block_number,block_number).residual
+                                    (temp,
+                                     distributed_solution.block(block_number),
+                                     system_rhs.block(block_number));
 
     // solve the linear system:
     current_constraints.set_zero(distributed_solution);
@@ -382,16 +395,10 @@ namespace aspect
     const internal::StokesBlock stokes_block(system_matrix);
 
     // extract Stokes parts of solution vector, without any ghost elements
-    LinearAlgebra::BlockVector distributed_stokes_solution (2);
-    distributed_stokes_solution.block(0).reinit (introspection.index_sets.system_partitioning[0], mpi_communicator);
-    distributed_stokes_solution.block(1).reinit (introspection.index_sets.system_partitioning[1], mpi_communicator);
-    distributed_stokes_solution.collect_sizes();
+    LinearAlgebra::BlockVector distributed_stokes_solution (introspection.index_sets.stokes_partitioning, mpi_communicator);
 
     // create vector with distribution of system_rhs.
-    LinearAlgebra::BlockVector remap (2);
-    remap.block(0).reinit (introspection.index_sets.system_partitioning[0], mpi_communicator);
-    remap.block(1).reinit (introspection.index_sets.system_partitioning[1], mpi_communicator);
-    remap.collect_sizes();
+    LinearAlgebra::BlockVector remap (introspection.index_sets.stokes_partitioning, mpi_communicator);
 
     // copy current_linearization_point into it, because its distribution
     // is different.
@@ -419,10 +426,7 @@ namespace aspect
     distributed_stokes_solution = remap;
 
     // extract Stokes parts of rhs vector
-    LinearAlgebra::BlockVector distributed_stokes_rhs(2);
-    distributed_stokes_rhs.block(0).reinit (introspection.index_sets.system_partitioning[0], mpi_communicator);
-    distributed_stokes_rhs.block(1).reinit (introspection.index_sets.system_partitioning[1], mpi_communicator);
-    distributed_stokes_rhs.collect_sizes();
+    LinearAlgebra::BlockVector distributed_stokes_rhs(introspection.index_sets.stokes_partitioning);
 
     distributed_stokes_rhs.block(0) = system_rhs.block(0);
     distributed_stokes_rhs.block(1) = system_rhs.block(1);
@@ -442,7 +446,7 @@ namespace aspect
 
     try
       {
-        // if this cheaper solver is not desired, the simply short-cut
+        // if this cheaper solver is not desired, then simply short-cut
         // the attempt at solving with the cheaper preconditioner
         if (parameters.n_cheap_stokes_solver_steps == 0)
           throw SolverControl::NoConvergence(0,0);
@@ -485,13 +489,15 @@ namespace aspect
     // other constraints
     current_constraints.distribute (distributed_stokes_solution);
 
+    // now rescale the pressure back to real physical units
+    distributed_stokes_solution.block(1) *= pressure_scaling;
+
     // then copy back the solution from the temporary (non-ghosted) vector
     // into the ghosted one with all solution components
     solution.block(0) = distributed_stokes_solution.block(0);
     solution.block(1) = distributed_stokes_solution.block(1);
 
-    // now rescale the pressure back to real physical units
-    solution.block(1) *= pressure_scaling;
+    remove_nullspace(solution, distributed_stokes_solution);
 
     normalize_pressure(solution);
 

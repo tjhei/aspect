@@ -38,18 +38,22 @@ aspect.tag: $(aspect-files) options.dox Makefile
 
 manual.pdf: manual/manual.tex manual/manual.bib manual/parameters.tex \
             $(aspect-manual-pix)
-	@if test -x "`which pdflatex`" -a -x "`which bibtex`" ; then \
+	@if test -x "`which pdflatex`" \
+                 -a -x "`which bibtex`" \
+                 -a -x "`which makeindex`" ; then \
 	   (cd manual ; \
+		rm -f manual.{aux,bbl,blg,log,out,pdf,toc} prm*.{idx,ilg,ind} ; \
 		pdflatex manual.tex ; \
 		bibtex manual       ; \
 		makeindex prmindex  ; \
 		pdflatex manual.tex ; \
+		pdflatex manual.tex ; \
 		pdflatex manual.tex) ; \
 	   mv manual/manual.pdf . ; \
          else \
-	  echo "-----------------------------------------" ; \
-	  echo "Can't find either 'pdflatex' or 'bibtex'." ; \
-	  echo "-----------------------------------------" ; \
+	  echo "------------------------------------------------------" ; \
+	  echo "Can't find either 'pdflatex', 'bibtex' or 'makeindex'." ; \
+	  echo "------------------------------------------------------" ; \
 	  false ; \
 	 fi
 

@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2014 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -3014,7 +3014,7 @@ namespace aspect
                       ExcMessage("Postprocessor DuretzEtAl only works with the material model SolCx, SolKz, and Inclusion."));
         }
 
-      const QGauss<dim> quadrature_formula (this->get_fe().base_element(0).degree+2);
+      const QGauss<dim> quadrature_formula (this->get_fe().base_element(this->introspection().base_elements.velocities).degree+2);
 
       Vector<float> cellwise_errors_u (this->get_triangulation().n_active_cells());
       Vector<float> cellwise_errors_p (this->get_triangulation().n_active_cells());

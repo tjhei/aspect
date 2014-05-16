@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2014 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -128,6 +128,17 @@ namespace aspect
 
 
   template <int dim>
+  unsigned int
+  Simulator<dim>::AdvectionField::base_element(const Introspection<dim> &introspection) const
+  {
+    if (this->is_temperature())
+      return introspection.base_elements.temperature;
+    else
+      return introspection.base_elements.compositional_fields;
+  }
+
+
+  template <int dim>
   void Simulator<dim>::output_program_stats()
   {
     if (!aspect::output_parallel_statistics)
@@ -148,12 +159,12 @@ namespace aspect
           << "* Matrix " << system_matrix.memory_consumption()/mb << std::endl
           << "* 5 Vectors " << 5*solution.memory_consumption()/mb << std::endl
           << "* preconditioner " << (system_preconditioner_matrix.memory_consumption()
-                                     + Amg_preconditioner->memory_consumption()
+//                                     + Amg_preconditioner->memory_consumption()
                                      /*+Mp_preconditioner->memory_consumption()
                                                                       +T_preconditioner->memory_consumption()*/)/mb
           << std::endl
           << "  - matrix " << system_preconditioner_matrix.memory_consumption()/mb << std::endl
-          << "  - prec vel " << Amg_preconditioner->memory_consumption()/mb << std::endl
+//          << "  - prec vel " << Amg_preconditioner->memory_consumption()/mb << std::endl
           << "  - prec mass " << 0/*Mp_preconditioner->memory_consumption()/mb*/ << std::endl
           << "  - prec T " << 0/*T_preconditioner->memory_consumption()/mb*/ << std::endl
           << std::endl;
@@ -284,6 +295,8 @@ namespace aspect
     FEValues<dim> fe_values (mapping, finite_element, quadrature_formula, update_values | (parameters.use_conduction_timestep ? update_quadrature_points : update_default));
     std::vector<Tensor<1,dim> > velocity_values(n_q_points);
     std::vector<double> pressure_values(n_q_points), temperature_values(n_q_points);
+    std::vector<std::vector<double> > composition_values (parameters.n_compositional_fields,std::vector<double> (n_q_points));
+    std::vector<double> composition_values_at_q_point (parameters.n_compositional_fields);
 
     double new_time_step;
     bool convection_dominant;
@@ -315,18 +328,38 @@ namespace aspect
                                                                                 pressure_values);
               fe_values[introspection.extractors.temperature].get_function_values (solution,
                                                                                    temperature_values);
+              for (unsigned int c=0; c<parameters.n_compositional_fields; ++c)
+                fe_values[introspection.extractors.compositional_fields[c]].get_function_values (solution,
+                    composition_values[c]);
+
+              typename MaterialModel::Interface<dim>::MaterialModelInputs in(n_q_points, parameters.n_compositional_fields, parameters.include_melt_transport);
+              typename MaterialModel::Interface<dim>::MaterialModelOutputs out(n_q_points, parameters.n_compositional_fields);
+
+              in.strain_rate.resize(0);// we are not reading the viscosity
+
+              for (unsigned int q=0; q<n_q_points; ++q)
+                {
+                  for (unsigned int k=0; k < composition_values_at_q_point.size(); ++k)
+                    composition_values_at_q_point[k] = composition_values[k][q];
+
+                  in.position[q] = fe_values.quadrature_point(q);
+                  in.temperature[q] = temperature_values[q];
+                  in.pressure[q] = pressure_values[q];
+                  for (unsigned int c=0; c<parameters.n_compositional_fields; ++c)
+                    in.composition[q][c] = composition_values_at_q_point[c];
+                }
+
+              material_model->evaluate(in, out);
+
               // In the future we may want to evaluate thermal diffusivity at
               // each point in the mesh, but for now we just use the reference value
               for (unsigned int q=0; q<n_q_points; ++q)
                 {
-                  std::vector<double> composition_values_at_q_point (parameters.n_compositional_fields);
-                  double      thermal_diffusivity;
+                  double k = out.thermal_conductivities[q];
+                  double rho = out.densities[q];
+                  double c_p = out.specific_heat[q];
 
-                  // TODO: calculate composition field as well
-                  thermal_diffusivity = material_model->thermal_diffusivity(temperature_values[q],
-                                                                            pressure_values[q],
-                                                                            composition_values_at_q_point,
-                                                                            fe_values.quadrature_point(q));
+                  double thermal_diffusivity = k/(rho*c_p);
 
                   min_local_conduction_timestep = std::min(min_local_conduction_timestep,
                                                            parameters.CFL_number*pow(cell->minimum_vertex_distance(),2)
@@ -415,7 +448,7 @@ namespace aspect
     double min_local_field = std::numeric_limits<double>::max(),
            max_local_field = -std::numeric_limits<double>::max();
 
-    if (timestep_number != 0)
+    if (timestep_number > 1)
       {
         typename DoFHandler<dim>::active_cell_iterator
         cell = dof_handler.begin_active(),
@@ -473,6 +506,40 @@ namespace aspect
   }
 
 
+  template <int dim>
+  void Simulator<dim>::interpolate_onto_velocity_system(const TensorFunction<1,dim> &func,
+                                                        LinearAlgebra::Vector &vec)
+  {
+    ConstraintMatrix hanging_constraints(introspection.index_sets.system_relevant_set);
+    DoFTools::make_hanging_node_constraints(dof_handler, hanging_constraints);
+    hanging_constraints.close();
+
+    Assert(introspection.block_indices.velocities == 0, ExcNotImplemented());
+    const std::vector<Point<dim> > mesh_support_points = finite_element.base_element(introspection.base_elements.velocities).get_unit_support_points();
+    FEValues<dim> mesh_points (mapping, finite_element, mesh_support_points, update_quadrature_points);
+    std::vector<unsigned int> cell_dof_indices (finite_element.dofs_per_cell);
+
+    typename DoFHandler<dim>::active_cell_iterator cell = dof_handler.begin_active(),
+                                                   endc = dof_handler.end();
+    for (; cell != endc; ++cell)
+      if (cell->is_locally_owned())
+        {
+          mesh_points.reinit(cell);
+          cell->get_dof_indices (cell_dof_indices);
+          for (unsigned int j=0; j<finite_element.base_element(introspection.base_elements.velocities).dofs_per_cell; ++j)
+            for (unsigned int dir=0; dir<dim; ++dir)
+              {
+                unsigned int support_point_index
+                  = finite_element.component_to_system_index(/*velocity component=*/ introspection.component_indices.velocities[dir],
+                                                                                     /*dof index within component=*/ j);
+                Assert(introspection.block_indices.velocities == 0, ExcNotImplemented());
+                vec[cell_dof_indices[support_point_index]] = func.value(mesh_points.quadrature_point(j))[dir];
+              }
+        }
+
+    vec.compress(VectorOperation::insert);
+    hanging_constraints.distribute(vec);
+  }
 
   /*
    * normalize the pressure by calculating the surface integral of the pressure on the outer
@@ -594,7 +661,7 @@ namespace aspect
         // consequently, adding the adjustment to the global function is
         // achieved by adding the adjustment to the first pressure degree
         // of freedom on each cell.
-        Assert (dynamic_cast<const FE_DGP<dim>*>(&finite_element.base_element(1)) != 0,
+        Assert (dynamic_cast<const FE_DGP<dim>*>(&finite_element.base_element(introspection.base_elements.pressure)) != 0,
                 ExcInternalError());
         std::vector<types::global_dof_index> local_dof_indices (finite_element.dofs_per_cell);
         typename DoFHandler<dim>::active_cell_iterator
@@ -649,7 +716,7 @@ namespace aspect
         // consequently, adding the adjustment to the global function is
         // achieved by adding the adjustment to the first pressure degree
         // of freedom on each cell.
-        Assert (dynamic_cast<const FE_DGP<dim>*>(&finite_element.base_element(1)) != 0,
+        Assert (dynamic_cast<const FE_DGP<dim>*>(&finite_element.base_element(introspection.base_elements.pressure)) != 0,
                 ExcInternalError());
         std::vector<types::global_dof_index> local_dof_indices (finite_element.dofs_per_cell);
         typename DoFHandler<dim>::active_cell_iterator
@@ -702,13 +769,16 @@ namespace aspect
 
   template <int dim>
   template<class FUNCTOR>
-  void Simulator<dim>::compute_depth_average(std::vector<double> &values, FUNCTOR &fctr) const
+  void Simulator<dim>::compute_depth_average(std::vector<double> &values,
+                                             FUNCTOR &fctr) const
   {
-    const unsigned int num_slices = 100;
-    values.resize(num_slices);
+    Assert (values.size() > 0,
+            ExcMessage ("To call this function, you need to request a positive "
+                        "number of depth slices."));
+    const unsigned int num_slices = values.size();
     std::vector<double> volume(num_slices);
 
-    // this yields 100 quadrature points evenly distributed in the interior of the cell.
+    // this yields 10^dim quadrature points evenly distributed in the interior of the cell.
     // We avoid points on the faces, as they would be counted more than once.
     const QIterated<dim> quadrature_formula (QMidpoint<1>(),
                                              10);
@@ -732,7 +802,7 @@ namespace aspect
                                                                    parameters.n_compositional_fields,
                                                                    parameters.include_melt_transport);
     typename MaterialModel::Interface<dim>::MaterialModelOutputs out(n_q_points,
-        parameters.n_compositional_fields);
+                                                                     parameters.n_compositional_fields);
 
     fctr.setup(quadrature_formula.size());
 
@@ -830,10 +900,7 @@ namespace aspect
           )
         );
 
-
-
     FunctorDepthAverageField<dim> f(field);
-
     compute_depth_average(values, f);
   }
 
@@ -865,9 +932,9 @@ namespace aspect
   void Simulator<dim>::compute_depth_average_viscosity(std::vector<double> &values) const
   {
     FunctorDepthAverageViscosity<dim> f;
-
     compute_depth_average(values, f);
   }
+
 
   namespace
   {
@@ -1036,7 +1103,7 @@ namespace aspect
 namespace aspect
 {
 #define INSTANTIATE(dim) \
-  template class Simulator<dim>::AdvectionField; \
+  template struct Simulator<dim>::AdvectionField; \
   template void Simulator<dim>::normalize_pressure(LinearAlgebra::BlockVector &vector); \
   template void Simulator<dim>::denormalize_pressure(LinearAlgebra::BlockVector &vector); \
   template double Simulator<dim>::get_maximal_velocity (const LinearAlgebra::BlockVector &solution) const; \
@@ -1051,7 +1118,8 @@ namespace aspect
   template void Simulator<dim>::compute_depth_average_Vp(std::vector<double> &values) const; \
   template void Simulator<dim>::output_program_stats(); \
   template void Simulator<dim>::output_statistics(); \
-  template bool Simulator<dim>::stokes_matrix_depends_on_solution() const;
+  template bool Simulator<dim>::stokes_matrix_depends_on_solution() const; \
+  template void Simulator<dim>::interpolate_onto_velocity_system(const TensorFunction<1,dim> &func, LinearAlgebra::Vector &vec);
 
   ASPECT_INSTANTIATE(INSTANTIATE)
 }

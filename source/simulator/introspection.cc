@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2014 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -43,11 +43,28 @@ namespace aspect
 
   template <int dim>
   const unsigned int
+  Introspection<dim>::BlockIndices::velocities;
+
+  template <int dim>
+  const unsigned int
   Introspection<dim>::BlockIndices::pressure;
 
   template <int dim>
   const unsigned int
   Introspection<dim>::BlockIndices::temperature;
+
+
+  template <int dim>
+  const unsigned int
+  Introspection<dim>::BaseElements::velocities;
+
+  template <int dim>
+  const unsigned int
+  Introspection<dim>::BaseElements::pressure;
+
+  template <int dim>
+  const unsigned int
+  Introspection<dim>::BaseElements::temperature;
 
 
   namespace
@@ -78,6 +95,7 @@ namespace aspect
     extractors (n_compositional_fields, include_melt_transport),
     component_indices (n_compositional_fields, include_melt_transport),
     block_indices (n_compositional_fields, include_melt_transport),
+    base_elements (n_compositional_fields),
     components_to_blocks (component_to_block_mapping<dim>(n_components)),
     system_dofs_per_block (n_blocks)
   {}
@@ -125,6 +143,19 @@ namespace aspect
   {}
 
 
+  template <int dim>
+  Introspection<dim>::BaseElements::
+  BaseElements (const unsigned int n_compositional_fields)
+    :
+    compositional_fields (n_compositional_fields > 0 ? 3 : numbers::invalid_unsigned_int),
+    porosity(include_melt_transport
+  		     ?
+  		     3+(n_compositional_fields > 0 ? 1 : 0)
+  		     :
+  		     numbers::invalid_unsigned_int)
+  {}
+
+
   namespace
   {
     std::vector<FEValuesExtractors::Scalar>
@@ -159,7 +190,7 @@ namespace aspect
 namespace aspect
 {
 #define INSTANTIATE(dim) \
-  template class Introspection<dim>;\
+  template struct Introspection<dim>;\
    
   ASPECT_INSTANTIATE(INSTANTIATE)
 }

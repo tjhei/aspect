@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012, 2013 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2014 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -28,6 +28,7 @@
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/lac/constraint_matrix.h>
 #include <deal.II/lac/block_sparsity_pattern.h>
+#include <deal.II/lac/sparsity_tools.h>
 #include <deal.II/grid/grid_tools.h>
 
 #include <deal.II/dofs/dof_renumbering.h>
@@ -102,10 +103,10 @@ namespace aspect
     // create a boundary composition model, but only if we actually need
     // it. otherwise, allow the user to simply specify nothing at all
     boundary_composition (parameters.fixed_composition_boundary_indicators.empty()
-			  ?
-			  0
-			  :
-			  BoundaryComposition::create_boundary_composition<dim>(prm)),
+                          ?
+                          0
+                          :
+                          BoundaryComposition::create_boundary_composition<dim>(prm)),
     compositional_initial_conditions (CompositionalInitialConditions::create_initial_conditions (prm,
                                       *geometry_model)),
     porosity_initial_conditions (PorosityInitialConditions::create_initial_conditions (prm,
@@ -126,6 +127,8 @@ namespace aspect
 
     mapping (4),
 
+    // define the finite element. obviously, what we do here needs
+    // to match the data we provide in the Introspection class
     finite_element(FE_Q<dim>(parameters.stokes_velocity_degree),
                    dim,
                    (parameters.use_locally_conservative_discretization
@@ -277,7 +280,7 @@ namespace aspect
     pressure_scaling = material_model->reference_viscosity() / geometry_model->length_scale();
 
     std::set<types::boundary_id> open_velocity_boundary_indicators
-    = geometry_model->get_used_boundary_indicators();
+      = geometry_model->get_used_boundary_indicators();
     for (std::map<types::boundary_id,std::pair<std::string,std::string> >::const_iterator
          p = parameters.prescribed_velocity_boundary_indicators.begin();
          p != parameters.prescribed_velocity_boundary_indicators.end();
@@ -512,23 +515,23 @@ namespace aspect
           // here we create a mask for interpolate_boundary_values out of the 'selector'
           std::vector<bool> mask(introspection.component_masks.velocities.size(), false);
           Assert(introspection.component_masks.velocities[0]==true, ExcInternalError()); // in case we ever move the velocity around
-          const std::string & comp = parameters.prescribed_velocity_boundary_indicators[p->first].first;
+          const std::string &comp = parameters.prescribed_velocity_boundary_indicators[p->first].first;
 
           if (comp.length()>0)
             {
-              for (std::string::const_iterator p=comp.begin();p!=comp.end();++p)
+              for (std::string::const_iterator direction=comp.begin(); direction!=comp.end(); ++direction)
                 {
-                  AssertThrow(*p>='x' && *p<='z', ExcMessage("Error in selector of prescribed velocity boundary component"));
-                  AssertThrow(dim==3 || *p!='z', ExcMessage("for dim=2, prescribed velocity component z is invalid"))
-                  mask[*p-'x']=true;
+                  AssertThrow(*direction>='x' && *direction<='z', ExcMessage("Error in selector of prescribed velocity boundary component"));
+                  AssertThrow(dim==3 || *direction!='z', ExcMessage("for dim=2, prescribed velocity component z is invalid"))
+                  mask[*direction-'x']=true;
                 }
-              for (unsigned int i=0;i<introspection.component_masks.velocities.size();++i)
+              for (unsigned int i=0; i<introspection.component_masks.velocities.size(); ++i)
                 mask[i] = mask[i] & introspection.component_masks.velocities[i];
             }
           else
             {
-              for (unsigned int i=0;i<introspection.component_masks.velocities.size();++i)
-                  mask[i]=introspection.component_masks.velocities[i];
+              for (unsigned int i=0; i<introspection.component_masks.velocities.size(); ++i)
+                mask[i]=introspection.component_masks.velocities[i];
 
               Assert(introspection.component_masks.velocities[0]==true, ExcInternalError()); // in case we ever move the velocity down
             }
@@ -563,9 +566,6 @@ namespace aspect
   {
     system_matrix.clear ();
 
-    TrilinosWrappers::BlockSparsityPattern sp (system_partitioning,
-                                               mpi_communicator);
-
     Table<2,DoFTools::Coupling> coupling (introspection.n_components,
                                           introspection.n_components);
 
@@ -597,14 +597,33 @@ namespace aspect
     	coupling[x.porosity][x.porosity] = DoFTools::always;
     }
 
+#ifdef USE_PETSC
+    LinearAlgebra::CompressedBlockSparsityPattern sp(introspection.index_sets.system_relevant_partitioning);
+
+#else
+    TrilinosWrappers::BlockSparsityPattern sp (system_partitioning,
+                                               mpi_communicator);
+#endif
+
     DoFTools::make_sparsity_pattern (dof_handler,
                                      coupling, sp,
                                      constraints, false,
                                      Utilities::MPI::
                                      this_mpi_process(mpi_communicator));
+
+#ifdef USE_PETSC
+    SparsityTools::distribute_sparsity_pattern(sp,
+                                               dof_handler.locally_owned_dofs_per_processor(),
+                                               mpi_communicator, introspection.index_sets.system_relevant_set);
+
+    sp.compress();
+
+    system_matrix.reinit (system_partitioning, system_partitioning, sp, mpi_communicator);
+#else
     sp.compress();
 
     system_matrix.reinit (sp);
+#endif
   }
 
 
@@ -621,9 +640,6 @@ namespace aspect
 
     system_preconditioner_matrix.clear ();
 
-    TrilinosWrappers::BlockSparsityPattern sp (system_partitioning,
-                                               mpi_communicator);
-
     Table<2,DoFTools::Coupling> coupling (introspection.n_components,
                                           introspection.n_components);
     for (unsigned int c=0; c<introspection.n_components; ++c)
@@ -633,14 +649,32 @@ namespace aspect
         else
           coupling[c][d] = DoFTools::none;
 
+
+#ifdef USE_PETSC
+    LinearAlgebra::CompressedBlockSparsityPattern sp(introspection.index_sets.system_relevant_partitioning);
+
+#else
+    TrilinosWrappers::BlockSparsityPattern sp (system_partitioning,
+                                               mpi_communicator);
+#endif
     DoFTools::make_sparsity_pattern (dof_handler,
                                      coupling, sp,
                                      constraints, false,
                                      Utilities::MPI::
                                      this_mpi_process(mpi_communicator));
+#ifdef USE_PETSC
+    SparsityTools::distribute_sparsity_pattern(sp,
+                                               dof_handler.locally_owned_dofs_per_processor(),
+                                               mpi_communicator, introspection.index_sets.system_relevant_set);
+
+    sp.compress();
+
+    system_preconditioner_matrix.reinit (system_partitioning, system_partitioning, sp, mpi_communicator);
+#else
     sp.compress();
 
     system_preconditioner_matrix.reinit (sp);
+#endif
   }
 
 
@@ -708,10 +742,10 @@ namespace aspect
     //Now set up the constraints for periodic boundary conditions
     {
       typedef std::set< std::pair< std::pair< types::boundary_id, types::boundary_id>, unsigned int> >
-               periodic_boundary_set;
+      periodic_boundary_set;
       periodic_boundary_set pbs = geometry_model->get_periodic_boundary_pairs();
 
-      for(periodic_boundary_set::iterator p = pbs.begin(); p != pbs.end(); ++p)
+      for (periodic_boundary_set::iterator p = pbs.begin(); p != pbs.end(); ++p)
         {
           //Throw error if we are trying to use the same boundary for more than one boundary condition
           Assert( is_element( (*p).first.first, parameters.fixed_temperature_boundary_indicators ) == false &&
@@ -721,9 +755,9 @@ namespace aspect
                   is_element( (*p).first.first, parameters.tangential_velocity_boundary_indicators ) == false &&
                   is_element( (*p).first.second, parameters.tangential_velocity_boundary_indicators ) == false &&
                   parameters.prescribed_velocity_boundary_indicators.find( (*p).first.first)
-                             == parameters.prescribed_velocity_boundary_indicators.end() &&
+                  == parameters.prescribed_velocity_boundary_indicators.end() &&
                   parameters.prescribed_velocity_boundary_indicators.find( (*p).first.second)
-                             == parameters.prescribed_velocity_boundary_indicators.end(),
+                  == parameters.prescribed_velocity_boundary_indicators.end(),
                   ExcInternalError());
 
 #if (DEAL_II_MAJOR*100 + DEAL_II_MINOR) >= 801
@@ -823,16 +857,18 @@ namespace aspect
     setup_system_preconditioner (introspection.index_sets.system_partitioning);
 
     system_rhs.reinit(introspection.index_sets.system_partitioning, mpi_communicator);
-    solution.reinit(introspection.index_sets.system_relevant_partitioning, mpi_communicator);
-    old_solution.reinit(introspection.index_sets.system_relevant_partitioning, mpi_communicator);
-    old_old_solution.reinit(introspection.index_sets.system_relevant_partitioning, mpi_communicator);
-    current_linearization_point.reinit (introspection.index_sets.system_relevant_partitioning, mpi_communicator);
+    solution.reinit(introspection.index_sets.system_partitioning, introspection.index_sets.system_relevant_partitioning, mpi_communicator);
+    old_solution.reinit(introspection.index_sets.system_partitioning, introspection.index_sets.system_relevant_partitioning, mpi_communicator);
+    old_old_solution.reinit(introspection.index_sets.system_partitioning, introspection.index_sets.system_relevant_partitioning, mpi_communicator);
+    current_linearization_point.reinit (introspection.index_sets.system_partitioning, introspection.index_sets.system_relevant_partitioning, mpi_communicator);
 
     if (do_pressure_rhs_compatibility_modification)
       pressure_shape_function_integrals.reinit (introspection.index_sets.system_partitioning, mpi_communicator);
 
     rebuild_stokes_matrix         = true;
     rebuild_stokes_preconditioner = true;
+
+    setup_nullspace_removal();
 
     computing_timer.exit_section();
   }
@@ -882,6 +918,9 @@ namespace aspect
       introspection.index_sets.system_partitioning.push_back(system_index_set.get_view(0,n_u));
       introspection.index_sets.system_partitioning.push_back(system_index_set.get_view(n_u,n_u+n_p));
       introspection.index_sets.system_partitioning.push_back(system_index_set.get_view(n_u+n_p,n_u+n_p+n_T));
+      introspection.index_sets.stokes_partitioning.clear ();
+      introspection.index_sets.stokes_partitioning.push_back(system_index_set.get_view(0,n_u));
+      introspection.index_sets.stokes_partitioning.push_back(system_index_set.get_view(n_u,n_u+n_p));
 
       DoFTools::extract_locally_relevant_dofs (dof_handler,
                                                introspection.index_sets.system_relevant_set);
@@ -1163,8 +1202,8 @@ namespace aspect
 
               const double temperature_residual = solve_advection(AdvectionField::temperature());
 
-              current_linearization_point.block(introspection.block_indices.pressure)
-                = solution.block(introspection.block_indices.pressure);
+              current_linearization_point.block(introspection.block_indices.temperature)
+                = solution.block(introspection.block_indices.temperature);
               rebuild_stokes_matrix = true;
               std::vector<double> composition_residual (parameters.n_compositional_fields,0);
 
@@ -1292,7 +1331,7 @@ namespace aspect
               const double stokes_residual = solve_stokes();
 
               if (i==0)
-                  initial_stokes_residual = stokes_residual;
+                initial_stokes_residual = stokes_residual;
               else
                 {
                   pcout << "      residual: " << stokes_residual/initial_stokes_residual << std::endl;
@@ -1327,18 +1366,6 @@ namespace aspect
   template <int dim>
   void Simulator<dim>::run ()
   {
-    {
-      const int n_tasks = Utilities::MPI::n_mpi_processes(mpi_communicator);
-      pcout << "Running with " << n_tasks << " MPI task" << (n_tasks == 1 ? "" : "s");
-#if (DEAL_II_MAJOR*100 + DEAL_II_MINOR) >= 801
-      const int n_threads = multithread_info.n_threads();
-      if (n_threads>1)
-        pcout << " using " << n_threads << " threads " << (n_tasks == 1 ? "" : "each");
-#endif
-      pcout << "." << std::endl;
-    }
-
-
     unsigned int max_refinement_level = parameters.initial_global_refinement +
                                         parameters.initial_adaptive_refinement;
     unsigned int pre_refinement_step = 0;
@@ -1401,7 +1428,8 @@ namespace aspect
         // returned by compute_time_step is unused, will be
         // added to statistics later
         old_time_step = time_step;
-        time_step = compute_time_step().first;
+        time_step = std::min (compute_time_step().first,
+                              parameters.maximum_time_step);
         time_step = termination_manager.check_for_last_time_step(time_step);
 
         if (parameters.convert_to_years == true)
@@ -1457,8 +1485,10 @@ namespace aspect
 
         // every n time steps output a summary of the current
         // timing information
-        if ((timestep_number > 0) && (parameters.timing_output_frequency != 0) &&
-            (timestep_number % parameters.timing_output_frequency == 0))
+        if (((timestep_number > 0) && (parameters.timing_output_frequency != 0) &&
+             (timestep_number % parameters.timing_output_frequency == 0))
+            ||
+            (parameters.timing_output_frequency == 1))
           {
             computing_timer.print_summary ();
             output_statistics();

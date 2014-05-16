@@ -24,6 +24,7 @@
 #define __aspect__velocity_boundary_conditions_function_h
 
 #include <aspect/velocity_boundary_conditions/interface.h>
+#include <aspect/simulator_access.h>
 
 #include <deal.II/base/parsed_function.h>
 
@@ -40,7 +41,7 @@ namespace aspect
      * @ingroup VelocityBoundaryConditionsModels
      */
     template <int dim>
-    class Function : public Interface<dim>
+    class Function : public Interface<dim>, public SimulatorAccess<dim>
     {
       public:
         /**
@@ -58,30 +59,30 @@ namespace aspect
         boundary_velocity (const Point<dim> &position) const;
 
         /**
-        * A function that is called at the beginning of each time step
-        * to indicate what the model time is for which the boundary
-        * values will next be evaluated. For the current class, the
-        * function passes to the parsed function what the current time is.
-        */
+         * A function that is called at the beginning of each time step to
+         * indicate what the model time is for which the boundary values will
+         * next be evaluated. For the current class, the function passes to
+         * the parsed function what the current time is.
+         */
         virtual
         void
         set_current_time (const double time);
 
         /**
-         * Declare the parameters this class takes through input files.
-         * The default implementation of this function does not describe
-         * any parameters. Consequently, derived classes do not have to
-         * overload this function if they do not take any runtime parameters.
+         * Declare the parameters this class takes through input files. The
+         * default implementation of this function does not describe any
+         * parameters. Consequently, derived classes do not have to overload
+         * this function if they do not take any runtime parameters.
          */
         static
         void
         declare_parameters (ParameterHandler &prm);
 
         /**
-         * Read the parameters this class declares from the parameter
-         * file. The default implementation of this function does not read
-         * any parameters. Consequently, derived classes do not have to
-         * overload this function if they do not take any runtime parameters.
+         * Read the parameters this class declares from the parameter file.
+         * The default implementation of this function does not read any
+         * parameters. Consequently, derived classes do not have to overload
+         * this function if they do not take any runtime parameters.
          */
         virtual
         void
@@ -92,11 +93,6 @@ namespace aspect
          * A function object representing the components of the velocity.
          */
         Functions::ParsedFunction<dim> boundary_velocity_function;
-
-        /**
-         * Whether to interpret time in years or seconds.
-         */
-        bool use_years_instead_of_seconds;
     };
   }
 }

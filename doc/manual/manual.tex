@@ -3,6 +3,7 @@
 \usepackage{amsmath}
 \usepackage{amsfonts}
 \usepackage{subfigure}
+\usepackage{textpos}
 
 % use a larger page size; otherwise, it is difficult to have complete
 % code listings and output on a single page
@@ -51,42 +52,114 @@
 
 \begin{document}
 
-\thispagestyle{empty}
-\vspace*{.2\textheight}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%% START OF CIG MANUAL COVER TEMPLATE %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% This should be pasted at the start of manuals and appropriate strings entered at locations indicated with FILL.
+% Be sure the TeX file includes the following packages.
+% \usepackage{graphicx}
+% \usepackage{times}
+% \usepackage{textpos}
 
-\begin{centering}
-  \parindent0pt
-  \includegraphics[width=0.55\textwidth]{mesh-2d.png}
+\definecolor{dark_grey}{gray}{0.3}
+\definecolor{aspect_blue}{rgb}{0.3125,0.6875,0.9375}
 
-  \vfill
+%LINE 1%
+{
+\renewcommand{\familydefault}{\sfdefault}
 
-  {\huge \aspect{}}
-  \\[.3cm]
-  {\Large
-    Advanced Solver for Problems in Earth's
-    ConvecTion}
-  \\[.5cm]
-  {\large Preview release, version 0.4.pre\\
-   (generated from subversion: $Revision$)}
-  \\[1cm]
-  {\large
-    Wolfgang Bangerth\\
-    Timo Heister\\[24pt]
-  }
-\end{centering}
-{\parindent0pt
- \large
+\pagenumbering{gobble}
+\begin{center}
+\resizebox{\textwidth}{!}{\textcolor{dark_grey}{\fontfamily{\sfdefault}\selectfont
+COMPUTATIONAL INFRASTRUCTURE FOR GEODYNAMICS (CIG)
+}}
+
+\hrule
+
+%LINE 2%
+\color{dark_grey}
+\rule{\textwidth}{2pt}
+
+%LINE 3%
+\color{dark_grey}
+% FILL: additional organizations
+% e.g.: {\Large Organization 1\\Organization 2}
+{\Large }
+\end{center}
+
+%COLOR AND CODENAME BLOCK%
+\begin{center}
+\resizebox{\textwidth}{!}{\colorbox
+% FILL: color of code name text box
+% e.g. blue
+{aspect_blue}{\fontfamily{\rmdefault}\selectfont \textcolor{white} {
+% FILL: name of the code
+% You may want to add \hspace to both sides of the codename to better center it, such as:
+% \newcommand{\codename}{\hspace{0.1in}CodeName\hspace{0.1in}}
+\hspace{0.1in}\aspect{}\hspace{0.1in}
+}}}
+\\[12pt]
+{\Large Advanced Solver for Problems in Earth's ConvecTion}
+\end{center}
+
+%MAIN PICTURE%
+\begin{textblock*}{0in}(1.5in,0.3in)
+% FILL: image height
+% e.g. height=6.5in
+\begin{center}
+\vspace{.5in}
+\includegraphics[height=3.5in]
+% FILL: image file name
+% e.g. cover_image.png
+{mesh-2d.png}
+\end{center}
+\end{textblock*}
+
+%USER MANUAL%
+\color{dark_grey}
+\hfill{\Huge \fontfamily{\sfdefault}\selectfont User Manual \\
+% FILL: manual version
+% e.g. 1.0
+\raggedleft \huge \fontfamily{\sfdefault}\selectfont Version {1.1.pre}\\\large(generated \today)\\}
+
+%AUTHOR(S) & WEBSITE%
+\null
+\vfill
+\color{dark_grey}
+\Large \hfill {\raggedleft \fontfamily{\sfdefault}\selectfont
+% FILL: author list
+% e.g. Author One\\Author Two\\Author Three\\
+% be sure to have a newline (\\) after the final author
+Wolfgang Bangerth\\Timo Heister\\
+\large
     with contributions by:\\
     Markus B{\"u}rg,
     Juliane Dannberg,
     Ren{\'e} Ga{\ss}m{\"o}ller,
     Thomas Geenen,
+    Ryan Grove,\\
     Eric Heien,
     Martin Kronbichler,
-    Elvira Mulyukova
+    Elvira Mulyukova,
+    Ian Rose,
+    Cedric Thieulot\\
 }
 
+{\fontfamily{\sfdefault}\selectfont \href{http://geodynamics.org}{geodynamics.org}}
 
+
+%LINE%
+\color{dark_grey}
+\rule{\textwidth}{2pt}
+
+}
+
+\pagebreak
+\pagenumbering{arabic}
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%   END OF CIG MANUAL COVER TEMPLATE    %%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 \pagebreak
 
@@ -156,6 +229,11 @@ University based on the following principles:
   and, through \dealii{} on Trilinos (see \url{http://trilinos.sandia.gov/})
   for parallel linear algebra and on \pfrst{} (see
   \url{http://www.p4est.org/}) for parallel mesh handling.
+
+\item \textit{Community:} We believe that a large project like \aspect{} can
+  only be successful as a community project. Every contribution is welcome and
+  we want to help you so we can improve \aspect{} together.
+
 \end{itemize}
 
 Combining all of these aspects into one code makes for an interesting
@@ -176,7 +254,7 @@ geodynamics community and beyond!
   feedback from the community on things that are missing or necessary for what
   you want to do. Let us know by personal email to the developers, or the
   mantle convection or \texttt{aspect-devel} mailing lists hosted at
-  \url{http://geodynamics.org/cgi-bin/mailman/listinfo/aspect-devel}!}
+  \url{http://lists.geodynamics.org/cgi-bin/mailman/listinfo/aspect-devel}!}
 
 \subsection{Referencing \aspect{}}
 
@@ -187,7 +265,7 @@ to some part using \aspect{}, you cite the following, canonical reference for
 this software:
 \begin{lstlisting}[frame=single,language=tex]
 @Article{KHB12,
-  author = 	 {Martin Kronbichler and Timo Heister and Wolfgang Bangerth},
+  author = 	 {M. Kronbichler and T. Heister and W. Bangerth},
   title = 	 {High Accuracy Mantle Convection Simulation through Modern Numerical Methods},
   journal = 	 {Geophysics Journal International},
   year = 	 2012,
@@ -210,13 +288,13 @@ The manual's proper reference is this:
 @Manual{aspectmanual,
         title = 	 {\textsc{ASPECT}: Advanced Solver for Problems in Earth's
           ConvecTion},
-        author = 	 {W. Bangerth and T. Heister},
+        author = 	 {W. Bangerth and T. Heister and others},
         organization = {Texas A\&M University/Computational
                            Infrastructure in Geodynamics},
         year = 	 2013
       }
 \end{lstlisting}
-      
+
 
 \subsection{Acknowledgments}
 
@@ -279,6 +357,10 @@ $c_i$ that we call \textit{compositional fields}:
   \\
   &\quad
   +\frac{\partial \rho}{\partial T} T \mathbf u \cdot \mathbf g
+  \notag
+  \\
+  &\quad
+  + \rho T \Delta S \left(\frac{\partial X}{\partial t} + \mathbf u\cdot\nabla X\right)
   & \quad
   & \textrm{in $\Omega$},
   \notag
@@ -315,11 +397,63 @@ terms of this equation correspond to
   case the variation of the total pressure can be expressed by gravity and
   density.
 \end{itemize}
-The equations \aspect{} currently solves do not include phase change terms,
-see Section~\ref{sec:future}.
+In addition, the equation does include phase change terms that correspond to
+the latent heat generated or consumed in this process. The latent heat release
+is proportional to changes in the fraction of material $X$ that has already
+undergone the phase transition (also called phase function) and the change
+of entropy $\Delta S$. This process applies both
+to solid-state phase transitions and to melting/solidification.
+Here, $\Delta S$ is positive for exothermic phase
+transitions. As the phase of the material, for a given composition, depends
+on the temperature and pressure, the latent heat term can be reformulated:
+\begin{gather*}
+\frac{\partial X}{\partial t} + \mathbf u\cdot\nabla X
+=
+\frac{DX}{Dt} 
+= 
+\frac{\partial X}{\partial T} \frac{DT}{Dt}
+ + \frac{\partial X}{\partial p} \frac{Dp}{Dt}
+= 
+\frac{\partial X}{\partial T} 
+\left(\frac{\partial T}{\partial t} + \mathbf u\cdot\nabla T
+\right)
+ + \frac{\partial X}{\partial p} \mathbf u\cdot\nabla p.
+\end{gather*}
+The last transformation results from the assumption that the flow field is
+always in equilibrium and consequently $\partial p/\partial t=0$ (this is the
+same assumption that underlies the fact that equation \eqref{eq:stokes-1}
+does not have a term $\partial \mathbf u / \partial t$). With this
+reformulation, we can rewrite \eqref{eq:temperature} in the following way in
+which it is in fact implemented:
+\begin{align}
+  \label{eq:temperature-reformulated}
+  \left(\rho C_p - \rho T \Delta S \frac{\partial X}{\partial T}\right) 
+  \left(\frac{\partial T}{\partial t} + \mathbf u\cdot\nabla
+  T\right) - \nabla\cdot k\nabla T
+  &=
+  \rho H
+  \notag
+  \\
+  &\quad
+  +
+  2\eta
+  \left(\varepsilon(\mathbf u) - \frac{1}{3}(\nabla \cdot \mathbf u)\mathbf 1\right)
+  :
+  \left(\varepsilon(\mathbf u) - \frac{1}{3}(\nabla \cdot \mathbf u)\mathbf 1\right)
+  \\
+  &\quad
+  +\frac{\partial \rho}{\partial T} T \mathbf u \cdot \mathbf g
+  \notag
+  \\
+  &\quad
+  + \rho T \Delta S \frac{\partial X}{\partial p} \mathbf u\cdot\nabla p
+  & \quad & \textrm{in $\Omega$},
+  \notag
+\end{align}
 
-The final set equations, \eqref{eq:compositional}, describes the motion of
-a set of advected quantities $c_i(\mathbf x,t),i=1\ldots C$. We call these
+Having discussed \eqref{eq:temperature}, let us come to the last one of the
+original set of equations, \eqref{eq:compositional}. It describes the
+motion of a set of advected quantities $c_i(\mathbf x,t),i=1\ldots C$. We call these
 \textit{compositional fields} because we think of them as spatially and
 temporally varying concentrations of different elements, minerals, or other
 constituents of the composition of the material that convects. As such, these
@@ -488,6 +622,9 @@ Units $\frac{\textrm{J}}{\textrm{kg}\cdot\textrm{K}} =
   transport through convection is several orders of magnitude more important
   than through thermal conduction.
 
+  The thermal conductivity $k$ is often expressed in terms of the
+  \textit{thermal diffusivity} $\kappa$ using the relation $k = \rho C_p \kappa$.
+
 \item \textit{The intrinsic specific heat production $H=H(\mathbf x)$:} Units
   $\frac{\textrm{W}}{\textrm{kg}}=\frac{\textrm{m}^2}{\textrm{s}^3}$.
 
@@ -496,6 +633,26 @@ Units $\frac{\textrm{J}}{\textrm{kg}\cdot\textrm{K}} =
   temperature, but may depend on the location due to different chemical
   composition of material in the earth mantle. The literature suggests a value
   of $\gamma=7.4\cdot 10^{-12}\frac{\textrm{W}}{\textrm{kg}}$.
+
+\item \textit{The change of entropy $\Delta S$ at a
+  phase transition together with the derivatives of the phase function
+  $X=X(p,T,\mathfrak c,\mathbf x)$ with regard to temperature and pressure:} Units
+  $\frac{\textrm{J}}{\textrm{kg}\textrm{K}^2}$ ($-\Delta S \frac{\partial X}{\partial T}$) and
+  $\frac{\textrm{m}^3}{\textrm{kg}\textrm{K}}$ ($\Delta S \frac{\partial X}{\partial p}$).
+
+  When material undergoes a phase transition, the entropy changes due to
+  release or consumption of latent heat. However, phase transitions occur
+  gradually and for a given chemical composition it depends on temperature
+  and pressure which phase prevails. Thus, the latent heat release can
+  be calculated from the change of entropy $\Delta S$ and the derivatives
+  of the phase function $\frac{\partial X}{\partial T}$ and
+  $\frac{\partial X}{\partial p}$. These values have to be provided by
+  the material model, separately for the coefficient
+  $-\Delta S \frac{\partial X}{\partial T}$ on the left-hand side and
+  $\Delta S \frac{\partial X}{\partial p}$ on the right-hand side of the
+  temperature equation. However, they may be either approximated with the help
+  of an analytic phase function, employing data from a thermodynamic database
+  or in any other way that seems appropriate to the user.
 \end{itemize}
 
 
@@ -1119,6 +1276,7 @@ community, where the acronym stands for \textit{Im}plicit \textit{P}ressure,
 
 
 \section{Installation}
+\label{sec:installation}
 
 This is a brief explanation of how to install all the required software and
 \aspect{} itself.
@@ -1206,7 +1364,7 @@ cmake -DDEAL_II_WITH_MPI=ON \
     this would be adding the line {\tt{export DEAL\_II\_DIR=/path/to/deal-installed/}} to
     the file {\tt{\~{}/.bashrc}}.}
 {\tt{DEAL\_II\_DIR}} to the directory where you \textit{installed} \dealii.
-  
+
 \end{enumerate}
 
 
@@ -1214,7 +1372,7 @@ cmake -DDEAL_II_WITH_MPI=ON \
 
 The development version of \aspect{} can be downloaded by executing the command
 \begin{verbatim}
- svn checkout https://svn.aspect.dealii.org/trunk/aspect
+ git clone https://github.com/geodynamics/aspect.git
 \end{verbatim}
 If {\tt{\$DEAL\_II\_DIR}} points to your \dealii{} installation, you can configure
 aspect with
@@ -1254,6 +1412,27 @@ installed. Most Linux distributions have packages for \texttt{doxygen}. The
 result will be the file \url{doc/doxygen/index.html} that is the starting
 point for exploring the documentation.
 
+\subsection{Compiling a static \aspect{} executable}
+\aspect{} defaults to a dynamically linked executable, which saves disk space and build time. In some circumstances however, it is preferred to generate a statically linked executable that incorporates all used libraries. This need may arise on large clusters on which libraries and loaded modules/variables on login nodes may be different from the ones available on compute nodes. The general build procedure in such a case equals the above explained instructions with the following differences:
+\begin{enumerate}
+\item \textit{Trilinos}: Add the following lines to your cmake call:
+\begin{verbatim}
+ -DBUILD_SHARED_LIBS=OFF
+ -DTPL_FIND_SHARED_LIBS=OFF
+\end{verbatim}
+\item \textit{\pfrst{}:} Change items "--enable-shared" to "--enable-static" in p4est-setup.sh lines 83 and 97.
+\item \textit{\dealii{}:} Add the following lines to your call to cmake:
+\begin{verbatim}
+ -DDEAL_II_STATIC_EXECUTABLE=ON
+\end{verbatim}
+\item \textit{\aspect{}:} If everything above is set up correctly, there is no need for any configuration change to aspects build procedure. You should see the following cmake output from \aspect{}:
+\begin{verbatim}
+-- Creating a statically linked executable
+-- Disabling dynamic loading of plugins from the input file
+\end{verbatim}
+\end{enumerate}
+
+The here mentioned build was tested on a Cray XC30 cluster, which was set up for default static compiling and linking. On machines that default to dynamic linking additional compiler and/or linker flags may be required (e.g. "-fPIC" / "--static"). In case of questions send an email to the mailing list.
 
 \section{Running \aspect}
 \label{sec:running}
@@ -1273,7 +1452,7 @@ or, if you want to run the program in parallel, using something like
 to run with 32 processors. In either case, the argument denotes the (path and)
 name of a file that contains input parameters. When you download \aspect{},
 there are a number of sample input file in the \texttt{cookbooks} directory,
-corresponding to the examples discussed in Section~\ref{sec:cookbooks}. 
+corresponding to the examples discussed in Section~\ref{sec:cookbooks}.
 A full description of all
 parameters one can specify in these files is given in
 Section~\ref{sec:parameters}.
@@ -1374,7 +1553,7 @@ ones that evaluate properties of the velocity, temperature, and heat flux as
 well as a postprocessor that generates graphical output for visualization.
 
 While the screen output is useful to monitor the progress of a simulation,
-it's lack of a structured output makes it not useful for later plotting things
+its lack of a structured output makes it not useful for later plotting things
 like the evolution of heat flux through the core-mantle boundary. To this end,
 \aspect{} creates additional files in the output directory selected in the
 input parameter file
@@ -1449,9 +1628,9 @@ The purpose of these files is as follows:
   The final two files of this kind, \texttt{solution.pvd} and
   \texttt{solution.visit}, are files that
   describes to Paraview and Visit, respectively, which
-  \texttt{solution-xxxx.pvtu} and \texttt{solution-xxxx.yyyy.vtu} jointly form 
+  \texttt{solution-xxxx.pvtu} and \texttt{solution-xxxx.yyyy.vtu} jointly form
   a complete simulation. In the former case, the file lists the \texttt{.pvtu}
-  files of all 
+  files of all
   timesteps together with the simulation time to which they correspond. In the
   latter case, it actually lists all \texttt{.vtu} that belong to one
   simulation, grouped by the timestep they correspond to.
@@ -1506,21 +1685,29 @@ The purpose of these files is as follows:
 
   A simple way to plot the contents of this file is shown in Section~\ref{sec:viz-stat}.
 
-\item \textit{Depth average statistics:} Similar to the
-  \texttt{output/statistics} file, \aspect{} can generate depth-average
-  statistics into \texttt{output/depthaverage.plt}. This is done by the
-  ``depth average'' postprocessor and the user can control how often this
-  file is updated.
+\item \textit{Output files generated by other postprocessors:} Similar to the
+  \texttt{output/statistics} file, several of the existing
+  postprocessors one can select from the parameter file generate their
+  data in their own files in the output directory. For example, \aspect{} can
+  write depth-average statistics into \texttt{output/depth\_average.gnuplot}.
+  This is done by the ``depth average'' postprocessor and the user can control
+  how often this file is updated, as well as what graphical file format to use
+  (if anything other than \texttt{gnuplot} is desired).
 
-  The data is written in text format that can be easily displayed by
-  e.g. gnuplot. For an example, see Figure \ref{fig:depthaverage}. The plot
+  By default, the data is written in text format that can be easily displayed
+  by e.g. gnuplot. For an example, see Figure \ref{fig:depthaverage}. The plot
   shows how an initially linear temperature profile forms upper and lower
   boundary layers.
 
 \begin{figure}[tbp]
   \centering
   \includegraphics[width=0.6\textwidth]{depthaverage2}
-  \caption{\it Example output for depth average statistics. On the left axis are 13 time steps, on the right is the depth (from the top at 0 to the bottom of the mantle on the far right), and the upwards pointing axis is the average temperature. This plot is created by calling \texttt{splot "depthaverage.plt" using 1:2:3 with lines} in gnuplot.}
+  \caption{\it Example output for depth average statistics. On the left axis are 13 time
+  steps, on the right is the depth (from the top at 0 to the bottom of the mantle on the
+  far right), and the upwards pointing axis is the average temperature. This
+  plot is generated by gnuplot, but the depth averages can be written in many
+  other output formats as well, if preferred (see
+  Section~\ref{parameters:Postprocess/Depth_20average}).}
   \label{fig:depthaverage}
 \end{figure}
 
@@ -1857,7 +2044,7 @@ It is extensively documented at \url{http://www.gnuplot.info/}.
 plot data or modify the way data is plotted. When you call it, you will first
 get a screen that looks like this:
 \begin{lstlisting}[frame=single]
-/home/user/aspect/output$ gnuplot
+/home/user/aspect/output gnuplot
 
         G N U P L O T
         Version 4.6 patchlevel 0    last modified 2012-03-04
@@ -2030,6 +2217,7 @@ There are essentially two strategies supported by \aspect{} for this scenario:
   extended periods of time.}
 
 \subsection{Checkpoint/restart support}
+\label{sec:checkpoint-restart}
 
 If you do long runs, especially when using parallel computations, there are a
 number of reasons to periodically save the state of the program:
@@ -2125,7 +2313,7 @@ $k$ if the approximation is ``close enough'' to the exact solution. The solvers
 we use this determine this by testing after every iteration whether the
 \textit{residual}, $r^{(k)}=A(x-x^{(k)})=b-Ax^{(k)}$, satisfies
 $\|r^{(k)}\|\le\varepsilon\|r^{(0)}\|$ where $\varepsilon$ is called the
-(relative) \textit{tolerance}. 
+(relative) \textit{tolerance}.
 
 Obviously, the smaller we choose $\varepsilon$, the more accurate the
 approximation $x^{(k)}$ will be. On the other hand, it will also take more
@@ -2207,7 +2395,7 @@ constant because only the pressure gradient appears in the equations, not the
 actual value of it. However, unlike this ``mathematical'' pressure, we have a
 very specific notion of the ``physical'' pressure: namely a well-defined
 quantity that at the surface of Earth equals the air pressure, which compared to
-the hydrostatic pressure inside Earth is essentially zero. 
+the hydrostatic pressure inside Earth is essentially zero.
 
 As a consequence, the default in \aspect{} is to normalize the computed
 ``mathematical'' pressure in such a way that either the mean pressure at the
@@ -2376,6 +2564,8 @@ Section~\ref{sec:cookbooks}.
 \section{Cookbooks}
 \label{sec:cookbooks}
 
+\marginpar{Provide approximate run-times for each of these cookbooks.}
+
 In this section, let us present a number of ``cookbooks'' -- examples of how
 to use \aspect{} in typical or less typical ways. As discussed in
 Sections~\ref{sec:running} and \ref{sec:parameters}, \aspect{} is driven by
@@ -2400,16 +2590,78 @@ The remainder of this section shows a number of applications of
 that show thermal convection (Section~\ref{sec:cookbooks-simple}), setups
 that try to model geophysical situations (Section~\ref{sec:cookbooks-geophysical})
 and setups that are used to benchmark \aspect{} to ensure correctness or to test accuracy
-of our solvers (Section~\ref{sec:cookbooks-benchmarks}).
+of our solvers (Section~\ref{sec:cookbooks-benchmarks}). Before we get there,
+however, we will review how one usually approaches setting up computations in
+Section~\ref{sec:cookbooks-overview}.
 
 \note{The input files discussed in the following sections can generally be
   found in the \texttt{cookbooks/} directory of your \aspect{} installation.}
 
 
+\subsection{How to set up computations}
+\label{sec:cookbooks-overview}
+
+\aspect{}'s computations are controlled by input parameter files such as those
+we will discuss in the following sections.%
+\footnote{You can also extend \aspect{} using plugins -- i.e., pieces of code
+you compile separately and either link into the \aspect{} executable itself, or
+reference from the input file. This is discussed in
+Section~\ref{sec:extending}.}
+Basically, these are just regular text files you can edit with programs like
+\texttt{gedit}, \texttt{kwrite} or \texttt{kate} when working on Linux, or
+something as simple as \texttt{NotePad} on Windows. When setting up these input
+files, you basically have to describe everything that characterizes the
+computation you want to do. In particular, this includes the following:
+\begin{itemize}
+  \item What internal forces act on the medium (the equation)?
+  \item What external forces do we have (the right hand side)
+  \item What is the domain (geometry)?
+  \item What happens at the boundary for each variable involved (boundary
+ conditions)?
+  \item How did it look at the beginning (initial conditions)?
+\end{itemize}
+For each of these questions, there are one or more input parameters (sometimes
+grouped into sections) that allow you to specify what you want. For example, to
+choose a geometry, you will typically have a block like this in your input file:
+\begin{lstlisting}[frame=single,language=prmfile,escapechar=\%]
+set Dimension = 2
+subsection Geometry model
+  set Model name = box % \index[prmindex]{Model name} \index[prmindexfull]{Geometry model!Model name} %
+
+  subsection Box
+    set X extent = 1 % \index[prmindex]{X extent} \index[prmindexfull]{Geometry model!Box!X extent} %
+    set Y extent = 1 % \index[prmindex]{Y extent} \index[prmindexfull]{Geometry model!Box!Y extent} %
+  end
+end
+\end{lstlisting}
+This indicates that you want to do a computation in 2d, using a rectangular
+geometry (a ``box'') with edge length equal to one in both the $x$- and
+$y$-directions. Of course, there are other geometries you can choose from for
+the \texttt{Model name} parameter, and consequently other subsections that
+specify the details of these geometries.
+
+If you go down the list of questions about the setup above, you have already
+done the majority of the work describing your computation. The remaining
+parameters you will typically want to specify have to do with the computation
+itself. For example, what variables do you want to output and how often? What
+statistics do you want to compute. The following sections will give ample
+examples for all of this, but using the questions above as a guideline is
+already a good first step.
+
+\note{It is of course possible to set up input files for computations
+completely from scratch. However, in practice, it is often simpler to go
+through the list of cookbooks already provided and find one that comes close to
+what you want to do. You would then modify this cookbook until it does what you
+want to do. The advantage is that you can start with something you already know
+works, and you can inspect how each change you make -- changing the
+details of the geometry, changing the material model, or changing what is being
+computed at the end of each time step -- affects what you get.}
+
+
 \subsection{Simple setups}
 \label{sec:cookbooks-simple}
 
-\subsubsection{Convection in a box}
+\subsubsection{Convection in a 2d box}
 \label{sec:cookbooks-simple-box}
 
 In this first example, let us consider a simple situation: a 2d box of dimensions
@@ -2511,8 +2763,8 @@ set Output directory                       = output % \index[prmindex]{Output di
 # be normalized. Here, we choose a zero average pressure
 # at the surface of the domain (for the current geometry, the
 # surface is defined as the top boundary).
-set Linear solver tolerance                = 1e-15 % \index[prmindex]{Linear solver tolerance} \index[prmindexfull]{Linear solver tolerance} %
-set Temperature solver tolerance           = 1e-15 % \index[prmindex]{Temperature solver tolerance} \index[prmindexfull]{Temperature solver tolerance} %
+set Linear solver tolerance                = 1e-10 % \index[prmindex]{Linear solver tolerance} \index[prmindexfull]{Linear solver tolerance} %
+set Temperature solver tolerance           = 1e-10 % \index[prmindex]{Temperature solver tolerance} \index[prmindexfull]{Temperature solver tolerance} %
 
 set Pressure normalization                 = surface % \index[prmindex]{Pressure normalization} \index[prmindexfull]{Pressure normalization} %
 set Surface pressure                       = 0 % \index[prmindex]{Surface pressure} \index[prmindexfull]{Surface pressure} %
@@ -3143,10 +3395,266 @@ words, at least for this testcase, it really was the temperature variable that
 limits the accuracy.
 
 
+\subsubsection{Convection in a 3d box}
+
+The world is not two-dimensional. While the previous section introduced a number
+of the knobs one can play with with \aspect{}, things only really become
+interesting once one goes to 3d. The setup from the previous section is easily
+adjusted to this and in the following, let us walk through some of the changes
+we have to consider when going from 2d to 3d. The full input file that
+contains these modifications and that was used for the simulations we will show
+subsequently can be found at \url{cookbooks/convection-box-3d.prm}.
+
+The first set of changes has to do with the geometry: it is three-dimensional,
+and we will have to address the fact that a box in 3d has 6 sides, not the 4 we
+had previously. The documentation of the ``box'' geometry
+(see Section~\ref{parameters:Geometry_20model}) states that these sides are
+numbered as follows: ``\textit{in 3d, boundary indicators 0 through 5 indicate
+left, right, front, back, bottom and top boundaries}.'' Recalling that we want
+tangential flow all around and want to fix the temperature to known values at
+the bottom and top, the following will make sense:
+\begin{lstlisting}[frame=single,language=prmfile,escapechar=\%]
+set Dimension                              = 3 % \index[prmindex]{Dimension} \index[prmindexfull]{Dimension} %
+
+subsection Geometry model
+  set Model name = box % \index[prmindex]{Model name} \index[prmindexfull]{Geometry model!Model name} %
+
+  subsection Box
+    set X extent = 1 % \index[prmindex]{X extent} \index[prmindexfull]{Geometry model!Box!X extent} %
+    set Y extent = 1 % \index[prmindex]{Y extent} \index[prmindexfull]{Geometry model!Box!Y extent} %
+    set Z extent = 1 % \index[prmindex]{Z extent} \index[prmindexfull]{Geometry model!Box!Z extent} %
+  end
+end
+
+subsection Boundary temperature model
+  set Model name = box % \index[prmindex]{Model name} \index[prmindexfull]{Boundary temperature model!Model name} %
+
+  subsection Box
+    set Bottom temperature = 1 % \index[prmindex]{Bottom temperature} \index[prmindexfull]{Boundary temperature model!Box!Bottom temperature} %
+    set Top temperature    = 0 % \index[prmindex]{Top temperature} \index[prmindexfull]{Boundary temperature model!Box!Top temperature} %
+  end
+end
+
+subsection Model settings
+  set Fixed temperature boundary indicators   = 4,5 % \index[prmindex]{Fixed temperature boundary indicators} \index[prmindexfull]{Model settings!Fixed temperature boundary indicators} %
+
+  set Zero velocity boundary indicators       = % \index[prmindex]{Zero velocity boundary indicators} \index[prmindexfull]{Model settings!Zero velocity boundary indicators} %
+  set Prescribed velocity boundary indicators = % \index[prmindex]{Prescribed velocity boundary indicators} \index[prmindexfull]{Model settings!Prescribed velocity boundary indicators} %
+  set Tangential velocity boundary indicators = 0,1,2,3,4,5 % \index[prmindex]{Tangential velocity boundary indicators} \index[prmindexfull]{Model settings!Tangential velocity boundary indicators} %
+end
+\end{lstlisting}
+
+The next step is to describe the initial conditions. As before, we will use an
+instably layered medium but the perturbation now needs to be both in $x$- and
+$y$-direction
+\begin{lstlisting}[frame=single,language=prmfile,escapechar=\%]
+subsection Initial conditions
+  set Model name = function % \index[prmindex]{Model name} \index[prmindexfull]{Initial conditions!Model name} %
+
+  subsection Function
+    set Variable names      = x,y,z % \index[prmindex]{Variable names} \index[prmindexfull]{Initial conditions!Function!Variable names} %
+    set Function constants  = p=0.01, L=1, pi=3.1415926536, k=1 % \index[prmindex]{Function constants} \index[prmindexfull]{Initial conditions!Function!Function constants} %
+    set Function expression = (1.0-z) - p*cos(k*pi*x/L)*sin(pi*z)*y^3 % \index[prmindex]{Function expression} \index[prmindexfull]{Initial conditions!Function!Function expression} %
+  end
+end
+\end{lstlisting}
+
+The third issue we need to address is that we can likely not afford a mesh as
+fine as in 2d. We choose a mesh that is refined 3 times globally at the
+beginning, then 3 times adaptively, and is then adapted every 15 time steps. We
+also allow one additional mesh refinement in the first time step following
+$t=0.003$ once the initial instability has given way to a more stable pattern:
+\begin{lstlisting}[frame=single,language=prmfile,escapechar=\%]
+subsection Mesh refinement
+  set Initial global refinement                = 3 % \index[prmindex]{Initial global refinement} \index[prmindexfull]{Mesh refinement!Initial global refinement} %
+  set Initial adaptive refinement              = 3 % \index[prmindex]{Initial adaptive refinement} \index[prmindexfull]{Mesh refinement!Initial adaptive refinement} %
+  set Time steps between mesh refinement       = 15 % \index[prmindex]{Time steps between mesh refinement} \index[prmindexfull]{Mesh refinement!Time steps between mesh refinement} %
+
+  set Additional refinement times              = 0.003 % \index[prmindex]{Additional refinement times} \index[prmindexfull]{Mesh refinement!Additional refinement times} %
+end
+\end{lstlisting}
+
+Finally, as we have seen in the previous section, a computation with $Ra=10^4$
+does not lead to a simulation that is exactly exciting. Let us choose $Ra=10^6$
+instead (the mesh chosen above with up to 7 refinement levels after some time
+is fine enough to resolve this). We can achieve this in the same way as in the
+previous section by choosing $\alpha=10^{-10}$ and setting
+\begin{lstlisting}[frame=single,language=prmfile,escapechar=\%]
+subsection Gravity model
+  set Model name = vertical % \index[prmindex]{Model name} \index[prmindexfull]{Gravity model!Model name} %
+
+  subsection Vertical
+    set Magnitude = 1e16   # = Ra / Thermal expansion coefficient % \index[prmindex]{Magnitude} \index[prmindexfull]{Gravity model!Vertical!Magnitude} %
+  end
+end
+\end{lstlisting}
+This has some interesting implications. First, a higher Rayleigh number makes
+time scales correspondingly smaller; where we generated graphical output only
+once every 0.01 time units before, we now need to choose the corresponding
+increment smaller by a factor of 100:
+\begin{lstlisting}[frame=single,language=prmfile,escapechar=\%]
+subsection Postprocess
+  set List of postprocessors = velocity statistics, temperature statistics, ...
+                       ...heat flux statistics, visualization % \index[prmindex]{List of postprocessors} \index[prmindexfull]{Postprocess!List of postprocessors} %
+
+  subsection Visualization
+    set Time between graphical output = 0.0001 % \index[prmindex]{Time between graphical output} \index[prmindexfull]{Postprocess!Visualization!Time between graphical output} %
+  end
+end
+\end{lstlisting}
+Secondly, a simulation like this -- in 3d, with a significant number of cells,
+and for a significant number of time steps -- will likely take a good amount of
+time. The computations for which we show results below was run using 64
+processors by running it using the command
+{\tt{mpirun -n 64 ./aspect convection-box-3d.prm}}. If the machine should crash
+during such a run, a significant amount of compute time would be lost if we had
+to run everything from the start. However, we can avoid this by periodically
+checkpointing the state of the computation:
+\begin{lstlisting}[frame=single,language=prmfile,escapechar=\%]
+subsection Checkpointing
+  set Steps between checkpoint = 50 % \index[prmindex]{Steps between checkpoint} \index[prmindexfull]{Checkpointing!Steps between checkpoint} %
+end
+\end{lstlisting}
+If the computation does crash (or if a computation runs out of the time limit
+imposed by a scheduling system), then it can be restarted from such
+checkpointing files (see the parameter {\tt Resume computation}
+in Section~\ref{parameters:global}).
+\index[prmindex]{Resume computation}
+\index[prmindexfull]{Resume computation}
+
+Running with this input file requires a bit of patience%
+\footnote{For computations of this size, one should test a few time steps in
+  debug mode but then, of course, switch to running the actual computation in
+  optimized mode -- see Section~\ref{sec:debug-mode}.}
+since the number of
+degrees of freedom is just so large: it starts with a bit over 330,000\ldots
+\begin{lstlisting}[frame=single,language=ksh]
+Running with 64 MPI tasks.
+Number of active cells: 512 (on 4 levels)
+Number of degrees of freedom: 20,381 (14,739+729+4,913)
+
+*** Timestep 0:  t=0 seconds
+   Solving temperature system... 0 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 18 iterations.
+
+Number of active cells: 1,576 (on 5 levels)
+Number of degrees of freedom: 63,391 (45,909+2,179+15,303)
+
+*** Timestep 0:  t=0 seconds
+   Solving temperature system... 0 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 19 iterations.
+
+Number of active cells: 3,249 (on 5 levels)
+Number of degrees of freedom: 122,066 (88,500+4,066+29,500)
+
+*** Timestep 0:  t=0 seconds
+   Solving temperature system... 0 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 20 iterations.
+
+Number of active cells: 8,968 (on 5 levels)
+Number of degrees of freedom: 331,696 (240,624+10,864+80,208)
+
+*** Timestep 0:  t=0 seconds
+   Solving temperature system... 0 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 21 iterations.
+[...]
+\end{lstlisting}
+\ldots{}but then increases quickly to around 2 million as the solution develops
+some structure and, after time $t=0.003$ where we allow for an additional
+refinement, increases to over 10 million where it then hovers between 8 and 14
+million with a maximum of 15,147,534. Clearly, even on a reasonably quick
+machine, this will take some time: running this on a machine bought in 2011,
+doing the 10,000 time steps to get to $t=0.0219$ takes approximately 484,000
+seconds (about five and a half days).
+
+The structure or the solution is easiest to grasp by looking at isosurfaces of
+the temperature. This is shown in Fig.~\ref{fig:box-3d-solution} and you can
+find a movie of the motion that ensues from the heating at the bottom at
+\url{http://www.youtube.com/watch?v=_bKqU_P4j48}. The simulation uses adaptively
+changing meshes that are fine in rising plumes and sinking blobs and are coarse
+where nothing much happens. This is most easily seen in the movie at
+\url{http://www.youtube.com/watch?v=CzCKYyR-cmg}. Fig.~\ref{fig:box-3d-mesh}
+shows some of these meshes, though still pictures do not do the evolving nature
+of the mesh much justice. The effect of increasing the Rayleigh number is
+apparent when comparing the size of features with, for example, the picture at
+the right of Fig.~\ref{fig:convection-box-fields}. In contrast to that picture,
+the simulation is also clearly non-stationary.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.3\textwidth]{cookbooks/convection-box-3d/movie0010.png}
+  \hfill
+  \includegraphics[width=0.3\textwidth]{cookbooks/convection-box-3d/movie0040.png}
+  \hfill
+  \includegraphics[width=0.3\textwidth]{cookbooks/convection-box-3d/movie0060.png}
+  \\
+  \includegraphics[width=0.3\textwidth]{cookbooks/convection-box-3d/movie0100.png}
+  \hfill
+  \includegraphics[width=0.3\textwidth]{cookbooks/convection-box-3d/movie0130.png}
+  \hfill
+  \includegraphics[width=0.3\textwidth]{cookbooks/convection-box-3d/movie0180.png}
+  \caption{\it Convection in a 3d box: Temperature isocontours and some
+  velocity vectors at the first time step after times $t=0.001, 0.004, 0.006$
+  (top row, left to right) an $t=0.01, 0.013, 0.018$ (bottom row).}
+  \label{fig:box-3d-solution}
+\end{figure}
+
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.3\textwidth]{cookbooks/convection-box-3d/mesh0060.png}
+  \hfill
+  \includegraphics[width=0.3\textwidth]{cookbooks/convection-box-3d/mesh0100.png}
+  \hfill
+  \includegraphics[width=0.3\textwidth]{cookbooks/convection-box-3d/mesh0180.png}
+  \caption{\it Convection in a 3d box: Meshes and large-scale velocity field
+  for the third, fourth and sixth of the snapshots shown in
+  Fig.~\ref{fig:box-3d-solution}.}
+  \label{fig:box-3d-mesh}
+\end{figure}
+
+As before, we could analyze all sorts of data from the statistics file but we
+will leave this to those interested in specific data. Rather,
+Fig.~\ref{fig:box-3d-heat-flux} only shows the upward heat flux through the
+bottom and top boundaries of the domain as a function of time.%
+\footnote{Note that the statistics file actually contains the \textit{outward}
+heat flux for each of the six boundaries, which corresponds to the
+\textit{negative} of upward flux for the bottom boundary. The figure therefore
+shows the negative of the values available in the statistics file.}
+The figure reinforces a pattern that can also be seen by watching the movie of
+the temperature field referenced above, namely that the simulation can be
+subdivided into three distinct phases. The first phase corresponds to the
+initial overturning of the instable layering of the temperature field and is
+associated with a large spike in heat flux as well as large velocities (not
+shown here). The second phase, until approximately $t=0.01$ corresponds to a
+relative lull: some plumes rise up, but not very fast because the medium is now
+stably layered but not fully mixed. This can be seen in the relatively low heat
+fluxes, but also in the fact that there are almost horizontal temperature
+isosurfaces in the second of the pictures in Fig.~\ref{fig:box-3d-solution}.
+After that, the general structure of the temperature field is that the interior
+of the domain is well mixed with a mostly constant average temperature and thin
+thermal boundary layers at the top and bottom from which plumes rise and sink.
+In this regime, the average heat flux is larger but also more variable depending
+on the number of plumes currently active. Many other analyses would be possible
+by using what is in the statistics file or by enabling additional
+postprocessors.
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.6\textwidth]{cookbooks/convection-box-3d/heat-flux.png}
+  \caption{\it Convection in a 3d box: Upward heat flux through the bottom and
+  top boundaries as a function of time.}
+  \label{fig:box-3d-heat-flux}
+\end{figure}
+
 \subsubsection{Convection in a box with prescribed, variable velocity boundary conditions}
 
-A similarly simple setup is to equip the model we had in the previous section
-with a different set of boundary conditions. There, we used slip boundary
+A similarly simple setup to the ones considered in the previous subsections is
+to equip the model we had with a different set of boundary conditions. There, we used slip boundary
 conditions, i.e., the fluid can flow tangentially along the four sides of our
 box but this tangential velocity is unspecified. On the other hand, in many
 situations, one would like to actually prescribe the tangential flow velocity as
@@ -3376,7 +3884,7 @@ yields images like the ones shown in Fig.~\ref{fig:platelike}.
   \includegraphics[width=0.3\textwidth]{cookbooks/platelike-boundary/visit0005.png}
   \hfill
   \includegraphics[width=0.3\textwidth]{cookbooks/platelike-boundary/visit0006.png}
-  \caption{Variable velocity boundary conditions: Temperature and velocity
+  \caption{\it Variable velocity boundary conditions: Temperature and velocity
   fields at the initial time (top left) and at various other points in time during the
   simulation.}
   \label{fig:platelike}
@@ -3463,7 +3971,7 @@ the domain we are interested in.}
   \includegraphics[width=0.3\textwidth]{cookbooks/composition-passive/visit0012.png}
   \hfill
   \includegraphics[width=0.3\textwidth]{cookbooks/composition-passive/visit0014.png}
-  \caption{Passive compositional fields: The figures show, at
+  \caption{\it Passive compositional fields: The figures show, at
     different times in the simulation, the velocity field along with
     those locations where the first compositional field is larger than
     0.5 (in red, indicating the locations where material from the bottom
@@ -3480,7 +3988,7 @@ the domain we are interested in.}
   \includegraphics[height=0.3\textwidth]{cookbooks/composition-passive/visit0015.png}
   \hfill
   \includegraphics[height=0.3\textwidth]{cookbooks/composition-passive/visit0017.png}
-  \caption{Passive compositional fields: A later image of the simulation
+  \caption{\it Passive compositional fields: A later image of the simulation
     corresponding to the sequence shown in
     Fig.~\ref{fig:compositional-passive} (left) and zoom-in on the
     center, also showing the mesh (right).}
@@ -3516,8 +4024,8 @@ This is an area in which \aspect{} may see improvements in the future.
 \begin{figure}
   \centering
   \includegraphics[width=0.4\textwidth]{cookbooks/composition-passive/mass-composition-1.png}
-  \caption{Passive compositional fields: Minimum and maximum of the first compositional variable
-   over time, as well as the mass $m_1(t)=\int_\Omega c_1(\mathbf x,t)$ stored in this variable.}
+  \caption{\it Passive compositional fields: Minimum and maximum of the first
+  compositional variable over time, as well as the mass $m_1(t)=\int_\Omega c_1(\mathbf x,t)$ stored in this variable.}
   \label{fig:compositional-passive-mass}
 \end{figure}
 
@@ -3626,7 +4134,7 @@ end
   \includegraphics[width=0.3\textwidth]{cookbooks/composition-active/visit0009.png}
   \hfill
   \includegraphics[width=0.3\textwidth]{cookbooks/composition-active/visit0008.png}
-  \caption{Active compositional fields: Compositional field 1 at the time
+  \caption{\it Active compositional fields: Compositional field 1 at the time
     $t=0, 10, 20$. Compared to the results shown in
     Fig.~\ref{fig:compositional-passive} it is clear that the heavy material
     stays at the bottom of the domain now. The effect of the density on the
@@ -3650,8 +4158,8 @@ end
   \includegraphics[width=0.3\textwidth]{cookbooks/composition-active/visit0004.png}
   \hfill
   \includegraphics[width=0.3\textwidth]{cookbooks/composition-active/visit0006.png}
-  \caption{Active compositional fields: Temperature fields at $t=0, 2, 4, 8, 12,
-    20$. The black line is the isocontour line $c_1(\mathbf x,t)=0.5$
+  \caption{\it Active compositional fields: Temperature fields at $t=0, 2, 4, 8,
+  12, 20$. The black line is the isocontour line $c_1(\mathbf x,t)=0.5$
     delineating the position of the dense material at the bottom.}
   \label{fig:composition-active-temperature}
 \end{figure}
@@ -3750,8 +4258,8 @@ Fig.~\ref{fig:composition-passive-tracers}.
 \begin{figure}
   \centering
   \includegraphics[width=0.5\textwidth]{cookbooks/composition-passive-tracers/solution-00072.png}
-  \caption{Passively advected quantities visualized through both a compositional
-  field and a set of 1,000 particles, at $t=7.2$.}
+  \caption{\it Passively advected quantities visualized through both a
+  compositional field and a set of 1,000 particles, at $t=7.2$.}
   \label{fig:composition-passive-tracers}
 \end{figure}
 
@@ -3768,11 +4276,955 @@ not be reproduced in a static medium such as this manual.
 
 \subsection{Geophysical setups}
 \label{sec:cookbooks-geophysical}
-\marginpar{To be written}
 
-Use cookbooks/periodic-box.prm
+Having gone through the ways in which one can set up problems in rectangular
+geometries, let us now move on to situations that are directed more towards the
+kinds of things we want to use \aspect{} for: the simulation of convection in
+the rocky mantles of planets or other celestial bodies.
 
-Include something that uses the GPlates interface
+To this end, we need to go through the list of issues that have to be described
+and that were outlined in Section~\ref{sec:cookbooks-overview}, and address them
+one by one:
+\begin{itemize}
+  \item \textit{What internal forces act on the medium (the equation)?}
+  	This may in fact be the most difficult to answer part of it all. The real
+  	material in Earth's mantle is certainly no Newtonian fluid where the stress
+  	is a linear function of the strain with a proportionality constant (the
+  	viscosity) $\eta$ that only depends on the temperature. Rather, the
+  	real viscosity almost surely also depends on the pressure and the strain
+  	rate. Because the issue is complicated and the exact material model not
+  	entirely clear, for the next few subsections we will therefore ignore the
+  	issue and start with just using the ``simple'' material model where the
+  	viscosity is constant and most other coefficients depend at most on the
+  	temperature.
+
+  \item \textit{What external forces do we have (the right hand side)}
+  	There are of course other issues: for example, should the model include terms
+  	that describe shear heating? Should it be compressible? Adiabatic heating due
+  	to compression? Most of the terms that pertain to these questions appear on
+  	the right hand sides of the equations, though some (such as the
+  	compressibility) also affect the differential operators on the left. Either
+  	way, for the moment, let us just go with the simplest models and come back to
+  	the more advanced questions in later examples.
+
+  	One right hand side that will certainly be there is that due to gravitational
+  	acceleration. To first order, within the mantle gravity points radially
+  	inward and has a roughly constant magnitude. In reality, of course, the
+  	strength and direction of gravity depends on the distribution and density of
+  	materials in Earth -- and, consequently, on the solution of the model at
+  	every time step. We will discuss some of the associated issues in the
+  	examples below.
+
+  \item \textit{What is the domain (geometry)?}
+  	This question is easier to answer. To first order, the domains we want to
+  	simulate are spherical shells, and to second order ellipsoid shells that can
+  	be obtained by considering the isopotential surface of the gravity field of
+  	a homogenous, rotating fluid.
+  	A more accurate description is of course the geoid for which several
+  	parameterizations are available. A complication arises if we ask whether we
+  	want to include the mostly rigid crust in the domain and simply assume that
+  	it is part of the convecting mantle, albeit a rather viscous part due to its
+  	low temperature and the low pressure there, or whether we want to truncate
+  	the computation at the asthenosphere.
+
+  \item \textit{What happens at the boundary for each variable involved
+  (boundary conditions)?}
+  	The mantle has two boundaries: at the bottom where it contacts the outer core
+  	and at the top where it either touches the air or, depending on the outcome
+  	of the discussion of the previous question, where it contacts the
+  	lithospheric crust. At the bottom, a very good approximation of what is
+  	happening is certainly to assume that the velocity field is tangential
+  	(i.e., horizontal) and without friction forces due to the very low viscosity
+  	of the liquid metal in the outer core. Similarly, we can assume that the
+  	outer core is well mixed and at a constant temperature. At the top boundary,
+  	the situation is slightly more complex because in reality the boundary is not
+  	fixed but also allows vertical movement. If we ignore this, we can assume
+  	free tangential flow at the surface or, if we want, prescribe the tangential
+  	velocity as inferred from plate motion models. \aspect{} has a plugin that
+  	allows to query this kind of information from the \texttt{GPlates} program.
+
+  \item \textit{How did it look at the beginning (initial conditions)?}
+    This is of course a trick question. Convection in the mantle of earth-like
+    planets did not start with a concrete initial temperature distribution when
+    the mantle was already fully formed. Rather, convection already happened
+    when primordial material was still separating into mantle and core. As a
+    consequence, for models that only simulate convection using mantle-like
+    geometries and materials, no physically reasonable initial conditions are
+    possible that date back to the beginning of Earth. On the other hand, recall
+    that we only need initial conditions for the temperature (and, if
+    necessary, compositional fields). Thus, if we have a temperature profile at
+    a given time, for example one inferred from seismic data at the current
+    time, then we can use these as the starting point of a simulation.
+\end{itemize}
+
+This discussion shows that there are in fact many pieces with which one can play
+and for which the answers are in fact not always clear. We will address some of
+them in the cookbooks below. Recall in the descriptions we use in the input
+files that \aspect{} uses physical units, rather than non-dimensionalizing
+everything. The advantage, of course, is that we can immediately compare outputs
+with actual measurements. The disadvantage is that we need to work a bit when
+asked for, say, the Rayleigh number of a simulation.
+
+
+\subsubsection{Simple convection in a quarter of a 2d annulus}
+\label{sec:shell-simple-2d}
+
+Let us start this sequence of cookbooks using a simpler situation: convection in
+a quarter of a 2d shell. We choose this setup because 2d domains allow for much
+faster computations (in turn allowing for more experimentation) and because
+using a quarter of a shell avoids a pitfall with boundary conditions we will
+discuss in the next section. Because it's simpler to explain what we want to
+describe in pictures than in words, Fig.~\ref{fig:simple-shell-2d} shows the
+domain and the temperature field at a few time steps. In addition, you can find
+a movie of how the temperature evolves over this time period at
+\url{http://www.youtube.com/watch?v=d4AS1FmdarU}.%
+\footnote{In YouTube, click on the gear symbol at the bottom right of the
+player window to select the highest resolution to see all the details of this
+video.}
+
+\begin{figure}[tb]
+\includegraphics[width=0.32\textwidth]{cookbooks/shell_simple_2d/x-movie0000}
+\hfill
+\includegraphics[width=0.32\textwidth]{cookbooks/shell_simple_2d/x-movie0008}
+\hfill
+\includegraphics[width=0.32\textwidth]{cookbooks/shell_simple_2d/x-movie1000}
+\caption{\it Simple convection in a quarter of an annulus: Snapshots of the
+temperature field at times $t=0$, $t=1.2\cdot 10^7$ years (time step 2135), and
+$t=10^9$ years (time step 25,662). The bottom right part of each figure shows an
+overlay of the mesh used during that time step.}
+\label{fig:simple-shell-2d}
+\end{figure}
+
+Let us just start by showing the input file (which you can find in
+\url{cookbooks/shell_simple_2d.prm}):
+
+\begin{lstlisting}[frame=single,language=prmfile,escapechar=\%,numbers=left]
+set Dimension                              = 2 % \index[prmindex]{Dimension} \index[prmindexfull]{Dimension} %
+set Use years in output instead of seconds = true % \index[prmindex]{Use years in output instead of seconds} \index[prmindexfull]{Use years in output instead of seconds} %
+set End time                               = 1.5e9 % \index[prmindex]{End time} \index[prmindexfull]{End time} %
+set Output directory                       = output % \index[prmindex]{Output directory} \index[prmindexfull]{Output directory} %
+
+
+subsection Material model
+  set Model name = simple % \index[prmindex]{Model name} \index[prmindexfull]{Material model!Model name} %
+
+  subsection Simple model
+    set Thermal expansion coefficient = 4e-5 % \index[prmindex]{Thermal expansion coefficient} \index[prmindexfull]{Material model!Simple model!Thermal expansion coefficient} %
+    set Viscosity                     = 1e22 % \index[prmindex]{Viscosity} \index[prmindexfull]{Material model!Simple model!Viscosity} %
+  end
+end
+
+
+subsection Geometry model
+  set Model name = spherical shell % \index[prmindex]{Model name} \index[prmindexfull]{Geometry model!Model name} %
+
+  subsection Spherical shell
+    set Inner radius  = 3481000 % \index[prmindex]{Inner radius} \index[prmindexfull]{Geometry model!Spherical shell!Inner radius} %
+    set Outer radius  = 6336000 % \index[prmindex]{Outer radius} \index[prmindexfull]{Geometry model!Spherical shell!Outer radius} %
+    set Opening angle = 90 % \index[prmindex]{Opening angle} \index[prmindexfull]{Geometry model!Spherical shell!Opening angle} %
+  end
+end
+
+
+subsection Model settings
+  set Zero velocity boundary indicators       = 0 % \index[prmindex]{Zero velocity boundary indicators} \index[prmindexfull]{Model settings!Zero velocity boundary indicators} %
+  set Tangential velocity boundary indicators = 1,2,3 % \index[prmindex]{Tangential velocity boundary indicators} \index[prmindexfull]{Model settings!Tangential velocity boundary indicators} %
+  set Prescribed velocity boundary indicators = % \index[prmindex]{Prescribed velocity boundary indicators} \index[prmindexfull]{Model settings!Prescribed velocity boundary indicators} %
+
+  set Fixed temperature boundary indicators   = 0,1 % \index[prmindex]{Fixed temperature boundary indicators} \index[prmindexfull]{Model settings!Fixed temperature boundary indicators} %
+
+  set Include shear heating                   = true % \index[prmindex]{Include shear heating} \index[prmindexfull]{Model settings!Include shear heating} %
+end
+
+
+subsection Boundary temperature model
+  set Model name = spherical constant % \index[prmindex]{Model name} \index[prmindexfull]{Boundary temperature model!Model name} %
+  subsection Spherical constant
+    set Inner temperature = 4273 % \index[prmindex]{Inner temperature} \index[prmindexfull]{Boundary temperature model!Spherical constant!Inner temperature} %
+    set Outer temperature = 973 % \index[prmindex]{Outer temperature} \index[prmindexfull]{Boundary temperature model!Spherical constant!Outer temperature} %
+  end
+end
+
+
+subsection Initial conditions
+  set Model name = spherical hexagonal perturbation % \index[prmindex]{Model name} \index[prmindexfull]{Initial conditions!Model name} %
+end
+
+
+subsection Gravity model
+  set Model name = radial earth-like % \index[prmindex]{Model name} \index[prmindexfull]{Gravity model!Model name} %
+end
+
+
+subsection Mesh refinement
+  set Initial global refinement          = 5 % \index[prmindex]{Initial global refinement} \index[prmindexfull]{Mesh refinement!Initial global refinement} %
+  set Initial adaptive refinement        = 4 % \index[prmindex]{Initial adaptive refinement} \index[prmindexfull]{Mesh refinement!Initial adaptive refinement} %
+  set Strategy                           = temperature % \index[prmindex]{Strategy} \index[prmindexfull]{Mesh refinement!Strategy} %
+  set Time steps between mesh refinement = 15 % \index[prmindex]{Time steps between mesh refinement} \index[prmindexfull]{Mesh refinement!Time steps between mesh refinement} %
+end
+
+
+subsection Postprocess
+  set List of postprocessors = visualization, velocity statistics, temperature statistics, ...
+                               ... heat flux statistics, depth average % \index[prmindex]{List of postprocessors} \index[prmindexfull]{Postprocess!List of postprocessors} %
+
+  subsection Visualization
+    set Output format                 = vtu % \index[prmindex]{Output format} \index[prmindexfull]{Postprocess!Visualization!Output format} %
+    set Time between graphical output = 1e6 % \index[prmindex]{Time between graphical output} \index[prmindexfull]{Postprocess!Visualization!Time between graphical output} %
+    set Number of grouped files       = 0 % \index[prmindex]{Number of grouped files} \index[prmindexfull]{Postprocess!Visualization!Number of grouped files} %
+  end
+
+  subsection Depth average
+    set Time between graphical output = 1e6 % \index[prmindex]{Time between graphical output} \index[prmindexfull]{Postprocess!Depth average!Time between graphical output} %
+  end
+end
+\end{lstlisting}
+
+In the following, let us pick apart this input file:
+\begin{enumerate}
+  \item Lines 1--4 are just global parameters. Since we are interested in
+  geophysically realistic simulations, we will use material parameters that
+  lead to flows so slow that we need to measure time in years, and we will set
+  the end time to 1.5 billion years -- enough to see a significant amount of
+  motion.
+
+  \item The next block (lines 7--14) describes the material that is convecting
+  (for historical reasons, the remainder of the parameters that describe the
+  equations is in a different section, see the fourth point below). We choose
+  the simplest material model \aspect{} has to offer where the viscosity is
+  constant (here, we set it to $\eta=10^{22} \text{Pa}\;\text{s}$) and so are
+  all other parameters except for the density which we choose to be
+  $\rho(T)=\rho_0(1-\beta (T-T_\text{ref}))$ with $\rho_0=3300
+  \text{kg}\;\text{m}^{-3}$, $\beta=4\cdot 10^{-5} \text{K}^{-1}$ and
+  $T_\text{ref}=293 \text{K}$. The remaining material parameters remain at their
+  default values and you can find their values described in the documentation of
+  the \texttt{simple} material model in
+  Sections~\ref{parameters:Material_20model} and
+  \ref{parameters:Material_20model/Simple_20model}.
+
+  \item Lines 17--25 then describe the geometry. In this simple case, we will
+  take a quarter of a 2d shell (recall that the dimension had previously been
+  set as a global parameter) with inner and outer radii matching those of a
+  spherical approximation of Earth.
+
+  \item The second part of the model description and boundary values follows in
+  lines 28--45. There, we describe that we want a model where equation
+  \eqref{eq:temperature} contains the shear heating term $2\eta
+  \varepsilon(\mathbf u):\varepsilon(\mathbf u)$ (noting that the default is to
+  use an incompressible model for which the term $\frac{1}{3}(\nabla \cdot
+  \mathbf u)\mathbf 1$ in the shear heating contribution is zero).
+
+  The boundary conditions require us to look up how the geometry model
+  we chose (the \texttt{spherical shell} model) assigns boundary indicators to
+  the four sides of the domain. This is described in
+  Section~\ref{parameters:Geometry_20model} where the model announces that
+  boundary indicator zero is the inner boundary of the domain, boundary
+  indicator one is the outer boundary, and the left and right boundaries for a
+  2d model with opening angle of 90 degrees as chosen here get boundary
+  indicators 2 and 3, respectively. In other words, the settings in the input
+  file correspond to a zero velocity at the inner boundary and tangential flow
+  at all other boundaries. We know that this is not realistic at the bottom, but
+  for now there are of course many other parts of the model that are not
+  realistic either and that we will have to address in subsequent cookbooks.
+  Furthermore, the temperature is fixed at the inner and outer boundaries (with
+  the left and right boundaries then chosen so that no heat flows across them,
+  emulating symmetry boundary conditions) and, further down, set to values of
+  700 and 4000 degrees Celsius -- roughly realistic for the bottom of the crust
+  and the core-mantle boundary.
+
+  \item The description of what we want to model is complete by specifying
+  that the initial temperature is a perturbation with hexagonal symmetry from a
+  linear interpolation between inner and outer temperatures (see
+  Section~\ref{parameters:Initial_20conditions}), and what kind of gravity model
+  we want to choose (one reminiscent of the one inside the Earth mantle, see
+  Section~\ref{parameters:Gravity_20model}).
+
+  \item The remainder of the input file consists of a description of how to
+  choose the initial mesh and how to adapt it (lines 58--63) and what to do at
+  the end of each time step with the solution that \aspect{} computes for us (lines 66--79).
+  Here, we ask for a variety of statistical quantities and for graphical output
+  in VTU format every million years.
+\end{enumerate}
+
+\note{Having described everything to \aspect{}, you may want to view the video linked
+to above again and compare what you see with what you expect. In fact, this is
+what one should always do having just run a model: compare it with expectations to make
+sure that we have not overlooked anything when setting up the model or that
+the code has produced something that doesn't match what we thought we should
+get. Any such mismatch between expectation and observed result is typically a
+learning opportunity: it either points to a bug in our input file, or it
+provides us with insight about an aspect of reality that we had not foreseen.
+Either way, accepting results uncritically is, more often than not, a way to
+scientifically invalid results.}
+
+The model we have chosen has a number of inadequacies that
+make it not very realistic (some of those happened more as an accident while
+playing with the input file and weren't a purposeful experiment, but we left
+them in because they make for good examples to discuss below).
+Let us discuss these issues in the following.
+
+\paragraph{Dimension.} This is a cheap shot but it is nevertheless true that the
+world is three-dimensional whereas the simulation here is 2d. We will address
+this in the next section.
+
+\paragraph{Incompressibility, adiabaticity and the initial conditions.} This one
+requires a bit more discussion. In the model selected above, we have chosen a
+model that is incompressible in the sense that the density does not depend on
+the pressure and only very slightly depends on the temperature (the Boussinesq
+approximation). In such models, material that rises up does not cool down due to
+expansion resulting from the pressure dropping, and material that is transported
+down does not adiabatically heat up. Consequently, the adiabatic temperature
+profile would be constant with depth, and a well-mixed model with hot inner and
+cold outer boundary would have a constant temperature with thin boundary layers
+at the bottom and top of the mantle. In contrast to this, our initial
+temperature field was a perturbation of a linear temperature profile.
+
+There are multiple implications of this. First, the temperature difference
+between outer and inner boundary of 3300 K we have chosen in the input file is
+much too large. The temperature difference is what drives the convection, but
+what really counts is of course the difference \textit{in addition} to the
+temperature increase a volume of material would experience if it were to be
+transported adiabatically from the surface to the core-mantle boundary. This
+difference is much smaller than 3300 K in reality, and we can expect convection
+to be significantly less vigorous than in the simulation here. Indeed, using
+the values in the input file shown above, we can compute the Rayleigh number for
+the current case to be%
+\footnote{Note that the density in 2d has units $\text{kg}\,\text{m}^{-2}$}
+$$
+  \textrm{Ra}
+  =
+  \frac{g\; \beta \; \Delta T \; \rho \; L^3}{\alpha\eta}
+  \approx
+  \frac{10 \text{m}\,\text{s}^{-2} \; 4\cdot 10^{-5}\text{K}^{-1} \; 3300
+  \text{K} \; 3300 \text{kg}\,\text{m}^{-2} \; (2.86 \cdot 10^6
+  \text{m})^3}{10^{22}
+  \text{kg}\,\text{m}^{-1}\,\text{s}^{-1}}.
+$$
+
+Second, the initial temperature profile we chose is not realistic -- in fact, it
+is a completely instable one: there is hot material underlying cold one, and
+this is not just the result of boundary layers. Consequently, what happens in
+the simulation is that we first overturn the entire temperature field with the
+hot material in the lower half of the domain swapping places with the colder
+material in the top, to achieve a stable layering except for the boundary
+layers. After this, hot blobs rise from the bottom boundary layer into the cold
+layer at the bottom of the mantle, and cold blobs sink from the top, but their
+motion is impeded about half-way through the mantle once they reach material
+that has roughly the same temperature as the plume material. This impedes
+convection until we reach a state where these plumes have sufficiently mixed the
+mantle to achieve a roughly constant temperature profile.
+
+This effect is visible in the movie linked to above where convection does not
+penetrate the entire depth of the mantle for the first 20 seconds
+(corresponding to roughly the first 800 million years). We can also see this
+effect by plotting the root mean square velocity, see the left panel of
+Fig.~\ref{fig:simple-shell-2d-rms}. There, we can see how the average velocity
+picks up once the stable layering of material that resulted from the initial
+overturning has been mixed sufficiently to allow plumes to rise or sink through
+the entire depth of the mantle.
+
+\begin{figure}[tb]
+\includegraphics[width=0.48\textwidth]{cookbooks/shell_simple_2d/rms}
+\hfill
+\includegraphics[width=0.48\textwidth]{cookbooks/shell_simple_2d/depth_average_temperature}
+\caption{\it Simple convection in a quarter of an annulus. Left: Root mean
+square values of the velocity field. The initial spike (off the scale) is due to
+the overturning of the instable layering of the temperature. Convection is suppressed for the
+first 800 million years due to the stable layering that results from it. The
+maximal velocity encountered follows generally the same trend and is in the
+range of 2--3 cm/year between 100 and 800 million years, and 4--8 cm/year
+following that. Right: Average temperature at various depths for $t=0$,
+$t=800,000$ years, $t=5\cdot 10^8$ years, and $t=10^9$ years.}
+\label{fig:simple-shell-2d-rms}
+\end{figure}
+
+The right panel of Fig.~\ref{fig:simple-shell-2d-rms} shows a different way of
+visualizing this, using the average temperature at various depths of the model
+(this is what the \texttt{depth average} postprocessor computes). The figure
+shows how the initially linear unstable layering almost immediately reverts
+completely, and then slowly equilibrates towards a temperature profile that is
+constant throughout the mantle (which in the incompressible model chosen here
+equates to an adiabatic layering) except for the boundary layers at the inner
+and outer boundaries. (The end points of these temperature profiles do not
+exactly match the boundary values specified in the input file because we
+average temperatures over shells of finite width.)
+
+A conclusion of this discussion is that if we want to evaluate the statistical
+properties of the flow field, e.g., the number of plumes, average velocities or
+maximal velocities, then we need to restrict our efforts to times after
+approximately 800 million years in this simulation to avoid the effects of our
+inappropriately chosen initial conditions. Likewise, we may actually want to
+choose initial conditions more like what we see in the model for later times,
+i.e., constant in depth with the exception of thin boundary layers, if we want
+to stick to incompressible models.
+
+\paragraph{Material model.}
+The model we use here involves viscosity, density, and thermal property
+functions that do not depend on the pressure, and only the density varies
+(slightly) with the temperature. We know that this is not the case in nature.
+
+\paragraph{Shear heating.}
+When we set up the input file, we started with a model that includes the
+shear heating term $2\eta \varepsilon(\mathbf u):\varepsilon(\mathbf u)$ in
+eq.~\eqref{eq:temperature}. In hindsight, this may have been the wrong decision,
+but it provides an opportunity to investigate whether we think that the results of our
+computations can possibly be correct.
+
+We first realized the issue when looking at the heat flux that the
+\texttt{heat flux statistics} postprocessor computes. This is shown in the left
+panel of Fig.~\ref{fig:simple-shell-2d-heatflux}.%
+\footnote{The \texttt{heat flux statistics} postprocessor computes heat fluxes
+through parts of the boundary in \textit{outward} direction, i.e., from the
+mantle to the air and to the core. However, we are typically interested in the
+flux from the core into the mantle, so the figure plots the negative of the
+computed quantity.}
+There are two issues one should notice here.
+The more obvious one is that the flux from the mantle to the air is consistently
+higher than the heat flux from core to mantle. Since we have no radiogenic
+heating switched on (see the \texttt{Radiogenic heating rate}
+\index[prmindex]{Radiogenic heating rate}
+\index[prmindexfull]{Model settings!Radiogenic heating rate}
+parameter in the \texttt{Model settings} section of the input file; see also
+Section~\ref{parameters:Model_20settings}), in the long run the heat output
+of the mantle must equal the input, unless is cools. Our misconception was that
+after the 800 million year transition, we believed that we had reached a steady
+state where the average temperature remains constant and convection simply
+moves heat from the core-mantle boundary the surface. One could also be tempted
+to believe this from the right panel in Fig.~\ref{fig:simple-shell-2d-rms} where
+it looks like the average temperature does at least not change dramatically.
+But, it is easy to convince oneself that that is not the case: the
+\texttt{temperature statistics} postprocessor we had previously selected also
+outputs data about the mean temperature in the model, and it looks like shown in
+the left panel of Fig.~\ref{fig:simple-shell-2d-temperature}. Indeed, the
+average temperature drops over the course of the 1.2 billion years shown here.
+We could now convince ourselves that indeed the loss of thermal
+energy in the mantle due to the drop in average temperature is exactly what
+fuels the persistently imbalanced energy outflow. In essence, what this would
+show is that if we kept the temperature at the boundaries constant, we would
+have chosen a mantle that was initially too hot on average to be sustained by
+the boundary values and that will cool until it will be in energetic balance and
+on longer time scales, in- and outflow of thermal energy would balance each
+other.
+
+
+\begin{figure}[tb]
+  \includegraphics[width=.48\textwidth]{cookbooks/shell_simple_2d/heat-flux}
+  \hfill
+  \includegraphics[width=0.48\textwidth]{cookbooks/shell_simple_2d/heat-flux-noshear}
+  \caption{\it Simple convection in a quarter of an annulus. Left: Heat flux
+  through the core-mantle and mantle-air boundaries of the domain for the
+  model with shear heating. Right: Same for a model without shear heating.}
+  \label{fig:simple-shell-2d-heatflux}
+\end{figure}
+
+
+\begin{figure}[tb]
+  \includegraphics[width=.48\textwidth]{cookbooks/shell_simple_2d/avg-temperature}
+  \hfill
+  \includegraphics[width=0.48\textwidth]{cookbooks/shell_simple_2d/avg-temperature-noshear}
+  \caption{\it Simple convection in a quarter of an annulus. Left: Average
+  temperature throughout the model for the
+  model with shear heating. Right: Same for a model without shear heating.}
+  \label{fig:simple-shell-2d-temperature}
+\end{figure}
+
+However, there is a bigger problem. Fig.~\ref{fig:simple-shell-2d-heatflux}
+shows that at the very beginning, there is a spike in energy flux through the
+outer boundary. We can explain this away with the imbalanced initial temperature
+field that leads to an overturning and, thus, a lot of hot material rising close
+to the surface that will then lead to a high energy flux towards the cold upper
+boundary. But, worse, there is initially a \textit{negative} heat flux into the
+mantle from the core -- in other words, the mantle is \textit{losing} energy to
+the core. How is this possible? After all, the hottest part of the mantle in our
+initial temperature field is at the core-mantle boundary, no thermal energy
+should be flowing from the colder overlying material towards the hotter material
+at the boundary! A glimpse of the solution can be found in looking at the
+average temperature in Fig.~\ref{fig:simple-shell-2d-temperature}: At the
+beginning, the average temperature \textit{rises}, and apparently there are
+parts of the mantle that become hotter than the 4273 K we have given the core,
+leading to a downward heat flux. This heating can of course only come from the
+shear heating term we have accidentally left in the model: at the beginning, the
+instable layering leads to very large velocities, and large velocities lead to
+large velocity gradients that in turn lead to a lot of shear heating! Once the
+initial overturning has subsided, after say 100 million years (see the mean
+velocity in Fig.~\ref{fig:simple-shell-2d-rms}), the shear heating becomes
+largely irrelevant and the cooling of the mantle indeed begins.
+
+Whether this is really the case is of course easily verified: The right panels
+of Fig.s~\ref{fig:simple-shell-2d-heatflux}
+and \ref{fig:simple-shell-2d-temperature} show heat fluxes and average
+temperatures for a model where we have switched off the shear heating by setting
+\begin{lstlisting}[frame=single,language=prmfile,escapechar=\%]
+subsection Model settings
+  set Include shear heating                   = false % \index[prmindex]{Include shear heating} \index[prmindexfull]{Model settings!Include shear heating} %
+end
+\end{lstlisting}
+Indeed, doing so leads to a model where the heat flux from core to mantle is
+always positive, and where the average temperature strictly drops!
+
+
+\paragraph{Summary.} As mentioned, we will address some of the issues we have
+identified as unrealistic in the following sections.
+However, despite all of this, some things are at least at the right order of
+magnitude, confirming that what \aspect{} is computing is reasonable. For
+example, the maximal velocities encounted in our model (after the 800 million
+year boundary) are in the range of 6--7cm per year, with occasional excursions
+up to 11cm. Clearly, something is going in the right direction.
+
+
+\subsubsection{Simple convection in a spherical 3d shell}
+\label{sec:shell-simple-3d}
+
+The setup from the previous section can of course be extended to 3d shell
+geometries as well -- though at significant computational cost. In fact, the
+number of modifications necessary is relatively small, as we will discuss below.
+To show an example up front, a picture of the temperature field one gets from
+such a simulation is shown in Fig.~\ref{fig:simple-shell-3d}. The
+corresponding movie can be found at \url{http://youtu.be/j63MkEc0RRw}.
+
+\begin{figure}[tb]
+\centering
+\includegraphics[width=0.7\textwidth]{cookbooks/shell_simple_3d/x-movie0700}
+\caption{\it Convection in a spherical shell: Snapshot of
+isosurfaces of the temperature field at time $t\approx 1.06\cdot 10^9$ years
+with a quarter of the geometry cut away. The surface shows
+vectors indicating the flow velocity and direction.}
+\label{fig:simple-shell-3d}
+\end{figure}
+
+\paragraph{The input file.}
+Compared to the input file discussed in the previous section, the number of
+changes is relatively small. However, when taking into account the various
+discussions about which parts of the model were or were not realistic, they go
+throughout the input file, so we reproduce it here in its entirety, interspersed
+with comments (the full input file can also be found in
+\url{cookbooks/shell_simple_2d.prm}). Let us start from the top where everything
+looks the same except that we set the dimension to 3:
+\begin{lstlisting}[frame=single,language=prmfile,escapechar=\%]
+set Dimension                              = 3 % \index[prmindex]{Dimension} \index[prmindexfull]{Dimension} %
+set Use years in output instead of seconds = true % \index[prmindex]{Use years in output instead of seconds} \index[prmindexfull]{Use years in output instead of seconds} %
+set End time                               = 1.5e9 % \index[prmindex]{End time} \index[prmindexfull]{End time} %
+set Output directory                       = output % \index[prmindex]{Output directory} \index[prmindexfull]{Output directory} %
+
+
+subsection Material model
+  set Model name = simple % \index[prmindex]{Model name} \index[prmindexfull]{Material model!Model name} %
+
+  subsection Simple model
+    set Thermal expansion coefficient = 4e-5 % \index[prmindex]{Thermal expansion coefficient} \index[prmindexfull]{Material model!Simple model!Thermal expansion coefficient} %
+    set Viscosity                     = 1e22 % \index[prmindex]{Viscosity} \index[prmindexfull]{Material model!Simple model!Viscosity} %
+  end
+end
+\end{lstlisting}
+
+The next section concerns the geometry. The geometry model remains unchanged at
+``spherical shell'' but we omit the opening angle of 90 degrees as we would like
+to get a complete spherical shell. Such a shell of course also only has two
+boundaries (the inner one has indicator zero, the outer one indicator one) and
+consequently these are the only ones we need to list in the ``Model settings''
+section:
+\begin{lstlisting}[frame=single,language=prmfile,escapechar=\%]
+ subsection Geometry model set Model name = spherical shell % \index[prmindex]{Model name} \index[prmindexfull]{Geometry model!Model name} %
+
+  subsection Spherical shell
+    set Inner radius  = 3481000 % \index[prmindex]{Inner radius} \index[prmindexfull]{Geometry model!Spherical shell!Inner radius} %
+    set Outer radius  = 6336000 % \index[prmindex]{Outer radius} \index[prmindexfull]{Geometry model!Spherical shell!Outer radius} %
+  end
+end
+
+
+subsection Model settings
+  set Zero velocity boundary indicators       = 0 % \index[prmindex]{Zero velocity boundary indicators} \index[prmindexfull]{Model settings!Zero velocity boundary indicators} %
+  set Tangential velocity boundary indicators = 1 % \index[prmindex]{Tangential velocity boundary indicators} \index[prmindexfull]{Model settings!Tangential velocity boundary indicators} %
+  set Prescribed velocity boundary indicators = % \index[prmindex]{Prescribed velocity boundary indicators} \index[prmindexfull]{Model settings!Prescribed velocity boundary indicators} %
+
+  set Fixed temperature boundary indicators   = 0,1 % \index[prmindex]{Fixed temperature boundary indicators} \index[prmindexfull]{Model settings!Fixed temperature boundary indicators} %
+
+  set Include shear heating                   = false % \index[prmindex]{Include shear heating} \index[prmindexfull]{Model settings!Include shear heating} %
+end
+\end{lstlisting}
+
+Next, since we convinced ourselves that the temperature range from 973 to 4273
+was too large given that we do not take into account adiabatic effects in this
+model, we reduce the temperature at the inner edge of the mantle to 1973. One
+can think of this as an approximation to the real temperature there minus the
+amount of adiabatic heating material would experience as it is transported from
+the surface to the core-mantle boundary. This is, in effect, the temperature
+difference that drives the convection (because a completely adiabatic
+temperature profile is stable despite the fact that it is much hotter at the
+core mantle boundary than at the surface). What the real value for this
+temperature difference is, is unclear from current research, but it is thought
+to be around 1000 Kelvin, so let us choose these values.
+
+\begin{lstlisting}[frame=single,language=prmfile,escapechar=\%]
+subsection Boundary temperature model
+  set Model name = spherical constant % \index[prmindex]{Model name} \index[prmindexfull]{Boundary temperature model!Model name} %
+  subsection Spherical constant
+    set Inner temperature = 1973 % \index[prmindex]{Inner temperature} \index[prmindexfull]{Boundary temperature model!Spherical constant!Inner temperature} %
+    set Outer temperature = 973 % \index[prmindex]{Outer temperature} \index[prmindexfull]{Boundary temperature model!Spherical constant!Outer temperature} %
+  end
+end
+\end{lstlisting}
+
+The second component to this is that we found that without adiabatic effects, an
+initial temperature profile that decreases the temperature from the inner to the
+outer boundary makes no sense. Rather, we expected a more or less constant
+temperature with boundary layers at both ends. We could describe such an initial
+temperature field, but since any initial temperature is mostly arbitrary anyway,
+we opt to just assume a constant temperature in the middle between the inner and
+outer temperature boundary values and let the simulation find the exact shape of
+the boundary layers itself:
+\begin{lstlisting}[frame=single,language=prmfile,escapechar=\%]
+subsection Initial conditions
+  set Model name = function % \index[prmindex]{Model name} \index[prmindexfull]{Initial conditions!Model name} %
+  subsection Function
+    set Function expression = 1473 % \index[prmindex]{Function expression} \index[prmindexfull]{Initial conditions!Function!Function expression} %
+  end
+end
+
+
+subsection Gravity model
+  set Model name = radial earth-like % \index[prmindex]{Model name} \index[prmindexfull]{Gravity model!Model name} %
+end
+\end{lstlisting}
+
+As before, we need to determine how many mesh refinement steps we want. In 3d,
+it is simply not possible to have as much mesh refinement as in 2d, so we choose
+the following values that lead to meshes that have, after an initial transitory
+phase, between 1.5 and 2.2 million cells and 50--75 million unknowns:
+
+\begin{lstlisting}[frame=single,language=prmfile,escapechar=\%]
+subsection Mesh refinement
+  set Initial global refinement          = 2 % \index[prmindex]{Initial global refinement} \index[prmindexfull]{Mesh refinement!Initial global refinement} %
+  set Initial adaptive refinement        = 3 % \index[prmindex]{Initial adaptive refinement} \index[prmindexfull]{Mesh refinement!Initial adaptive refinement} %
+  set Strategy                           = temperature % \index[prmindex]{Strategy} \index[prmindexfull]{Mesh refinement!Strategy} %
+  set Time steps between mesh refinement = 15 % \index[prmindex]{Time steps between mesh refinement} \index[prmindexfull]{Mesh refinement!Time steps between mesh refinement} %
+end
+\end{lstlisting}
+
+Second to last, we specify what we want \aspect{} to do with the solutions it
+computes. Here, we compute the same statistics as before, and we again generate
+graphical output every million years. Computations of this size typically run
+with ~1000 MPI processes, and it is not efficient to let every one of them write
+their own file to disk every time we generate graphical output; rather, we group
+all of these into a single file to keep file systems reasonably happy. Likewise,
+to accomodate the large amount of data, we output depth averaged fields in VTU
+format since it is easier to visualize:
+\begin{lstlisting}[frame=single,language=prmfile,escapechar=\%]
+subsection Postprocess
+  set List of postprocessors = visualization, velocity statistics, ...
+              ... temperature statistics, heat flux statistics, depth average % \index[prmindex]{List of postprocessors} \index[prmindexfull]{Postprocess!List of postprocessors} %
+
+  subsection Visualization
+    set Output format                 = vtu % \index[prmindex]{Output format} \index[prmindexfull]{Postprocess!Visualization!Output format} %
+    set Time between graphical output = 1e6 % \index[prmindex]{Time between graphical output} \index[prmindexfull]{Postprocess!Visualization!Time between graphical output} %
+    set Number of grouped files       = 1 % \index[prmindex]{Number of grouped files} \index[prmindexfull]{Postprocess!Visualization!Number of grouped files} %
+  end
+
+  subsection Depth average
+    set Time between graphical output = 1.5e6 % \index[prmindex]{Time between graphical output} \index[prmindexfull]{Postprocess!Depth average!Time between graphical output} %
+    set Output format                 = vtu % \index[prmindex]{Output format} \index[prmindexfull]{Postprocess!Depth average!Output format} %
+  end
+end
+\end{lstlisting}
+
+Finally, we realize that when we run very large parallel computations, nodes go
+down or the scheduler aborts programs because they ran out of time. With
+computations this big, we cannot afford to just lose the results, so we
+checkpoint the computations every 50 time steps and can then resume it at the
+last saved state if necessary (see Section~\ref{sec:checkpoint-restart}):
+\begin{lstlisting}[frame=single,language=prmfile,escapechar=\%]
+subsection Checkpointing
+  set Steps between checkpoint = 50 % \index[prmindex]{Steps between checkpoint} \index[prmindexfull]{Checkpointing!Steps between checkpoint} %
+end
+\end{lstlisting}
+
+
+\paragraph{Evaluation.}
+Just as in the 2d case above, there are still many things that are wrong from a
+physical perspective in this setup, notably the no-slip boundary conditions at
+the bottom and of course the simplistic material model with its fixed viscosity
+and its neglect for adiabatic heating and compressibility.
+But there are also a number of things that are already order of magnitude
+correct here.
+
+For example, if we look at the heat flux this model produces, we find that the
+convection here produces approximately the correct number. Wikipedia's article
+on \href{http://en.wikipedia.org/wiki/Earth's_internal_heat_budget}{Earth's
+internal heat budget}%
+\footnote{Not necessarily the most scientific source, but easily
+accessible and typically about right in terms of numbers. The numbers stated
+here are those listed on Wikipedia at the time this section was written in
+March 2014.}
+states that the overall heat flux through the Earth surface is about $47 \cdot
+10^{12}$ W (i.e., 47 terawatts) of which an estimated 12--30 TW are primordial
+heat released from cooling the Earth and 15--41 TW from radiogenic heating.%
+\footnote{As a point of reference, for the mantle an often used number for the
+release of heat due to radioactive decay is $7.4\cdot 10^{-12}$ W/kg. Taking a
+density of $3300\; \text{kg}/\text{m}^3$ and a volume of $10^{12}\; \text{m}^3$
+would yield roughly $2.4\cdot 10^{13}$ W of heat produced. This back of the
+envelope calculation lies within the uncertain range stated above.}
+Our model does not include radiogenic heating (though \aspect{} has a parameter
+\texttt{Radiogenic heating rate} to switch this on, see
+Section~\ref{parameters:Model_20settings}) but we can compare what the model
+gives us in terms of heat flux through the inner and outer boundaries of our
+shell geometry. This is shown in the left panel of
+Fig.~\ref{fig:shell-simple-3d-eval} where we plot the heat flux through
+boundaries zero and one, corresponding to the core-mantle boundary and Earth's
+surface. \aspect{} always computes heat fluxes in outward direction, so the flux
+through boundary zero will be negative, indicating the we have a net flux
+\textit{into} the mantle as expected. The figure indicates that after some
+initial jitters, heat flux from the core to the mantle stabilizes at around 4.5
+TW and that through the surface at around 10 TW, the difference of 5.5 TW
+resulting from the overall cooling of the mantle. While we cannot expect our model to be
+quantitatively correct, this can be compared with estimates heat fluxes of 5--15
+TW for the core-mantle boundary, and an estimated heat loss due to cooling of
+the mantle of 7--15 TW (values again taken from Wikipedia).
+
+\begin{figure}
+  \includegraphics[width=0.48\textwidth]{cookbooks/shell_simple_3d/heatflux}
+  \hfill
+  \includegraphics[width=0.48\textwidth]{cookbooks/shell_simple_3d/velocities}
+  \caption{\it Evaluating the 3d spherical shell model. Left: Outward heat
+  fluxes through the inner and outer boundaries of the shell. Right: Average
+  and maximal velocities in the mantle.}
+  \label{fig:shell-simple-3d-eval}
+\end{figure}
+
+A second measure of whether these results make sense is to compare velocities in
+the mantle with what is known from observations. As shown in the right panel of
+Fig.~\ref{fig:shell-simple-3d-eval}, the maximal velocities settle to values on
+the order of 3 cm/year (each of the peaks in the line for the maximal velocity
+corresponds to a particularly large plume rising or falling). This is, again, at
+least not very far from what we know to be correct and we should expect that
+with a more elaborate material model we should be able to get even closer to
+reality.
+
+
+\marginpar{Use cookbooks/periodic-box.prm}
+\marginpar{Finish the GPlates section}
+
+\subsubsection{Using reconstructed surface velocities by GPlates}
+\label{sec:cookbooks-gplates}
+\textit{This section was contributed by Ren{\'e} Ga{\ss}m{\"o}ller}
+
+In a number of model setups one may want to include a surface velocity boundary
+condition that prescribes the velocity according to a specific geologic
+reconstruction. The purpose of this kind of models is often to test a proposed
+geologic model and compare characteristic convection results to present-day
+observables in order to gain information about the initially assumed geologic
+input. In this cookbook we present \aspect{}'s interface to the  widely used
+plate reconstruction software GPlates, and the steps to go from a geologic plate
+reconstruction to a geodynamic model incorporating these velocities as boundary
+condition.
+
+\paragraph{Acquiring a plate reconstruction.}
+
+The plate reconstruction that is used in this cookbook is included in
+the \texttt{data/velocity-boundary-conditions/gplates/} directory of
+your \aspect{} installation.
+For a new model setup however, a user eventually needs to create her own data
+files, and so we will briefly discuss the process of acquiring a usable plate
+reconstruction and transferring it into a format usable by ASPECT.
+Both the necessary software and data are provided by the GPlates project.
+GPlates is an open-source software for interactive visualization of plate
+tectonics. It is developed by the EarthByte Project in the School of Geosciences
+at the University of Sydney, the Division of Geological and Planetary Sciences
+(GPS) at CalTech and the Center for Geodynamics at the Norwegian Geological
+Survey (NGU). For extensive documentation and support we refer to the GPlates
+website (\url{http://www.gplates.org}). Apart from the software one needs the
+actual plate reconstruction that consists of closed polygons covering the
+complete model domain. For our case we will use the data provided by
+\cite{GTZDSMBSMB12} that is available from the GPlates website under ``Download
+$\rightarrow$ Download GPlates-compatible data $\rightarrow$ Global
+reconstructions with continuously closing plates from 140 Ma to the present''.
+The data is provided under a Creative Commons Attribution 3.0 Unported License
+(\url{http://creativecommons.org/licenses/by/3.0/}).
+
+\paragraph{Converting GPlates data to \aspect{} input.}
+
+After loading the data
+files into GPlates (*.gpml for plate polygons, *.rot for plate rotations over
+time) the user needs to convert the GPlates data to velocity
+information usable in \aspect{}. The purpose of this step is to convert from the
+description GPlates uses internally (namely a representation of plates as
+polygons that rotate with a particular velocity around a pole) to one that can
+be used by \aspect{} (which needs velocity vectors defined at individual points
+at the surface).
+
+With loaded plate polygon and rotation information the conversion from GPlates
+data to \aspect{}-readable velocity files is rather straightforward. First the
+user needs to generate (or import) so-called ``velocity domain points'', which
+are discrete sets of points at which GPlates will evaluate velocity
+information. This is done using the ``Features $\rightarrow$ Generate Velocity
+Domain Points $\rightarrow$ Latitude Longitude'' menu option. Because \aspect{}
+is using an adaptive mesh it is not possible for GPlates to generate velocity
+information at the precise surface node positions like for CitcomS or Terra (the
+other currently available interfaces). Instead GPlates will output the
+information on a general Latitude/Longitude grid with nodes on all crossing
+points. \aspect{} then internally interpolates this information to the current
+node locations during the model run. This requires the user to
+choose a sensible resolution of the GPlates output, which can be adjusted in
+the ``Generate Latitude/Longitude Velocity Domain Points'' dialog of GPlates. In
+general a resolution that resolves the important features is necessary, while a
+resolution that is higher than the maximal mesh size for the \aspect{}
+model is unnecessary and only increases the computational cost and memory consumption of
+the model. After creating the Velocity Domain Points the user should see the
+created points and their velocities indicated as points and arrows in GPlates.
+To export the calculated velocities one would use the ``Reconstruction
+$\rightarrow$ Export'' menu. In this dialog the user may specify the time
+instant or range at which the velocities shall be exported. The only necessary option is
+to include the ``Velocities'' data type in the ``Add Export'' sub-dialog. The
+velocities need to be exported in the native GPlates \texttt{*.gpml} format,
+which is based on XML and can be read by \aspect{}. In case of a time-range the
+user needs to add a pattern specifier to the name to create a series of files.
+The \texttt{\%u} flag is especially suited for the interaction with \aspect{},
+since it can easily be
+replaced by a calculated file index (see also
+\ref{sec:time-dependent-gplates-velocities}).
+
+\paragraph{Setting up the \aspect{} model.}
+
+For this cookbook we will use the parameter file provided in
+\url{cookbooks/gplates-2d.prm} which uses the 2d shell geometry previously
+discussed in Section~\ref{sec:shell-simple-2d}. \aspect{}'s GPlates plugin
+allows for the use of two- and three-dimensional models incorporating the
+GPlates velocities. Since the output by GPlates is threedimensional in any case,
+\aspect{} internally handles the 2D model by rotating the model plane to the
+orientation specified by the user and projecting the plate velocities into this plane. The
+user specifies the orientation of the model plane by prescribing two points that
+define a plane together with the coordinate origin (i.e. in the current
+formulation only great-circle slices are allowed). The coordinates need to be in
+spherical coordinates $\theta$ and $\phi$ with $\theta$ being the colatitude (0
+at north pole) and $\phi$ being the longitude (0 at Greenwich meridian, positive
+eastwards) both given in radians.
+The approach of identifying two points on the surface of the Earth along with
+its center allows to run computations on arbitrary two-dimensional slices
+through the Earth with realistic boundary conditions.
+
+The relevant section of the input file is then as follows:
+\begin{lstlisting}[frame=single,language=prmfile,escapechar=\%]
+subsection Model settings
+  set Prescribed velocity boundary indicators = 1:gplates % \index[prmindex]{Prescribed velocity boundary indicators} \index[prmindexfull]{Model settings!Prescribed velocity boundary indicators} %
+  set Tangential velocity boundary indicators = 0 % \index[prmindex]{Tangential velocity boundary indicators} \index[prmindexfull]{Model settings!Tangential velocity boundary indicators} %
+
+  set Fixed temperature boundary indicators   = 0,1 % \index[prmindex]{Fixed temperature boundary indicators} \index[prmindexfull]{Model settings!Fixed temperature boundary indicators} %
+  set Include shear heating                   = false % \index[prmindex]{Include shear heating} \index[prmindexfull]{Model settings!Include shear heating} %
+end
+
+subsection Boundary velocity model
+  subsection GPlates model
+    set Data directory = $ASPECT_SOURCE_DIR/data/velocity-boundary-conditions/gplates/ % \index[prmindex]{Data directory} \index[prmindexfull]{Boundary velocity model!GPlates model!Data directory} %
+    set Velocity file name = current_day.gpml % \index[prmindex]{Velocity file name} \index[prmindexfull]{Boundary velocity model!GPlates model!Velocity file name} %
+    set Time step = 1e6 % \index[prmindex]{Time step} \index[prmindexfull]{Boundary velocity model!GPlates model!Time step} %
+    set Point one = 1.5708,4.87 % \index[prmindex]{Point one} \index[prmindexfull]{Boundary velocity model!GPlates model!Point one} %
+    set Point two = 1.5708,5.24 % \index[prmindex]{Point two} \index[prmindexfull]{Boundary velocity model!GPlates model!Point two} %
+    set Interpolation width = 2000000 % \index[prmindex]{Interpolation width} \index[prmindexfull]{Boundary velocity model!GPlates model!Interpolation width} %
+  end
+end
+\end{lstlisting}
+
+In the model settings subsection the user prescribes the boundary that is supposed to 
+use the GPlates plugin. Although currently nothing forbids the user to use GPlates plugin for other
+boundaries than the surface, its current usage and the provided sample data only make sense
+for the surface of a spherical shell (boundary number 1 in the above provided parameter file). 
+In case you are familiar with this kind of modelling and the plugin you could however also use it to prescribe mantle
+movements \textit{below} a lithosphere model. All plugin specific options may be set in 
+section~\ref{parameters:Boundary_20velocity_20model}. Possible options include the data directory
+and file name of the velocity file/files, the time step (in model units, mostly seconds or years depending on the 
+``\texttt{Use years in output instead of seconds}'' flag) and the points that define the 2D plane.
+The parameter ``\texttt{Interpolation width}'' is used to smooth the provided velocity files by
+a moving average filter. All velocity data points within this distance are averaged to determine the
+actual boundary velocity at a certain mesh point. This parameter is usually set to 0 (no interpolation, use
+nearest velocity point data) and is only needed in case the original setting is unstable or slowly converging.
+
+\paragraph{Comparing and visualizing 2D and 3D models.}
+
+The implementation of plate velocities in both two- and three-dimensional model
+setups allows for an easy comparison and test for common sources of error
+in the interpretation of model results. The left top figure in Fig.~\ref{fig:gv-1} 
+shows a modification of the above presented parameter file by setting 
+``\texttt{Dimension = 3}'' and ``\texttt{Initial global refinement = 3}''. 
+The top right plot of Fig.~\ref{fig:gv-1} shows an example of three independent 
+two-dimensional computations of the same reduced resolution. The models were prescribed 
+to be orthogonal slices by setting:
+\begin{lstlisting}[frame=single,language=prmfile,escapechar=\%]
+    set Point one = 3.1416,0.0 % \index[prmindex]{Point one} \index[prmindexfull]{Boundary velocity model!GPlates model!Point one} %
+    set Point two = 1.5708,0.0 % \index[prmindex]{Point two} \index[prmindexfull]{Boundary velocity model!GPlates model!Point two} %
+\end{lstlisting}
+and
+\begin{lstlisting}[frame=single,language=prmfile,escapechar=\%]
+    set Point one = 3.1416,1.5708 % \index[prmindex]{Point one} \index[prmindexfull]{Boundary velocity model!GPlates model!Point one} %
+    set Point two = 1.5708,1.5708 % \index[prmindex]{Point two} \index[prmindexfull]{Boundary velocity model!GPlates model!Point two} %
+\end{lstlisting}
+
+The results of these models are plotted simultaneously in a single three-dimensional figure
+in their respective model planes. The necessary information 
+to rotate the 2D models to their respective planes (rotation axis and angle) is provided by the 
+GPlates plugin in the beginning of the model output.  The bottom plot 
+of Fig.~\ref{fig:gv-1} finally shows the results of the original \url{cookbooks/gplates-2d.prm} 
+also in the three mentioned planes. 
+
+Now that we have model output for otherwise identical 2D and 3D models with equal resolution and additional 2D output
+for a higher resolution an interesting question to ask would be: What additional information can be created by
+either using three-dimensional geometry or higher resolution in mantle convection models with prescribed boundary velocities.
+As one can see in the comparison between the top right and bottom plot in Fig.~\ref{fig:gv-1} additional resolution clearly
+improves the geometry of small scale features like the shape of up- and downwellings as well as the maximal temperature
+deviation from the background mantle. However, the limitation to two dimensions leads to inconsistencies, 
+that are especially apparent at the cutting lines of the individual 2D models. 
+Note for example that the Nacza slab of the South American subduction zone is only
+present in the equatorial model plane and is not captured in the polar model plane west 
+of the South American coastline. The (coarse) three-dimensional model on the other hand
+shows the same location of up- and downwellings but additionally provides a consistent solution
+that is different from the two dimensional setups. Note that the Nazca slab is subducting eastward,
+while all 2D models (even in high resolution) predict a westward subduction.
+
+Finally we would like to emphasize that these models (especially the used material model)
+are way too simplified to draw any scientific conclusion out of it. Rather it is thought
+as a proof-of-concept what is possible with the dimension independent approach of
+\aspect{} and its plugins.
+
+\begin{figure}
+  \includegraphics[width=\textwidth]{cookbooks/gplates/gplates-comparison.png}
+  \hfill
+  \caption{\it Using GPlates for velocity boundary conditions: The top left figure shows
+  the results of a three-dimensional model using the present day plate velocities
+  provided by GPlates as surface boundary condition. 
+  The top right figure shows three independent computations 
+  on two-dimensional slices through Earth. The boundary conditions for each of these slices (white
+  arrows) are tangential to the slices and are projections of the
+  three-dimensional velocity vectors into the two-dimensional plane
+  occupied by the slice. While the two top models are created with the same mesh resolution
+  the bottom figure shows three independent two-dimensional models using a higher resolution. 
+  The view is centered on South America with Antarctica being near the bottom of
+  the figure (coastlines provided by NGU and the GPlates project).}
+  \label{fig:gv-1}
+\end{figure}
+
+\paragraph{Time-dependent boundary conditions.}
+\label{sec:time-dependent-gplates-velocities}
+The example presented above uses a constant velocity boundary field that
+equals the present day plate movements. For a number of purposes one may want to
+use a prescribed velocity boundary condition that changes over time, for example
+to investigate the effect of trench migration on subduction. Therefore \aspect{}'s
+GPlates plugin is able to read in multiple velocity files and linearly interpolate
+between pairs of files to the current model time. To achieve this, one needs
+to use the \texttt{\%d} wildcard in the velocity file name, which represents the current
+velocity file index (e.g. \texttt{time\_dependent.\%d.gpml}). This index is
+calculated by dividing the current model time by the user-defined time step
+between velocity files (see parameter file above). As the model time progresses
+the plugin will update the interpolation accordingly and if necessary read in
+new velocity files. In case it can not read the next velocity file, it assumes
+the last velocity file to be the constant boundary condition until the end of
+the model run. One can test this behavior with the provided data files
+\texttt{data/velocity\_boundary\_conditions/gplates/time\_dependent.\%d.gpml}
+with the index \texttt{d} ranging from 0 to 3 and representing the plate movements of
+the last 3 million years corresponding to the same plate reconstruction as used
+above. Additionally, the parameter \texttt{Velocity file start time} allows for
+a period of no-slip boundary conditions before starting the use of the GPlates plugin.
+This is a comfort implementation, which could also be achieved by using the checkpointing
+possibility described in section~\ref{sec:checkpoint-restart}. 
+
 
 \subsection{Benchmarks}
 \label{sec:cookbooks-benchmarks}
@@ -3794,8 +5246,201 @@ compared with, while for others, there are only sets of numbers that are
 approximately known. We have implemented a number of them in \aspect{} to
 convince ourselves (and our users) that \aspect{} indeed works as intended and
 advertised. Some of these benchmarks are discussed below. Numerical results
-for these benchmarks are also presented in \cite{KHB12} in much more detail
-than shown here.
+for several of these benchmarks are also presented in \cite{KHB12} in much more
+detail than shown here.
+
+
+\subsubsection{The van Keken thermochemical composition benchmark}
+\label{sec:benchmark-van-keken}
+
+\textit{This section is a co-production of Cedric Thieulot, Juliane Dannberg,
+Timo Heister and Wolfgang Bangerth.}
+
+One of the most widely used benchmarks for mantle convection codes is the
+isoviscous Rayleight-Taylor case (``case 1a'') published by van Keken \textit{et
+al.} in \cite{KKSCND97}.
+The benchmark considers a 2d situation where a lighter fluid underlies a heavier
+one with a non-horizontal interface between the two of them. The instable
+layering causes the lighter fluid to start rising at the point where the
+interface is highest. Fig.~\ref{fig:vk-1} shows a time series of images to
+illustrate this.
+
+\begin{figure}
+  \includegraphics[width=0.23\textwidth]{cookbooks/benchmarks/van-keken/movie0000.png}
+  \hfill
+  \includegraphics[width=0.23\textwidth]{cookbooks/benchmarks/van-keken/movie0003.png}
+  \hfill
+  \includegraphics[width=0.23\textwidth]{cookbooks/benchmarks/van-keken/movie0009.png}
+  \hfill
+  \includegraphics[width=0.23\textwidth]{cookbooks/benchmarks/van-keken/movie0018.png}
+  \caption{\it Van Keken benchmark (using a smoothed out interface, see the main
+  text):
+  Compositional field at times $t=0, 300, 900, 1800$.}
+  \label{fig:vk-1}
+\end{figure}
+
+
+Although van Keken's paper title suggests that the paper is really about
+thermochemical convection, the part we look here can equally be considered as
+thermal or chemical convection: all that is necessary is that we describe the
+fluid's density somehow. We can do that by using an inhomogenous initial
+temperature field, or an inhomogenous initial composition field. We will use the
+input file in \url{cookbooks/van-keken-discontinuous.prm} as input, the central
+piece of which is as follows (go to the actual input file
+to see the remainder of the input parameters):
+\begin{lstlisting}[frame=single,language=prmfile]
+subsection Material model
+  set Model name = simple
+  subsection Simple model
+    set Viscosity                     = 1e2
+    set Thermal expansion coefficient = 0
+    set Density differential for compositional field 1 = -10
+  end
+end
+
+subsection Compositional initial conditions
+  set Model name = function
+  subsection Function
+    set Variable names      = x,z
+    set Function constants  = pi=3.14159
+    set Function expression = if( (z>0.2+0.02*cos(pi*x/0.9142)) , 0 , 1 )
+  end
+end
+\end{lstlisting}
+The first part of this selects the \texttt{simple} material model and sets the
+thermal expansion to zero (resulting in a density that does not depend on the
+temperature, making the temperature a passively advected field) and instead
+makes the density depend on the first compositional field. The second section
+prescribes that the first compositional field's
+initial conditions are 0 above a line describes by a cosine and 1 below it.
+Because the dependence of the density on the compositional field is negative,
+this means that a lighter fluid underlies a heavier one.
+
+The dynamics of the resulting flow have already been shown in
+Fig.~\ref{fig:vk-1}. The measure commonly considered in papers comparing
+different methods is the root mean square of the velocity, which we can get
+using the following block in the input file (the actual input file also enables
+other postprocessors):
+\begin{lstlisting}[frame=single,language=prmfile]
+subsection Postprocess
+  set List of postprocessors = velocity statistics
+end
+\end{lstlisting}
+Using this, we can plot the evolution of the fluid's average velocity over time,
+as shown in the left panel of Fig.~\ref{fig:vk-2}. Looking at this graph, we
+find that both the timing and the height of the first peak is already
+well converged on a simple
+$32\times 32$ mesh (5 global refinements) and is very consistent (to better
+than 1\% accuracy) with the results in the van Keken paper.
+
+\begin{figure}
+  \includegraphics[width=0.48\textwidth]{cookbooks/benchmarks/van-keken/velocity-discontinuous.png}
+  \hfill
+  \includegraphics[width=0.48\textwidth]{cookbooks/benchmarks/van-keken/velocity-smooth.png}
+  \caption{\it Van Keken benchmark with discontinuous (left) and smoothed,
+  continuous (right) initial conditions for the compositional field:
+  Evolution of the root mean square velocity $\left(\frac 1{|\Omega|}\int_\Omega |\mathbf u(\mathbf x,t)|^2 \;
+  dx\right)^{1/2}$ as a function of time for different numbers of global mesh
+  refinements. 5 global refinements correspond to a $32\times 32$ mesh, 9
+  refinements to a $512\times 512$ mesh.}
+  \label{fig:vk-2}
+\end{figure}
+
+That said, it is startling that the second peak does not appear to converge
+despite the fact that the various codes compared in \cite{KKSCND97} show good
+agreement in this comparison. Tracking down the cause for this proved to be a
+lesson in benchmark design; in hindsight, it may also explain why van Keken
+\textit{et al.} stated presciently in their abstract that ``\textit{\ldots good
+agreement is found for the initial rise of the unstable lower layer; however, the timing
+  and location of the later smaller-scale instabilities may differ between
+  methods.}''
+To understand what is happening here, note that the first peak in these plots
+corresponds to the plume that rises along the left edge of the domain and whose
+evolution is primarily determined by the large-scale shape of the initial
+interface (i.e., the cosine used to describe the initial conditions in the
+input file). This is a first order deterministic effect, and is obviously
+resolved already on the coarsest mesh shown used. The second peak corresponds to
+the plume that rises along the right edge, and its origin along the interface is
+much harder to trace -- its position and the timing when it starts to rise is
+certainly not obvious from the initial location of the interface. Now recall
+that we are using a finite element field using continuous shape functions for
+the composition that determines the density differences that drive the flow. But
+this interface is neither aligned with the mesh, nor can a discontinuous
+function be represented by continuous shape functions to begin with. In other
+words, we may \textit{input} the initial conditions as a discontinuous functions
+of zero and one in the parameter file, but the initial conditions used in the
+program are in fact different: they are the \textit{interpolated} values of this
+discontinuous function on a finite element mesh. This is shown in
+Fig.~\ref{fig:vk-3}. It is obvious that these initial conditions agree on the
+large scale (the determinant of the first plume), but not in the steps that may
+(and do, in fact) determine when and where the second plume will rise. The
+evolution of the resulting compositional field is shown in Fig.~\ref{fig:vk-4}
+and it is obvious that the second, smaller plume starts to rise from a
+completely different location -- no wonder the second peak in the root mean
+square velocity plot is in a different location and with different height!
+
+\begin{figure}
+  \centering
+  \includegraphics[width=0.7\textwidth]{cookbooks/benchmarks/van-keken/mesh-comparison-initial-conditions.png}
+  \caption{\it Van Keken benchmark with discontinuous initial conditions for the
+  compositional field:
+  Initial compositional field interpolated onto a $32\times 32$ (left) and
+  $64\times 64$ finite element mesh (right).}
+  \label{fig:vk-3}
+\end{figure}
+
+\begin{figure}
+  \centering
+  \includegraphics[height=0.8\textheight]{cookbooks/benchmarks/van-keken/mesh-comparison.png}
+  \caption{\it Van Keken benchmark with discontinuous initial conditions for the
+  compositional field:
+  Evolution of the compositional field over time on a $32\times 32$ (first and
+  third column; left to right and top to bottom) and $64\times 64$ finite
+  element mesh (second and fourth column).}
+  \label{fig:vk-4}
+\end{figure}
+
+The conclusion one can draw from this is that if the outcome of a computational
+experiment depends so critically on very small details like the steps of an
+initial condition, then it's probably not a particularly good measure to look at
+in a benchmark. That said, the benchmark is what it is, and so we should try to
+come up with ways to look at the benchmark in a way that allows us to reproduce
+what van Keken \textit{et al.} had agreed upon. To this end, note that the codes
+compared in that paper use all sorts of different methods, and one can certainly
+agree on the fact that these methods are not identical on small length scales.
+One approach to make the setup more mesh-independent is to replace the original
+discontinuous initial condition with a smoothed out version; of course, we can
+still not represent it exactly on any given mesh, but we can at least get closer
+to it than for discontinuous variables. Consequently, let us use the following
+initial conditions instead (see also the file
+\url{cookbooks/van-keken-smooth.prm}):
+\begin{lstlisting}[frame=single,language=prmfile]
+subsection Compositional initial conditions
+  set Model name = function
+  subsection Function
+    set Variable names      = x,z
+    set Function constants  = pi=3.14159
+    set Function expression = 0.5*(1+tanh((0.2+0.02*cos(pi*x/0.9142)-z)/0.02))
+  end
+end
+\end{lstlisting}
+This replaces the discontinuous initial conditions with a smoothed out version
+with a half width of around 0.01. Using this, the root mean square plot now
+looks as shown in the right panel of Fig.~\ref{fig:vk-2}. Here, the second peak
+also converges quickly, as hoped for.
+
+The exact location and height of the two peaks is in good agreement with those
+given in the paper by van Keken \textit{et al.}, but not exactly where desired
+(the error is within a couple of per cent for the first peak, and probably
+better for the second, for both the timing and height of the peaks).
+This has to do with the fact that they depend on the exact size of the smoothing
+parameter (the division by 0.02 in the formula for the smoothed initial
+condition). However, for more exact results, one can choose
+this half width parameter proportional to the mesh size and thereby get more
+accurate results. Since the point of the section was to demonstrate the reason
+for the lack of convergence, but we leave this as an experiment to the reader.
+
+
 
 
 \subsubsection{The SolCx Stokes benchmark}
@@ -3840,8 +5485,8 @@ in sign between the implementation and the description in \cite{DMGT11}).
     \includegraphics[width=0.45\textwidth]{cookbooks/benchmarks/solcx-solution}
     \hfill
     \includegraphics[width=0.45\textwidth]{cookbooks/benchmarks/solcx-solution-pressure}
-    \caption{SolCx Stokes benchmark. Left: The density perturbation field and
-      overlaid to it some velocity vectors. The viscosity is very large in the
+    \caption{\it SolCx Stokes benchmark. Left: The density perturbation field
+    and overlaid to it some velocity vectors. The viscosity is very large in the
       right hand, leading to a stagnant flow in this region. Right: The
       pressure on a relatively coarse mesh, showing the internal layer along
       the line where the viscosity jumps.}
@@ -4129,8 +5774,8 @@ of global refinement is visualized in Fig.~\ref{fig:solkz}.
     \includegraphics[width=0.45\textwidth]{cookbooks/benchmarks/solkz-solution}
     \hfill
     \includegraphics[width=0.45\textwidth]{cookbooks/benchmarks/solkz-solution-pressure}
-    \caption{SolKz Stokes benchmark. Left: The density perturbation field and
-      overlaid to it some velocity vectors. The viscosity grows exponentially
+    \caption{\it SolKz Stokes benchmark. Left: The density perturbation field
+    and overlaid to it some velocity vectors. The viscosity grows exponentially
       in the vertical direction, leading to small velocities at the top
       despite the large density variations. Right: The
       pressure.}
@@ -4160,7 +5805,7 @@ Fig.~\ref{fig:inclusion}. As before, for details we refer to
     \includegraphics[width=0.45\textwidth]{cookbooks/benchmarks/inclusion-solution}
     \hfill
     \includegraphics[width=0.45\textwidth]{cookbooks/benchmarks/inclusion-solution-pressure}
-    \caption{Inclusion Stokes benchmark. Left: The viscosity field
+    \caption{\it Inclusion Stokes benchmark. Left: The viscosity field
       when interpolated onto the mesh (internally, the ``exact'' viscosity
       field -- large inside a circle, small outside -- is used),
       and overlaid to it some velocity vectors. Right: The
@@ -4497,7 +6142,7 @@ than 2\% is a good indication that \aspect{} implements the equations correctly.
     \hfill
     \includegraphics[width=0.44\textwidth]{cookbooks/benchmarks/stokes/stokes-density}
   \end{center}
-  \caption{Stokes benchmark. Both figures show only a 2D slice of the
+  \caption{\it Stokes benchmark. Both figures show only a 2D slice of the
       three-dimensional model.
       Left: The compositional field and overlaid to it some velocity vectors.
       The composition is 1 inside a sphere with the radius of 200 km and 0
@@ -4517,12 +6162,220 @@ than 2\% is a good indication that \aspect{} implements the equations correctly.
     \hfill
     \includegraphics[width=0.3\textwidth]{cookbooks/benchmarks/stokes/velocity}
   \end{center}
-  \caption{Stokes benchmark. Three-dimensional views of the compositional field
-  (left), the adaptively refined mesh (center) and the resulting velocity field
+  \caption{\it Stokes benchmark. Three-dimensional views of the compositional
+  field (left), the adaptively refined mesh (center) and the resulting velocity field
   (right).}
   \label{fig:stokes-falling-sphere-3d}
 \end{figure}
 
+
+\subsubsection{Latent heat benchmark}
+\label{sec:benchmark-latent_heat}
+
+\textit{This section was contributed by Juliane Dannberg.}
+
+The setup of this benchmark is taken from Schubert, Turcotte and Olson \cite{STO01} (part 1, p. 194) and is illustrated in Fig.~\ref{fig:latent-heat-benchmark}.
+\begin{figure}
+  \begin{center}
+    \includegraphics[width=0.52\textwidth]{cookbooks/benchmarks/latent-heat/latent-heat-setup}
+    \hfill
+    \includegraphics[width=0.47\textwidth]{cookbooks/benchmarks/latent-heat/latent-heat-temperature}
+  \end{center}
+  \caption{\it Latent heat benchmark. Both figures show the 2D box model domain.
+      Left: Setup of the benchmark together with a sketch of the expected
+      temperature profile across the phase transition. The dashed line marks
+      the phase transition. Material flows in with a prescribed temperature and
+      velocity at the top, crosses the phase transition in the center and flows
+      out at the bottom. The predicted bottom temperature is $T_2 = 1109.08 \, \text{K}$.
+      Right: Temperature distribution of the model together with the associated
+      temperature profile across the phase transition. The modelled bottom
+      temperature is $T_2 = 1107.39 \, \text{K}$.}
+  \label{fig:latent-heat-benchmark}
+\end{figure}
+It tests whether the latent heat production when material crosses a phase
+transition is calculated correctly according to the laws of thermodynamics. The material
+model defines two phases in the model domain with the phase transition
+approximately in the center. The material flows in from the top due to a
+prescribed downward velocity, and crosses the phase transition before it leaves
+the model domain at the bottom. As initial condition, the model uses a uniform
+temperature field, however, upon the phase change, latent heat is released. This
+leads to a characteristic temperature profile across the phase transition with a
+higher temperature in the bottom half of the domain. To compute it, we have to solve 
+equation \eqref{eq:temperature} or its reformulation
+\eqref{eq:temperature-reformulated}. For
+steady-state one-dimensional downward flow with vertical velocity $v_y$, it
+simplifies to the following:
+\begin{gather*}
+\rho C_p
+v_y
+\frac{\partial T}{\partial y} = 
+\rho T \Delta S v_y \frac{\partial X}{\partial y} 
++ \rho C_p \kappa
+\frac{\partial^2 T}{\partial y^2}.
+\end{gather*}
+Here, $\rho C_p \kappa = k$ with $k$ the thermal conductivity and $\kappa$ the
+thermal diffusivity.
+The first term on the right-hand side of the equation describes the latent heat
+produced at the phase transition: It is proportional to the temperature T, the
+entropy change $\Delta S$ across the phase transition divided by the specific
+heat capacity and the derivative of the phase function X. If the velocity is
+smaller than a critical value, and under the assumption of a discontinuous phase
+transition (i.e. with a step function as phase function), this latent heating
+term will be zero everywhere except for the one point $y_{tr}$ where the phase
+transition takes place. This means, we have a region above the phase transition
+with only phase 1, and below a certain depth a jump to a region with only phase
+2. Inside of these one-phase regions, we can solve the equation above (using the
+boundary conditions $T=T_1$ for $y \rightarrow \infty $ and $T=T_2$ for $y
+\rightarrow -\infty $) and get
+\begin{align*}
+T(y) =\begin{cases}
+T_1 + (T_2-T_1) e^\frac{v_y (y-y_{tr})}{\kappa}, & y>y_{tr}\\
+T_2, & y<y_{tr}
+\end{cases}
+\end{align*}
+While it is not entirely obvious while this equation for $T(y)$ should be
+correct (in particular why it should be asymmetric), it is not difficult to
+verify that it indeed satisfies the equatoin stated above for both $y<y_{tr}$
+and $y>y_{tr}$. Furthermore, it indeed satisfies the jump condition we get by
+evaluating the equation at $y=y_{tr}$.
+Indeed, the jump condition can be reinterpreted as a balance of heat conduction:
+We know the amount of heat that is produced at the phase boundary, and as
+we consider only steady-state, the same amount of heat is conducted upwards from
+the transition:
+
+\begin{gather*}
+\underbrace{\rho v_y T \Delta S}_{\text{latent heat release}} = \underbrace{\frac{\kappa}{\rho_0 c_p} \frac{\partial T}{\partial y} \vert_{y=y_{tr^-}} = \frac{v_y}{\rho_0 c_p} (T_2-T_1)}_{\text{heat conduction}}
+\end{gather*}
+
+In contrast to \cite{STO01}, we also consider the density change $\Delta\rho$ across the phase transition: While the heat conduction takes place above the transition and the density can be assumed as $\rho=\rho_0=$ const., the latent heat is released directly at the phase transition. Thus, we assume an average density $\rho=\rho_0 + 0.5\Delta\rho$ for the left side of the equation. Rearranging this equation gives
+
+\begin{gather*}
+T_2 = \frac{T_1}{1 - (1+\frac{\Delta \rho}{2 \rho_0}) \frac{\Delta S}{c_p}}
+\end{gather*}
+
+In addition, we have tested the approach exactly as it is described in \cite{STO01} by setting the entropy change to a specific value and in spite of that using a constant density. However, this is physically inconsistent, as the entropy change is proportional to the density change across the phase transition. With this method, we could reproduce the analytic results from \cite{STO01}.
+
+The exact values of the parameters used for this benchmark can be found in
+Fig.~\ref{fig:latent-heat-benchmark}. They result in a predicted value of $T_2 =
+1109.08 \, \text{K}$ for the temperature in the bottom half of the model, and
+we will demonstrate below that we can match this value in our numerical
+computations. However, it is not as simple as suggested above. In actual
+numerical computations, we can not exactly reproduce the behavior of Dirac delta
+functions as would result from taking the derivative $\frac{\partial
+X}{\partial y}$ of a discontinuous function $X(y)$. Rather, we have to model
+$X(y)$ as a function that has a smooth transition from one value to another,
+over a depth region of a certain width. In the material model plugin we will use
+below, this depth is an input parameter and we will play with it in the
+numerical results shown after the input file.
+
+To run this benchmark, we need to set up an input file that describes the
+situation. In principle, what we need to do is to describe the position and
+entropy change of the phase transition in addition to the previously outlined
+boundary and initial conditions. For this purpose, we use the ``latent heat''
+material model that allows us to set the density change $\Delta\rho$ and
+Clapeyron slope $\gamma$ (which together determine the entropy change via
+$\Delta S = \gamma \frac{\Delta\rho}{\rho^2}$) as well as the depth of the phase
+transition as input parameters.
+
+All of this setup is then described by the input file
+\url{cookbooks/latent-heat.prm} that models flow in a box of $10^6$ meters of
+height and width, and a fixed downward velocity. The following section shows the
+central part of this file:
+
+\begin{lstlisting}[frame=single,language=prmfile,escapechar=\%]
+subsection Material model
+  set Model name = latent heat % \index[prmindex]{Model name} \index[prmindexfull]{Material model!Model name} %
+  subsection Latent heat
+
+    # The change of density across the phase transition. Together with the
+    # Clapeyron slope, this is what determines the entropy change.
+    set Phase transition density jumps                 = 115.6 % \index[prmindex]{Phase transition density jumps} \index[prmindexfull]{Material model!Latent heat!Phase transition density jumps} %
+    set Corresponding phase for density jump           = 0 % \index[prmindex]{Corresponding phase for density jump} \index[prmindexfull]{Material model!Latent heat!Corresponding phase for density jump} %
+
+    # If the temperature is equal to the phase transition temperature, the 
+    # phase transition will occur at the phase transition depth. However, 
+    # if the temperature deviates from this value, the Clapeyron slope 
+    # determines how much the pressure (and depth) of the phase boundary
+    # changes. Here, the phase transition will be in the middle of the box
+    # for T=T1. 
+    set Phase transition depths                        = 500000 % \index[prmindex]{Phase transition depths} \index[prmindexfull]{Material model!Latent heat!Phase transition depths} %
+    set Phase transition temperatures                  = 1000 % \index[prmindex]{Phase transition temperatures} \index[prmindexfull]{Material model!Latent heat!Phase transition temperatures} %
+    set Phase transition Clapeyron slopes              = 1e7 % \index[prmindex]{Phase transition Clapeyron slopes} \index[prmindexfull]{Material model!Latent heat!Phase transition Clapeyron slopes} %
+
+    # We set the width of the phase transition to 5 km. You may want to 
+    # change this parameter to see how latent heating depends on the width
+    # of the phase transition. 
+    set Phase transition widths                        = 5000 % \index[prmindex]{Phase transition widths} \index[prmindexfull]{Material model!Latent heat!Phase transition widths} %
+
+    set Reference density                              = 3400 % \index[prmindex]{Reference density} \index[prmindexfull]{Material model!Latent heat!Reference density} %
+    set Reference specific heat                        = 1000 % \index[prmindex]{Reference specific heat} \index[prmindexfull]{Material model!Latent heat!Reference specific heat} %
+    set Reference temperature                          = 1000 % \index[prmindex]{Reference temperature} \index[prmindexfull]{Material model!Latent heat!Reference temperature} %
+    set Thermal conductivity                           = 2.38 % \index[prmindex]{Thermal conductivity} \index[prmindexfull]{Material model!Latent heat!Thermal conductivity} %
+
+    # We set the thermal expansion amd the compressibility to zero, so that 
+    # all temperature (and density) changes are caused by advection, diffusion 
+    # and latent heating. 
+    set Thermal expansion coefficient                  = 0.0 % \index[prmindex]{Thermal expansion coefficient} \index[prmindexfull]{Material model!Latent heat!Thermal expansion coefficient} %
+    set Compressibility                                = 0.0 % \index[prmindex]{Compressibility} \index[prmindexfull]{Material model!Latent heat!Compressibility} %
+
+    # Viscosity is constant. 
+    set Thermal viscosity exponent                     = 0.0 % \index[prmindex]{Thermal viscosity exponent} \index[prmindexfull]{Material model!Latent heat!Thermal viscosity exponent} %
+    set Viscosity                                      = 8.44e21 % \index[prmindex]{Viscosity} \index[prmindexfull]{Material model!Latent heat!Viscosity} %
+    set Viscosity prefactors                           = 1.0, 1.0 % \index[prmindex]{Viscosity prefactors} \index[prmindexfull]{Material model!Latent heat!Viscosity prefactors} %
+    set Composition viscosity prefactor                = 1.0 % \index[prmindex]{Composition viscosity prefactor} \index[prmindexfull]{Material model!Latent heat!Composition viscosity prefactor} %
+    set Activation enthalpies                          = 3.9473e-3, 3.9473e-3  % \index[prmindex]{Activation enthalpies} \index[prmindexfull]{Material model!Latent heat!Activation enthalpies} %
+  end
+end
+\end{lstlisting}
+
+The complete input file referenced above also sets the number of mesh refinement
+steps. For your first runs you will probably want to reduce the number of mesh
+refinement steps to make things run more quickly. Later on, you might also want
+to change the phase transition width to look how this influences the result.
+
+\begin{figure}
+  \begin{center}
+    \includegraphics[width=0.49\textwidth]{cookbooks/benchmarks/latent-heat/latent-heat-results-1}
+    \hfill
+    \includegraphics[width=0.49\textwidth]{cookbooks/benchmarks/latent-heat/latent-heat-results-2}
+  \end{center}
+  \caption{\it Results of the latent heat benchmark. Both figures show the modelled temperature $T_2$ at the bottom of the model domain.
+      Left: $T_2$ in dependence of resolution using a constant phase transition width of 20\,km. With an increasing number of global refinements of the mesh, the bottom temperature converges against a value of $T_2 = 1105.27 \, \text{K}$.
+      Right: $T_2$ in dependence of phase transition width. The model resolution is chosen proportional to the phase transition width, starting with 5 global refinements for a width of 20\,km. With decreasing phase transition width, $T_2$ approaches the theoretical value of $1109.08 \, \text{K}$}
+  \label{fig:latent-heat-benchmark-results}
+\end{figure}
+
+Using this input file, let us try to evaluate the results of the current
+computations. We note that it takes some time for the model to reach a steady
+state and only then does the bottom temperature reach the theoretical value.
+Therefore, we use the last output step to compare predicted and computed values.
+You can visualize the output in different ways, one of it being ParaView and shown in
+Fig.~\ref{fig:latent-heat-benchmark} on the right side (an alternative is to use Visit as
+described in Section~\ref{sec:viz}). In ParaView, you can plot the temperature profile
+using the filter ``Plot Over Line'' (Point1: 500000,0,0; Point2:
+500000,1000000,0, then go to the ``Display'' tab and select ``T'' as only
+variable in the ``Line series'' section) or ``Calculator'' (as seen in
+Fig.~\ref{fig:latent-heat-benchmark}). In
+Fig.~\ref{fig:latent-heat-benchmark-results} (left) we can see that with
+increasing resolution, the value for the bottom temperature converges to a value
+of $T_2 = 1105.27 \, \text{K}$. 
+
+However, this is not what the analytic solution
+predicted. The reason for this difference is the width of the phase transition
+with which we smooth out the Dirac delta function that results from
+differentiating the $X(y)$ we would have liked to use in an ideal world.
+(In reality, however, for the Earth's mantle we also expect phase transitions
+that are distributed over a certain depth range and so the smoothed out
+approach may not be a bad approximation.)
+Of course, the results shown above result from an the analytical approach that
+is only correct if the phase transition is discontinuous and constrained to one
+specific depth $y=y_{tr}$. Instead, we chose a hyperbolic
+tangent as our phase function. Moreover,
+Fig.~\ref{fig:latent-heat-benchmark-results} (right) illustrates what happens to
+the temperature at the bottom when we vary the width of the phase transition:
+The smaller the width, the closer the temperature gets to the predicted value of
+$T_2 = 1109.08 \, \text{K}$, demonstrating that we converge to the correct
+solution.
 
 
 
@@ -4894,11 +6747,12 @@ do:
   of the class you want to implement. This class must be derived from one of the
   \texttt{Interface} classes we will discuss below. The file also needs to
   contain the implementation of all member functions of your class.
-  
+
   As discussed above, it is possible -- but not necessary -- to split this file
   into two: a header file, say \texttt{my\_plugin.h}, and the
-  \texttt{my\_plugin.cc} file. We do this for all the existing plugins in
-  \aspect{} so that the documentation of these plugins shows up in the
+  \texttt{my\_plugin.cc} file (or, if you prefer, into multiple source files).
+  We do this for all the existing plugins in \aspect{} so that the documentation
+  of these plugins shows up in the
   doxygen-generated documentation. However, for your own plugins, there is
   typically no need for this split. The only occasion where this would be useful
   is if some plugin actually makes use of a different plugin (e.g., the
@@ -4914,7 +6768,7 @@ do:
   \texttt{ASPECT\_REGISTER\_*} macros that will be discussed in the next
   subsections; take a look at how they are used in the existing plugins in the
   \aspect{} source files.
-  
+
   \item You need to compile the file. There are two ways by which this can be
   achieved:
   \begin{itemize}
@@ -4926,7 +6780,7 @@ do:
     not only compiling this one file, but also link \aspect{}. Furthermore, when
     you upgrade from one version of \aspect{} to another, you need to remember
     to copy the \texttt{my\_plugin.cc} file.
-    
+
     \item Put the  \texttt{my\_plugin.cc} file into a directory of your choice
     and compile it into a shared library yourself. This may be as easy as
     calling
@@ -4947,9 +6801,61 @@ do:
     installation. On the other hand, compiling the file into a shared library is
     a bit more that you need to do yourself. Nevertheless, this is the preferred
     approach.
+
+    In practice, the compiler line above can become tedious because it includes
+    paths to the \aspect{} and \dealii{} header files, but possibly also other
+    things such as Trilinos headers, etc. Having to remember all of these pieces
+    is a hassle, and a much easier way is in fact to set up a mini-CMake project
+    for this. To this end, simply copy the file \url{doc/plugin-CMakeLists.txt}
+    to the directory where you have your plugin source files and rename it to
+    \texttt{CMakeLists.txt}. In essence, this file just has the following
+    content:
+    \begin{lstlisting}[frame=single]
+CMAKE_MINIMUM_REQUIRED(VERSION 2.8.8)
+
+FIND_PACKAGE(Aspect REQUIRED HINTS ${ASPECT_DIR} ../ $ENV{ASPECT_DIR})
+DEAL_II_INITIALIZE_CACHED_VARIABLES()
+
+PROJECT(my_plugin)
+ADD_LIBRARY(my_plugin SHARED source_1.cc source_2.cc)
+ASPECT_SETUP_PLUGIN(my_plugin)
+    \end{lstlisting}
   \end{itemize}
+  You can then just run the commands
+    \begin{verbatim}
+ cmake -DASPECT_DIR=/path/to/aspect .
+ make
+    \end{verbatim}
+    and it should compile your plugin files into a shared library
+    \texttt{my\_plugin.so}. Of course, you may want to choose different names
+    for the source files \texttt{source\_1.cc}, \texttt{source\_2.cc} or the name of
+    the plugin \texttt{my\_plugin}.
+
+    In essence, what these few lines do is that they find an \aspect{}
+    installation (i.e., the directory where you configured and compiled it,
+    which may be the same directory as where you keep your sources, or a
+    different one, as discussed in Section~\ref{sec:installation}) in either the
+    directory explicitly specified in the \texttt{ASPECT\_DIR} variable passed
+    to \texttt{cmake}, the shell environment, or just one directory up. It then
+    sets up compiler paths and similar, and the following lines simply define
+    the name of a plugin, list the source files for it, and define everything
+    that's necessary to compile them into a shared library. Calling
+    \texttt{make} on the command line then simply compiles everything.
 \end{itemize}
- 
+
+\note{Complex projects built on \aspect{} often require plugins of more than
+just one kind. For example, they may have plugins for the geometry, the
+material model, and for postprocessing. In such cases, you can either define
+multiple shared libraries by repeating the calls to \texttt{PROJECT},
+\texttt{ADD\_LIBRARY} and \texttt{ASPECT\_SETUP\_PLUGIN} for each shared
+library in your
+\texttt{CMakeLists.txt} file above, or you can just compile all of your source
+files into a single shared library. In the latter case, you only need to list a
+single library in your input file, but each plugin will still be selectable in
+the various sections of your input file as long as each of your classes has a
+corresponding \texttt{ASPECT\_REGISTER\_*} statement somewhere in the file
+where you have its definition.}
+
 \note{If you choose to compile your plugins into a shared library yourself, you
   will need to recompile them every time you upgrade your \aspect{} installation
   since we do not guarantee that the \aspect{} application binary interface
@@ -5008,7 +6914,7 @@ Specifically, your new class needs to implement the following interface:
 
         virtual double reference_thermal_expansion_coefficient () const = 0;
 
-        
+
         // Auxiliary material properties used for postprocessing
         virtual double
         seismic_Vp (const double      temperature,
@@ -5035,7 +6941,7 @@ Specifically, your new class needs to implement the following interface:
         virtual void
         parse_parameters (ParameterHandler &prm);
 
-        
+
         // Optional:
         virtual void initialize ();
 
@@ -5751,7 +7657,7 @@ a postprocessor has into a checkpoint file, and to load it again upon
 restart. This is important since many postprocessors store some state -- say,
 a temporal average over all the time steps seen so far, or the number of the
 last graphical output file generated so that we know how the next one needs
-to be numbered. 
+to be numbered.
 
 The typical case is that this state is the same across all processors of a
 parallel computation. Consequently, what \aspect{} writes into the checkpoint
@@ -6006,7 +7912,7 @@ Specifically, your new class needs to implement the following basic interface:
 The first of these functions computes the set of refinement criteria (one per
 cell) and returns it in the given argument. Typical examples can be found in the
 existing implementations in the \texttt{source/mesh\_refinement} directory. As usual, your termination
-criterion implementation will likely need to be derived from the 
+criterion implementation will likely need to be derived from the
 \texttt{SimulatorAccess} to get access to the current state of the simulation.
 
 The
@@ -6064,7 +7970,7 @@ The first of these functions returns a value that indicates whether the
 simulation should be terminated.
 Typical examples can be found in the existing implementations in the
 \texttt{source/termination\_criteria} directory. As usual, your termination
-criterion implementation will likely need to be derived from the 
+criterion implementation will likely need to be derived from the
 \texttt{SimulatorAccess} to get access to the current state of the simulation.
 
 The remaining functions are
@@ -6190,15 +8096,6 @@ soon:
   descriptions over time, either given analytically or based on table-lookup
   of material properties.
 
-\item \textit{Incorporating latent heat effects:} Real materials undergo phase
-  transitions at certain pressures and temperatures, and these phase
-  transitions release or take up energy (i.e., heat). The terms that need to
-  be added to the temperature equation \eqref{eq:temperature} are not very
-  difficult but one needs a description of the latent heat based on the
-  Clapeyron slope as a function of temperature and pressure \cite{CY85,STO01},
-  which we currently don't have. If someone contributes such a description
-  we'll be happy to add the relevant terms into the model.
-
 \item \textit{Melting:} An important part of mantle behavior is
   melting. Melting not only affects the properties of the material such as
   density or viscosity, but it also leads to chemical segregation and, in
@@ -6233,13 +8130,11 @@ introduction:
 \section{Finding answers to more questions}
 
 If you have questions that go beyond this manual, there are a number of
-resouces:
+resources:
 \begin{itemize}
 \item For questions on the source code of \aspect{}, portability, installation,
   etc., use the \aspect{} development mailing list at
-  \url{aspect-devel@geodynamics.org}. Information about this mailing
-  list is provided at
-  \url{http://geodynamics.org/cgi-bin/mailman/listinfo/aspect-devel}. This
+  \url{http://lists.geodynamics.org/cgi-bin/mailman/listinfo/aspect-devel}. This
   mailing list is where the \aspect{} developers all hang out.
 
 \item \aspect{} is primarily based on the deal.II library (the dependency
@@ -6250,9 +8145,8 @@ resouces:
 
 \item In case of more general questions about mantle convection, you can
   contact the CIG mantle
-  convection mailing lists at \url{cig-mc@geodynamics.org}. Information
-  about this mailing list is
-  provided at \url{http://geodynamics.org/cgi-bin/mailman/listinfo/cig-MC}.
+  convection mailing lists at 
+  \url{http://lists.geodynamics.org/cgi-bin/mailman/listinfo/cig-MC}.
 
 \item If you have specific questions about \aspect{} that are not suitable
   for public and archived mailing lists, you can contact the
@@ -6261,7 +8155,7 @@ resouces:
   \item Wolfgang
     Bangerth: \url{bangerth@math.tamu.edu}.
   \item Timo
-    Heister: \url{heister@math.tamu.edu}.
+    Heister: \url{heister@clemson.edu}.
   \end{itemize}
 \end{itemize}
 

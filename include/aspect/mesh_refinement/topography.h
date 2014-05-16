@@ -32,9 +32,9 @@ namespace aspect
   {
 
     /**
-     * A class that implements a mesh refinement criterion, which
-     * refines the mesh in the uppermost nodes. This is needed for a
-     * high accuracy of the surface topography postprocessor.
+     * A class that implements a mesh refinement criterion that refines the
+     * mesh in the uppermost nodes. This is useful for cases where one wants
+     * to accurately model processes at of close to the surface of the model.
      *
      * @ingroup MeshRefinement
      */
@@ -46,11 +46,10 @@ namespace aspect
         /**
          * Execute this mesh refinement criterion.
          *
-         * @param[out] error_indicators A vector that for every active
-         * cell of the current mesh
-         * (which may be a partition of a distributed mesh) provides an error
-         * indicator. This vector will already have the correct size when the
-         * function is called.
+         * @param[out] error_indicators A vector that for every active cell of
+         * the current mesh (which may be a partition of a distributed mesh)
+         * provides an error indicator. This vector will already have the
+         * correct size when the function is called.
          */
         virtual
         void

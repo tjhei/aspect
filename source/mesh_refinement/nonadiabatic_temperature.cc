@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2013 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2014 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -49,7 +49,7 @@ namespace aspect
       LinearAlgebra::BlockVector vec_distributed (this->introspection().index_sets.system_partitioning,
                                                   this->get_mpi_communicator());
 
-      const Quadrature<dim> quadrature(this->get_fe().base_element(2).get_unit_support_points());
+      const Quadrature<dim> quadrature(this->get_fe().base_element(this->introspection().base_elements.temperature).get_unit_support_points());
       std::vector<unsigned int> local_dof_indices (this->get_fe().dofs_per_cell);
       FEValues<dim> fe_values (this->get_mapping(),
                                this->get_fe(),
@@ -79,14 +79,14 @@ namespace aspect
             // for each temperature dof, write into the output
             // vector the density. note that quadrature points and
             // dofs are enumerated in the same order
-            for (unsigned int i=0; i<this->get_fe().base_element(2).dofs_per_cell; ++i)
+            for (unsigned int i=0; i<this->get_fe().base_element(this->introspection().base_elements.temperature).dofs_per_cell; ++i)
               {
                 const unsigned int system_local_dof
                   = this->get_fe().component_to_system_index(/*temperature component=*/dim+1,
-                                                             /*dof index within component=*/i);
+                                                                                       /*dof index within component=*/i);
 
                 vec_distributed(local_dof_indices[system_local_dof])
-                = in.temperature[i] - this->get_adiabatic_conditions().temperature(in.position[i]);
+                  = in.temperature[i] - this->get_adiabatic_conditions().temperature(in.position[i]);
               }
           }
 
@@ -100,7 +100,7 @@ namespace aspect
                                                       this->get_dof_handler(),
                                                       vec,
                                                       indicators,
-  //TODO: replace by the appropriate component mask
+                                                      //TODO: replace by the appropriate component mask
                                                       dim+1);
 
       // Scale gradient in each cell with the correct power of h. Otherwise,
@@ -111,11 +111,8 @@ namespace aspect
       // will yield convergence of the error indicators to zero as h->0)
       const double power = 1.0 + dim/2.0;
       {
-        typename DoFHandler<dim>::active_cell_iterator
-        cell = this->get_dof_handler().begin_active(),
-        endc = this->get_dof_handler().end();
         unsigned int i=0;
-        for (; cell!=endc; ++cell, ++i)
+        for (cell = this->get_dof_handler().begin_active(); cell!=endc; ++cell, ++i)
           if (cell->is_locally_owned())
             indicators(i) *= std::pow(cell->diameter(), power);
       }

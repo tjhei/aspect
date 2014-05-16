@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2014 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -127,13 +127,12 @@ namespace aspect
              const std::vector<double> &compositional_fields, /*composition*/
              const Point<dim> &) const
     {
-      return (reference_rho * (1 - thermal_alpha * (temperature - reference_T))
-              +
-              (compositional_fields.size()>0
-               ?
-               compositional_delta_rho * compositional_fields[0]
-               :
-               0));
+      const double c = compositional_fields.size()>0?
+                       std::max(0.0, compositional_fields[0])
+                       :
+                       0.0;
+      return reference_rho * (1 - thermal_alpha * (temperature - reference_T))
+             + compositional_delta_rho * c;
     }
 
 
@@ -331,8 +330,8 @@ namespace aspect
                                    " medium despite the fact that the density follows the law "
                                    "$\\rho(T)=\\rho_0(1-\\beta(T-T_{\\text{ref}})$. "
                                    "The temperature dependency of viscosity is "
-                                   " switched off by default and follows the formula"
-                                   "$\\eta(T)=\\eta_0*e^{\\eta_T*\\Delta T / T_{\\text{ref}})}$."
+                                   " switched off by default and follows the formula "
+                                   "$\\eta(T)=\\eta_0 e^{\\eta_T \\cdot \\Delta T / T_{\\text{ref}})}$."
                                    "The value for the components of this formula and additional "
                                    "parameters are read from the parameter file in subsection "
                                    "'Simple model'.")

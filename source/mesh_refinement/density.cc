@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2014 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -53,7 +53,7 @@ namespace aspect
       LinearAlgebra::BlockVector vec_distributed (this->introspection().index_sets.system_partitioning,
                                                   this->get_mpi_communicator());
 
-      const Quadrature<dim> quadrature(this->get_fe().base_element(2).get_unit_support_points());
+      const Quadrature<dim> quadrature(this->get_fe().base_element(this->introspection().base_elements.temperature).get_unit_support_points());
       std::vector<types::global_dof_index> local_dof_indices (this->get_fe().dofs_per_cell);
       FEValues<dim> fe_values (this->get_mapping(),
                                this->get_fe(),
@@ -69,7 +69,7 @@ namespace aspect
                                                                      this->n_compositional_fields(),
                                                                      this->include_melt_transport());
       typename MaterialModel::Interface<dim>::MaterialModelOutputs out(quadrature.size(),
-          this->n_compositional_fields());
+                                                                       this->n_compositional_fields());
 
       typename DoFHandler<dim>::active_cell_iterator
       cell = this->get_dof_handler().begin_active(),
@@ -101,7 +101,7 @@ namespace aspect
             // for each temperature dof, write into the output
             // vector the density. note that quadrature points and
             // dofs are enumerated in the same order
-            for (unsigned int i=0; i<this->get_fe().base_element(2).dofs_per_cell; ++i)
+            for (unsigned int i=0; i<this->get_fe().base_element(this->introspection().base_elements.temperature).dofs_per_cell; ++i)
               {
                 const unsigned int system_local_dof
                   = this->get_fe().component_to_system_index(/*temperature component=*/dim+1,
@@ -111,6 +111,8 @@ namespace aspect
                   = out.densities[i];
               }
           }
+
+      vec_distributed.compress(VectorOperation::insert);
 
       // now create a vector with the requisite ghost elements
       // and use it for estimating the gradients
@@ -133,11 +135,8 @@ namespace aspect
       // will yield convergence of the error indicators to zero as h->0)
       const double power = 1.0 + dim/2.0;
       {
-        typename DoFHandler<dim>::active_cell_iterator
-        cell = this->get_dof_handler().begin_active(),
-        endc = this->get_dof_handler().end();
         unsigned int i=0;
-        for (; cell!=endc; ++cell, ++i)
+        for (cell = this->get_dof_handler().begin_active(); cell!=endc; ++cell, ++i)
           if (cell->is_locally_owned())
             indicators(i) *= std::pow(cell->diameter(), power);
       }

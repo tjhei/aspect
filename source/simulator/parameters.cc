@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2014 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -77,7 +77,7 @@ namespace aspect
 
     prm.declare_entry ("Start time", "0",
                        Patterns::Double (),
-                       "The start time of the simulation. Units: years if the "
+                       "The start time of the simulation. Units: Years if the "
                        "'Use years in output instead of seconds' parameter is set; "
                        "seconds otherwise.");
 
@@ -112,6 +112,18 @@ namespace aspect
                        "here, one can choose the time step as large as one wants (in particular, "
                        "one can choose $c>1$) though a CFL number significantly larger than "
                        "one will yield rather diffusive solutions. Units: None.");
+    prm.declare_entry ("Maximum time step",
+                       /* boost::lexical_cast<std::string>(std::numeric_limits<double>::max() /
+                                                           year_in_seconds) = */ "5.69e+300",
+                       Patterns::Double (0),
+                       "Set a maximum time step size for the solver to use. Generally the time step "
+                       "based on the CFL number should be sufficient, but for complicated models "
+                       "or benchmarking it may be useful to limit the time step to some value. "
+                       "The default value is a value so that when converted from years into seconds "
+                       "it equals the largest number representable by a floating "
+                       "point number, implying an unlimited time step."
+                       "Units: Years or seconds, depending on the ``Use years "
+                       "in output instead of seconds'' parameter.");
 
     prm.declare_entry ("Use conduction timestep", "false",
                        Patterns::Bool (),
@@ -174,7 +186,7 @@ namespace aspect
                        "of the mantle below the lithosphere, in which case the surface "
                        "pressure should be the lithostatic pressure at the bottom "
                        "of the lithosphere."
-                       "\n"
+                       "\n\n"
                        "For more information, see the section in the manual that discusses "
                        "the general mathematical model.");
 
@@ -189,7 +201,7 @@ namespace aspect
                        "posed at this point. Rather, the boundary condition may differ "
                        "significantly from the adiabatic value, and then typically "
                        "induce a thermal boundary layer."
-                       "\n"
+                       "\n\n"
                        "For more information, see the section in the manual that discusses "
                        "the general mathematical model.");
 
@@ -280,7 +292,10 @@ namespace aspect
                          "material according to Darcy's law will be solved.");
       prm.declare_entry ("Radiogenic heating rate", "0e0",
                          Patterns::Double (),
-                         "H0");
+                         "The rate of heating due to radioactive decay (or other bulk sources "
+                         "you may want to describe). This parameter corresponds to the variable "
+                         "$H$ in the temperature equation stated in the manual, and the heating "
+                         "term is $\rho H$. Units: W/kg.");
       prm.declare_entry ("Fixed temperature boundary indicators", "",
                          Patterns::List (Patterns::Integer(0)),
                          "A comma separated list of integers denoting those boundaries "
@@ -350,6 +365,16 @@ namespace aspect
                          "part of the boundary on which the velocity is to be zero with "
                          "the parameter ``Zero velocity boundary indicator'' in the "
                          "current parameter section.");
+
+      prm.declare_entry ("Remove nullspace", "",
+                         Patterns::MultipleSelection("net rotation|net translation|angular momentum|translational momentum"),
+                         "A selection of operations to remove certain parts of the nullspace from "
+                         "the velocity after solving. For some geometries and certain boundary conditions "
+                         "the velocity field is not uniquely determined but contains free translations "
+                         "and or rotations. Depending on what you specify here, these non-determined "
+                         "modes will be removed from the velocity field at the end of the Stokes solve step.\n"
+                         "Note that while more than operation can be selected it only makes sense to "
+                         "pick one rotational and one translational operation.");
     }
     prm.leave_subsection ();
 
@@ -382,7 +407,7 @@ namespace aspect
                          Patterns::Integer (0),
                          "The minimum refinement level each cell should have, "
                          "and that can not be exceeded by coarsening. "
-                         "Should be higher than Initial global refinement.");
+                         "Should be higher than the 'Initial global refinement' parameter.");
       prm.declare_entry ("Additional refinement times", "",
                          Patterns::List (Patterns::Double(0)),
                          "A list of times so that if the end time of a time step "
@@ -391,7 +416,7 @@ namespace aspect
                          "can get through the initial transient phase of a simulation "
                          "on a relatively coarse mesh, and then refine again when we "
                          "are in a time range that we are interested in and where "
-                         "we would like to use a finer mesh. Units: each element of the "
+                         "we would like to use a finer mesh. Units: Each element of the "
                          "list has units years if the "
                          "'Use years in output instead of seconds' parameter is set; "
                          "seconds otherwise.");
@@ -448,7 +473,8 @@ namespace aspect
                          "conservative at the expense of a larger number of degrees "
                          "of freedom (true), or to go with a cheaper discretization "
                          "that does not locally conserve mass, although it is "
-                         "globally conservative (false).\n\n"
+                         "globally conservative (false)."
+                         "\n\n"
                          "When using a locally "
                          "conservative discretization, the finite element space for "
                          "the pressure is discontinuous between cells and is the "
@@ -462,12 +488,14 @@ namespace aspect
                          "\\cdot \\mathbf n = 0$ for every cell $K$, i.e., for each cell inflow and "
                          "outflow exactly balance each other as one would expect for an "
                          "incompressible medium. In other words, the velocity field is locally "
-                         "conservative.\n\n"
+                         "conservative."
+                         "\n\n"
                          "On the other hand, if this parameter is "
                          "set to ``false'', then the finite element space is chosen as $Q_q$. "
                          "This choice does not yield the local conservation property but "
                          "has the advantage of requiring fewer degrees of freedom. Furthermore, "
-                         "the error is generally smaller with this choice.\n\n"
+                         "the error is generally smaller with this choice."
+                         "\n\n"
                          "For an in-depth discussion of these issues and a quantitative evaluation "
                          "of the different choices, see \\cite {KHB12} .");
 
@@ -546,6 +574,11 @@ namespace aspect
     convert_to_years        = prm.get_bool ("Use years in output instead of seconds");
     timing_output_frequency = prm.get_integer ("Timing output frequency");
 
+    maximum_time_step       = prm.get_double("Maximum time step");
+    if (convert_to_years == true)
+      maximum_time_step *= year_in_seconds;
+
+
     if (prm.get ("Nonlinear solver scheme") == "IMPES")
       nonlinear_solver = NonlinearSolver::IMPES;
     else if (prm.get ("Nonlinear solver scheme") == "iterated IMPES")
@@ -613,7 +646,7 @@ namespace aspect
                   ExcMessage("Refinement and coarsening fractions must be <= 1."));
       AssertThrow(min_grid_level <= initial_global_refinement,
                   ExcMessage("Minimum refinement level must not be larger than "
-                		  "Initial global refinement."));
+                             "Initial global refinement."));
 
       // extract the list of times at which additional refinement is requested
       // then sort it and convert it to seconds
@@ -652,7 +685,7 @@ namespace aspect
            (prm.get ("Fixed composition boundary indicators")));
       fixed_composition_boundary_indicators
         = std::set<types::boundary_id> (x_fixed_composition_boundary_indicators.begin(),
-                                          x_fixed_composition_boundary_indicators.end());
+                                        x_fixed_composition_boundary_indicators.end());
 
       const std::vector<int> x_zero_velocity_boundary_indicators
         = Utilities::string_to_int
@@ -709,8 +742,31 @@ namespace aspect
                                    "> appears more than once in the list of indicators "
                                    "for nonzero velocity boundaries."));
           prescribed_velocity_boundary_indicators[boundary_id] =
-              std::pair<std::string,std::string>(comp,value);
+            std::pair<std::string,std::string>(comp,value);
         }
+
+      {
+        nullspace_removal = NullspaceRemoval::none;
+        std::vector<std::string> nullspace_names =
+          Utilities::split_string_list(prm.get("Remove nullspace"));
+        for (unsigned int i=0; i<nullspace_names.size(); ++i)
+          {
+            if (nullspace_names[i]=="net rotation")
+              nullspace_removal = typename NullspaceRemoval::Kind(
+                                    nullspace_removal | NullspaceRemoval::net_rotation);
+            else if (nullspace_names[i]=="net translation")
+              nullspace_removal = typename NullspaceRemoval::Kind(
+                                    nullspace_removal | NullspaceRemoval::net_translation);
+            else if (nullspace_names[i]=="angular momentum")
+              nullspace_removal = typename NullspaceRemoval::Kind(
+                                    nullspace_removal | NullspaceRemoval::angular_momentum);
+            else if (nullspace_names[i]=="translational momentum")
+              nullspace_removal = typename       NullspaceRemoval::Kind(
+                                    nullspace_removal | NullspaceRemoval::translational_momentum);
+            else
+              AssertThrow(false, ExcInternalError());
+          }
+      }
     }
     prm.leave_subsection ();
 
@@ -737,6 +793,18 @@ namespace aspect
         stabilization_beta  = prm.get_double ("beta");
       }
       prm.leave_subsection ();
+
+      AssertThrow (use_locally_conservative_discretization ||
+                   (stokes_velocity_degree > 1),
+                   ExcMessage ("The polynomial degree for the velocity field "
+                               "specified in the 'Stokes velocity polynomial degree' "
+                               "parameter must be at least 2, unless you are using "
+                               "a locally conservative discretization as specified by the "
+                               "'Use locally conservative discretization' parameter. "
+                               "This is because in the former case, the pressure element "
+                               "is of one degree lower and continuous, and if you selected "
+                               "a linear element for the velocity, you'd need a continuous "
+                               "element of degree zero for the pressure, which does not exist."))
     }
     prm.leave_subsection ();
 

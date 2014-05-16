@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2014 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -31,15 +31,19 @@ namespace aspect
   {
     template <int dim>
     void
-    Composition<dim>::initialize ()
+    Composition<dim>::initialize (const Simulator<dim> &simulator)
     {
+      // call the corresponding function in the base class, then use
+      // what has by then been initialized
+      SimulatorAccess<dim>::initialize (simulator);
+
       AssertThrow (composition_scaling_factors.size() == this->n_compositional_fields()
                    ||
                    composition_scaling_factors.size() == 0,
                    ExcMessage ("The number of scaling factors given here must either be "
                                "zero or equal to the number of chosen refinement criteria."));
       if (composition_scaling_factors.size() == 0)
-        composition_scaling_factors = std::vector<double> (this->n_compositional_fields(), 1.0);
+        composition_scaling_factors.resize (this->n_compositional_fields(), 1.0);
     }
 
     template <int dim>
@@ -66,7 +70,7 @@ namespace aspect
                                               0,
                                               this->get_triangulation().locally_owned_subdomain());
           for (unsigned int i=0; i<indicators.size(); ++i)
-        	this_indicator[i] *= composition_scaling_factors[c];
+            this_indicator[i] *= composition_scaling_factors[c];
           indicators += this_indicator;
         }
     }
@@ -90,7 +94,7 @@ namespace aspect
                             "factors are used to weigh the various indicators relative to "
                             "each other. "
                             "\n\n"
-                            "If the list of indicators given in this parameter is empty, then this "
+                            "If the list of scaling factors given in this parameter is empty, then this "
                             "indicates that they should all be chosen equal to one. If the list "
                             "is not empty then it needs to have as many entries as there are "
                             "compositional fields.");

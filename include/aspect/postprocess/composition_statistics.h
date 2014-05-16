@@ -20,8 +20,8 @@
 /*  $Id$  */
 
 
-#ifndef __aspect__postprocess_temperature_statistics_h
-#define __aspect__postprocess_statistics_statistics_h
+#ifndef __aspect__postprocess_composition_statistics_h
+#define __aspect__postprocess_composition_statistics_h
 
 #include <aspect/postprocess/interface.h>
 #include <aspect/simulator_access.h>
@@ -32,7 +32,8 @@ namespace aspect
   {
 
     /**
-     * A postprocessor that computes some statistics about the compositional fields, if any.
+     * A postprocessor that computes some statistics about the compositional
+     * fields, if any.
      *
      * @ingroup Postprocessing
      */
@@ -42,7 +43,7 @@ namespace aspect
       public:
         /**
          * Evaluate the solution for some temperature statistics.
-         **/
+         */
         virtual
         std::pair<std::string,std::string>
         execute (TableHandler &statistics);

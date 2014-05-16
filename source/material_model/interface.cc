@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011, 2012, 2013 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2014 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -73,37 +73,6 @@ namespace aspect
     {
       Assert(false, ExcMessage("Implement individual functions or evaluate() in material model."));
       return 1.0;
-    }
-
-
-
-
-    template <int dim>
-    double
-    Interface<dim>::thermal_diffusivity (const double temperature,
-                                         const double pressure,
-                                         const std::vector<double> &compositional_fields,
-                                         const Point<dim> &position) const
-    {
-      //TODO: surely this could be done in a more efficient way?
-      //      we could move this to helper_functions.compute_thermal_diffusivity()?
-
-      typename MaterialModel::Interface<dim>::MaterialModelInputs in(1, compositional_fields.size(), false/*this->include_melt_transport()*/);
-      typename MaterialModel::Interface<dim>::MaterialModelOutputs out(1, compositional_fields.size());
-
-      in.position[0] = position;
-      in.temperature[0] = temperature;
-      in.pressure[0] = pressure;
-      in.composition[0] = compositional_fields;
-      in.strain_rate.resize(0);// we are not reading the viscosity
-
-      this->evaluate(in, out);
-
-      double k = out.thermal_conductivities[0];
-      double rho = out.densities[0];
-      double c_p = out.specific_heat[0];
-
-      return k/(rho*c_p);
     }
 
 
@@ -307,18 +276,18 @@ namespace aspect
         const std::string pattern_of_names
           = std_cxx1x::get<dim>(registered_plugins).get_pattern_of_names ();
         try
-        {
+          {
             prm.declare_entry ("Model name", "",
                                Patterns::Selection (pattern_of_names),
                                "Select one of the following models:\n\n"
                                +
                                std_cxx1x::get<dim>(registered_plugins).get_description_string());
-        }
+          }
         catch (const ParameterHandler::ExcValueDoesNotMatchPattern &)
-        {
+          {
             // ignore the fact that the default value for this parameter
             // does not match the pattern
-        }
+          }
       }
       prm.leave_subsection ();
 
@@ -341,7 +310,8 @@ namespace aspect
     }
 
     template <int dim>
-    Interface<dim>::MaterialModelOutputs::MaterialModelOutputs(unsigned int n_points, unsigned int n_comp)
+    Interface<dim>::MaterialModelOutputs::MaterialModelOutputs(const unsigned int n_points,
+                                                               const unsigned int n_comp)
     {
       viscosities.resize(n_points);
       densities.resize(n_points);
@@ -414,7 +384,7 @@ namespace aspect
     template <int dim>
     void
     InterfaceCompatibility<dim>::evaluate(const typename Interface<dim>::MaterialModelInputs &in,
-					  typename Interface<dim>::MaterialModelOutputs &out) const
+                                          typename Interface<dim>::MaterialModelOutputs &out) const
     {
       for (unsigned int i=0; i < in.temperature.size(); ++i)
         {
@@ -427,7 +397,7 @@ namespace aspect
           out.entropy_derivative_pressure[i]    = entropy_derivative            (in.temperature[i], in.pressure[i], in.composition[i], in.position[i], NonlinearDependence::pressure);
           out.entropy_derivative_temperature[i] = entropy_derivative            (in.temperature[i], in.pressure[i], in.composition[i], in.position[i], NonlinearDependence::temperature);
           for (unsigned int c=0; c<in.composition[i].size(); ++c)
-        	out.reaction_terms[i][c]            = reaction_term                 (in.temperature[i], in.pressure[i], in.composition[i], in.position[i], c);
+            out.reaction_terms[i][c]            = reaction_term                 (in.temperature[i], in.pressure[i], in.composition[i], in.position[i], c);
         }
     }
   }
