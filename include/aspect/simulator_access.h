@@ -448,7 +448,7 @@ namespace aspect
   template <typename PostprocessorType>
   inline
   PostprocessorType *
-  SimulatorAccess<dim>::find_postprocessor<PostprocessorType> () const
+  SimulatorAccess<dim>::find_postprocessor () const
   {
     return simulator->postprocessors.find_postprocessor<PostprocessorType>();
   } 
