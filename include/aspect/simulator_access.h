@@ -450,8 +450,8 @@ namespace aspect
   PostprocessorType *
   SimulatorAccess<dim>::find_postprocessor () const
   {
-    return simulator->postprocessors.template find_postprocessor<PostprocessorType>();
-  } 
+    return simulator->postprocess_manager.template find_postprocessor<PostprocessorType>();
+  }
 }
 
 
