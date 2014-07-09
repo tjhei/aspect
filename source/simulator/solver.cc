@@ -371,9 +371,13 @@ namespace aspect
         advection_solver_tolerance = parameters.composition_solver_tolerance;
       }
 
+
+
     const double tolerance = std::max(1e-50,
                                       advection_solver_tolerance*system_rhs.block(block_idx).l2_norm());
-    SolverControl solver_control (1000, tolerance);
+    pcout << "rhs norm=" << system_rhs.block(block_idx).l2_norm() << std::endl
+        << " tol=" << tolerance << std::endl;
+    SolverControl solver_control (10000, tolerance);
 
     SolverGMRES<LinearAlgebra::Vector>   solver (solver_control,
                                                  SolverGMRES<LinearAlgebra::Vector>::AdditionalData(30,true));
@@ -398,8 +402,11 @@ namespace aspect
                                      distributed_solution.block(block_idx),
                                      system_rhs.block(block_idx));
 
+    pcout << "initial res = " << initial_residual << std::endl;
+
     // solve the linear system:
     current_constraints.set_zero(distributed_solution);
+    distributed_solution = 0;
     try
       {
 	solver.solve (system_matrix.block(block_idx,block_idx),
