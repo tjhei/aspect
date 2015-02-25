@@ -662,7 +662,12 @@ namespace aspect
     if (std::abs(global_u_infty) < 1e-50
         || std::abs(global_entropy_variation) < 1e-50
         || std::abs(global_field_variation) < 1e-50)
-      return 5e-3 * cell_diameter;
+      {
+        if (advection_field.is_temperature())
+          return 5e-3 * cell_diameter;
+        else
+          return 5e-12 * cell_diameter;
+      }
 
     double max_residual = 0;
     double max_velocity = 0;
