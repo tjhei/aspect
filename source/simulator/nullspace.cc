@@ -167,9 +167,16 @@ namespace aspect
             // of this null space vector and subtract the corresponding multiple
             const double power = net_rotations_translations[i]
                                  * tmp_distributed_stokes.block(introspection.block_indices.velocities);
+	    pcout << "removing nullspace " << i << " with power " << power << std::endl;
+	    
             tmp_distributed_stokes.block(introspection.block_indices.velocities).sadd(1.0,
                                                                                       -1.0*power,
                                                                                       net_rotations_translations[i]);
+	    double power_now = net_rotations_translations[i]
+			       * tmp_distributed_stokes.block(introspection.block_indices.velocities);
+
+	    pcout << "removing nullspace power after " << power_now << std::endl;
+	    
           }
         relevant_dst.block(0) = tmp_distributed_stokes.block(0);
       }

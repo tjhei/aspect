@@ -548,6 +548,7 @@ namespace aspect
         solution.block(0) = distributed_stokes_solution.block(0);
 
         remove_nullspace(solution, distributed_stokes_solution);
+        remove_nullspace(solution, distributed_stokes_solution);
 
         normalize_pressure(solution);
 
@@ -714,6 +715,7 @@ namespace aspect
     solution.block(block_vel) = distributed_stokes_solution.block(block_vel);
     solution.block(block_p) = distributed_stokes_solution.block(block_p);
 
+    remove_nullspace(solution, distributed_stokes_solution);
     remove_nullspace(solution, distributed_stokes_solution);
 
     normalize_pressure(solution);
