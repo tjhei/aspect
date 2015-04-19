@@ -1,0 +1,248 @@
+-----------------------------------------------------------------------------
+-- This is ASPECT, the Advanced Solver for Problems in Earth's ConvecTion.
+--     . version 1.3.pre
+--     . running in OPTIMIZED mode
+--     . running with 8 MPI processes
+--     . using Trilinos
+-----------------------------------------------------------------------------
+
+Number of active cells: 768 (on 2 levels)
+Number of degrees of freedom: 28,690 (20,790+970+6,930)
+
+*** Timestep 0:  t=0 years
+   Solving temperature system... 0 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... removing nullspace 0 with power 1.3568e-05
+removing nullspace power after -1.41878e-20
+removing nullspace 1 with power 5.3328e-06
+removing nullspace power after -6.45863e-21
+removing nullspace 2 with power -3.72324e-05
+removing nullspace power after 7.49624e-20
+removing nullspace 0 with power -1.05879e-20
+removing nullspace power after -6.35275e-22
+removing nullspace 1 with power -7.19978e-21
+removing nullspace power after 1.05879e-22
+removing nullspace 2 with power 7.45389e-20
+removing nullspace power after 0
+30+32 iterations.
+
+Number of active cells: 1,706 (on 3 levels)
+Number of degrees of freedom: 73,586 (53,283+2,542+17,761)
+
+*** Timestep 0:  t=0 years
+   Solving temperature system... 0 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... removing nullspace 0 with power 0.0116733
+removing nullspace power after 2.05998e-17
+removing nullspace 1 with power -0.0252177
+removing nullspace power after 3.20653e-17
+removing nullspace 2 with power -0.0042168
+removing nullspace power after 4.75016e-18
+removing nullspace 0 with power -0.00250944
+removing nullspace power after 2.20906e-18
+removing nullspace 1 with power 0.000205563
+removing nullspace power after -1.14349e-19
+removing nullspace 2 with power -0.000120724
+removing nullspace power after -7.6233e-20
+30+28 iterations.
+
+   Postprocessing:
+
+     Reference density (kg/m^3):                    3300
+     Reference gravity (m/s^2):                     9.83238
+     Reference thermal expansion (1/K):             2e-05
+     Temperature contrast across model domain (K):  2000
+     Model domain depth (m):                        2.89e+06
+     Reference thermal diffusivity (m^2/s):         9.69697e-07
+     Reference viscosity (Pas):                     1e+21
+     Ra number:                                     3.23065e+07
+     k_value:                                       4
+     reference_cp:                                  1250
+     reference_thermal_diffusivity:                 9.69697e-07
+
+     Writing graphical output:                       output/solution-00000
+     Radial RMS, tangential RMS, total RMS velocity: 33.7 m/yr, 42.1 m/yr, 53.9 m/yr
+     Max and min velocity along boundary parts:      136.6 m/yr, 1.866 m/yr, 171.4 m/yr, 0.5925 m/yr
+     Temperature min/avg/max:                        273 K, 1529 K, 2448 K
+     Pressure min/avg/max:                           -1.342e+09 Pa, 3.374e+10 Pa, 8.926e+10 Pa
+     Heat fluxes through boundary parts:             -3.056e+12 W, 1.166e+13 W
+
+*** Timestep 1:  t=927.023 years
+   Solving temperature system... 20 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... removing nullspace 0 with power 0.0122971
+removing nullspace power after 2.63461e-17
+removing nullspace 1 with power -0.026624
+removing nullspace power after 9.934e-18
+removing nullspace 2 with power -0.0046916
+removing nullspace power after 9.41901e-19
+removing nullspace 0 with power -0.00265887
+removing nullspace power after 1.73303e-18
+removing nullspace 1 with power 0.000241074
+removing nullspace power after -1.48654e-19
+removing nullspace 2 with power -0.000130334
+removing nullspace power after -2.37169e-20
+30+20 iterations.
+
+   Postprocessing:
+     Writing graphical output:                       output/solution-00001
+     Radial RMS, tangential RMS, total RMS velocity: 34 m/yr, 42.9 m/yr, 54.7 m/yr
+     Max and min velocity along boundary parts:      137.4 m/yr, 3.76 m/yr, 175.2 m/yr, 0.5601 m/yr
+     Temperature min/avg/max:                        273 K, 1507 K, 2354 K
+     Pressure min/avg/max:                           -1.363e+09 Pa, 3.377e+10 Pa, 8.928e+10 Pa
+     Heat fluxes through boundary parts:             -2.721e+12 W, 1.034e+13 W
+
+*** Timestep 2:  t=1834.19 years
+   Solving temperature system... 19 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... removing nullspace 0 with power 0.0129923
+removing nullspace power after -9.6494e-18
+removing nullspace 1 with power -0.028165
+removing nullspace power after 4.0068e-17
+removing nullspace 2 with power -0.00521413
+removing nullspace power after -6.74238e-18
+removing nullspace 0 with power -0.0028227
+removing nullspace power after 9.1649e-19
+removing nullspace 1 with power 0.000280214
+removing nullspace power after -5.06102e-19
+removing nullspace 2 with power -0.000140891
+removing nullspace power after 2.87991e-20
+30+20 iterations.
+
+   Postprocessing:
+     Writing graphical output:                       output/solution-00002
+     Radial RMS, tangential RMS, total RMS velocity: 34.4 m/yr, 44 m/yr, 55.9 m/yr
+     Max and min velocity along boundary parts:      139 m/yr, 1.93 m/yr, 179.6 m/yr, 1.025 m/yr
+     Temperature min/avg/max:                        273 K, 1481 K, 2273 K
+     Pressure min/avg/max:                           -1.387e+09 Pa, 3.38e+10 Pa, 8.93e+10 Pa
+     Heat fluxes through boundary parts:             -2.322e+12 W, 8.885e+12 W
+
+*** Timestep 3:  t=2718.65 years
+   Solving temperature system... 18 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... removing nullspace 0 with power 0.0135947
+removing nullspace power after -8.67362e-19
+removing nullspace 1 with power -0.0294533
+removing nullspace power after 3.92346e-18
+removing nullspace 2 with power -0.00564334
+removing nullspace power after 2.16163e-18
+removing nullspace 0 with power -0.00295936
+removing nullspace power after 9.31736e-19
+removing nullspace 1 with power 0.00031217
+removing nullspace power after -1.67289e-19
+removing nullspace 2 with power -0.000149625
+removing nullspace power after -4.23516e-20
+30+20 iterations.
+
+   Postprocessing:
+     Writing graphical output:                       output/solution-00003
+     Radial RMS, tangential RMS, total RMS velocity: 34.8 m/yr, 45.3 m/yr, 57.2 m/yr
+     Max and min velocity along boundary parts:      140.5 m/yr, 1.796 m/yr, 184.2 m/yr, 0.7199 m/yr
+     Temperature min/avg/max:                        273 K, 1458 K, 2273 K
+     Pressure min/avg/max:                           -1.409e+09 Pa, 3.383e+10 Pa, 8.932e+10 Pa
+     Heat fluxes through boundary parts:             -2e+12 W, 7.713e+12 W
+
+*** Timestep 4:  t=3583.76 years
+   Solving temperature system... 18 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... removing nullspace 0 with power 0.014089
+removing nullspace power after 1.43115e-17
+removing nullspace 1 with power -0.0304658
+removing nullspace power after 1.42234e-17
+removing nullspace 2 with power -0.0059663
+removing nullspace power after 3.10353e-18
+removing nullspace 0 with power -0.0030662
+removing nullspace power after 2.63258e-18
+removing nullspace 1 with power 0.000335843
+removing nullspace power after 1.23243e-19
+removing nullspace 2 with power -0.000156317
+removing nullspace power after -3.98105e-20
+30+20 iterations.
+
+   Postprocessing:
+     Writing graphical output:                       output/solution-00004
+     Radial RMS, tangential RMS, total RMS velocity: 35.4 m/yr, 46.7 m/yr, 58.6 m/yr
+     Max and min velocity along boundary parts:      142 m/yr, 1.223 m/yr, 188.9 m/yr, 1.053 m/yr
+     Temperature min/avg/max:                        273 K, 1437 K, 2273 K
+     Pressure min/avg/max:                           -1.429e+09 Pa, 3.385e+10 Pa, 8.933e+10 Pa
+     Heat fluxes through boundary parts:             -1.761e+12 W, 6.822e+12 W
+
+*** Timestep 5:  t=4433.04 years
+   Solving temperature system... 18 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... removing nullspace 0 with power 0.0145
+removing nullspace power after 6.39679e-18
+removing nullspace 1 with power -0.031264
+removing nullspace power after 3.12115e-17
+removing nullspace 2 with power -0.00620337
+removing nullspace power after -1.05777e-17
+removing nullspace 0 with power -0.00314973
+removing nullspace power after 9.1649e-19
+removing nullspace 1 with power 0.000352746
+removing nullspace power after -4.4808e-19
+removing nullspace 2 with power -0.000161382
+removing nullspace power after -1.73642e-19
+30+20 iterations.
+
+   Postprocessing:
+     Writing graphical output:                       output/solution-00005
+     Radial RMS, tangential RMS, total RMS velocity: 36 m/yr, 48 m/yr, 60 m/yr
+     Max and min velocity along boundary parts:      143.5 m/yr, 2.136 m/yr, 193.6 m/yr, 0.6006 m/yr
+     Temperature min/avg/max:                        273 K, 1420 K, 2273 K
+     Pressure min/avg/max:                           -1.446e+09 Pa, 3.387e+10 Pa, 8.935e+10 Pa
+     Heat fluxes through boundary parts:             -1.585e+12 W, 6.142e+12 W
+
+*** Timestep 6:  t=5268.9 years
+   Solving temperature system... 18 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... removing nullspace 0 with power 0.0148575
+removing nullspace power after 7.58942e-19
+removing nullspace 1 with power -0.0319169
+removing nullspace power after 4.76236e-17
+removing nullspace 2 with power -0.00637835
+removing nullspace power after -6.61363e-18
+removing nullspace 0 with power -0.00321731
+removing nullspace power after 5.26854e-19
+removing nullspace 1 with power 0.000364672
+removing nullspace power after -2.52839e-19
+removing nullspace 2 with power -0.000165298
+removing nullspace power after -1.35525e-20
+30+20 iterations.
+
+   Postprocessing:
+     Writing graphical output:                       output/solution-00006
+     Radial RMS, tangential RMS, total RMS velocity: 36.6 m/yr, 49.3 m/yr, 61.4 m/yr
+     Max and min velocity along boundary parts:      145 m/yr, 1.867 m/yr, 198.5 m/yr, 0.7767 m/yr
+     Temperature min/avg/max:                        273 K, 1405 K, 2273 K
+     Pressure min/avg/max:                           -1.462e+09 Pa, 3.389e+10 Pa, 8.937e+10 Pa
+     Heat fluxes through boundary parts:             -1.451e+12 W, 5.614e+12 W
+
+*** Timestep 7:  t=6092.96 years
+   Solving temperature system... 17 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... removing nullspace 0 with power 0.0151854
+removing nullspace power after 5.85469e-18
+removing nullspace 1 with power -0.0324856
+removing nullspace power after 4.76371e-18
+removing nullspace 2 with power -0.00650909
+removing nullspace power after -5.99022e-18
+removing nullspace 0 with power -0.00327531
+removing nullspace power after -4.20128e-19
+removing nullspace 1 with power 0.000372884
+removing nullspace power after 1.8423e-19
+removing nullspace 2 with power -0.000168449
+removing nullspace power after 4.23516e-20
+30+20 iterations.
+
+   Postprocessing:
+     Writing graphical output:                       output/solution-00007
+     Radial RMS, tangential RMS, total RMS velocity: 37.3 m/yr, 50.7 m/yr, 63 m/yr
+     Max and min velocity along boundary parts:      146.6 m/yr, 2.696 m/yr, 203.7 m/yr, 0.7849 m/yr
+     Temperature min/avg/max:                        273 K, 1391 K, 2273 K
+     Pressure min/avg/max:                           -1.477e+09 Pa, 3.391e+10 Pa, 8.938e+10 Pa
+     Heat fluxes through boundary parts:             -1.345e+12 W, 5.197e+12 W
+
+*** Timestep 8:  t=6906.03 years
+   Solving temperature system... 17 iterations.
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 
