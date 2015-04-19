@@ -143,6 +143,7 @@ namespace aspect
               mpi_communicator);
             interpolate_onto_velocity_system(*funcs[i],
                                              net_rotations_translations[i]);
+	    constraints.set_zero (net_rotations_translations[i]);
             net_rotations_translations[i] /= net_rotations_translations[i].l2_norm();
           }
 
@@ -178,6 +179,7 @@ namespace aspect
 	    pcout << "removing nullspace power after " << power_now << std::endl;
 	    
           }
+	current_constraints.distribute (tmp_distributed_stokes);
         relevant_dst.block(0) = tmp_distributed_stokes.block(0);
       }
     if (parameters.nullspace_removal & NullspaceRemoval::angular_momentum)
