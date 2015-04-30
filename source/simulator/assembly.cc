@@ -659,16 +659,6 @@ namespace aspect
                      const double                        cell_diameter,
                      const AdvectionField     &advection_field) const
   {
-    if (std::abs(global_u_infty) < 1e-50
-        || std::abs(global_entropy_variation) < 1e-50
-        || std::abs(global_field_variation) < 1e-50)
-      {
-        if (advection_field.is_temperature())
-          return 5e-3 * cell_diameter;
-        else
-          return 5e-12 * cell_diameter;
-      }
-
     double max_residual = 0;
     double max_velocity = 0;
     double max_density = 0;
@@ -682,12 +672,25 @@ namespace aspect
                                       max_density,
                                       max_specific_heat);
 
+    // If the velocity is 0 we have to assume a sensible velocity to calculate
+    // an artificial diffusion
+    if (std::abs(global_u_infty) < 1e-50)
+      return parameters.stabilization_beta *
+          max_density *
+          max_specific_heat *
+          0.01 / year_in_seconds *
+          cell_diameter;
+
     const double max_viscosity = parameters.stabilization_beta *
                                  max_density *
                                  max_specific_heat *
                                  max_velocity * cell_diameter;
-    if (timestep_number <= 1)
+
+    if (timestep_number <= 1
+        || std::abs(global_entropy_variation) < 1e-50
+        || std::abs(global_field_variation) < 1e-50)
       // we don't have sensible timesteps during the first two iterations
+      // and we can not divide by the entropy_variation if it is zero
       return max_viscosity;
     else
       {
