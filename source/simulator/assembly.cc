@@ -676,10 +676,10 @@ namespace aspect
     // an artificial diffusion
     if (std::abs(global_u_infty) < 1e-50)
       return parameters.stabilization_beta *
-          max_density *
-          max_specific_heat *
-          0.01 / year_in_seconds *
-          cell_diameter;
+             max_density *
+             max_specific_heat *
+             0.01 / year_in_seconds *
+             cell_diameter;
 
     const double max_viscosity = parameters.stabilization_beta *
                                  max_density *
