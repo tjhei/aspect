@@ -604,7 +604,8 @@ namespace aspect
                                     double                             &max_residual,
                                     double                             &max_velocity,
                                     double                             &max_density,
-                                    double                             &max_specific_heat) const
+                                    double                             &max_specific_heat,
+                                    double                             &max_conductivity) const
   {
     const unsigned int n_q_points = scratch.old_field_values->size();
 
@@ -644,6 +645,7 @@ namespace aspect
         max_velocity = std::max      (std::sqrt (u*u), max_velocity);
         max_density  = std::max      (density,         max_density);
         max_specific_heat = std::max (c_P,   max_specific_heat);
+        max_conductivity = std::max  (conductivity, max_conductivity);
       }
   }
 
@@ -663,6 +665,7 @@ namespace aspect
     double max_velocity = 0;
     double max_density = 0;
     double max_specific_heat = 0;
+    double max_conductivity = 0;
 
     compute_advection_system_residual(scratch,
                                       average_field,
@@ -670,15 +673,18 @@ namespace aspect
                                       max_residual,
                                       max_velocity,
                                       max_density,
-                                      max_specific_heat);
+                                      max_specific_heat,
+                                      max_conductivity);
 
     // If the velocity is 0 we have to assume a sensible velocity to calculate
-    // an artificial diffusion
+    // an artificial diffusion. We choose similar to nondimensional
+    // formulations: v ~ thermal_diffusivity / length_scale, which cancels
+    // the density and specific heat from the entropy formulation. It seems
+    // surprising at first that only the conductivity remains, but remember
+    // that this actually *is* an additional artificial diffusion.
     if (std::abs(global_u_infty) < 1e-50)
       return parameters.stabilization_beta *
-             max_density *
-             max_specific_heat *
-             0.01 / year_in_seconds *
+             max_conductivity / geometry_model->length_scale() *
              cell_diameter;
 
     const double max_viscosity = parameters.stabilization_beta *
