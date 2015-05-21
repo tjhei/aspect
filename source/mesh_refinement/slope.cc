@@ -67,7 +67,8 @@ namespace aspect
                     const Tensor<1,dim> gravity = this->get_gravity_model().gravity_vector(midpoint);
 
                     indicators(i) = std::min ( std::acos ( normal * gravity / gravity.norm() ),
-                                               std::acos (-normal * gravity / gravity.norm() ) ); //Don't care whether gravity is in the opposite direction
+                                               std::acos (-normal * gravity / gravity.norm() ) )  //Don't care whether gravity is in the opposite direction
+                                    * std::pow( cell->diameter(), dim-1);
                     break;  //no need to loop over the rest of the faces
                   }
               }
