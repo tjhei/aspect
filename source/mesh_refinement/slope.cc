@@ -57,11 +57,11 @@ namespace aspect
 #else
                   = cell->face(face_no)->boundary_indicator();
 #endif
-                if ( free_surface_indicators.find(boundary_indicator) !=
-                     free_surface_indicators.end() )
+                if ( this->get_free_surface_boundary_indicators().find(boundary_indicator) !=
+                     this->get_free_surface_boundary_indicators().end() )
                   {
                     fe_face_values.reinit(cell, face_no);
- 
+
                     const Tensor<1,dim> normal( fe_face_values.normal_vector(0) ); //Only one q point
                     const Point<dim> midpoint = fe_face_values.quadrature_point(0);
                     const Tensor<1,dim> gravity = this->get_gravity_model().gravity_vector(midpoint);
@@ -73,23 +73,6 @@ namespace aspect
               }
 
     }
-
-    template <int dim>
-    void
-    Slope<dim>::parse_parameters (ParameterHandler &prm)
-    {
-      prm.enter_subsection("Model settings");
-      {
-        const std::vector<types::boundary_id> x_free_surface_boundary_indicators
-          = this->get_geometry_model().translate_symbolic_boundary_names_to_ids(Utilities::split_string_list
-                                                                    (prm.get ("Free surface boundary indicators")));
-        free_surface_indicators
-          = std::set<types::boundary_id> (x_free_surface_boundary_indicators.begin(),
-                                          x_free_surface_boundary_indicators.end());
-      }
-      prm.leave_subsection();
-    }
-
   }
 }
 

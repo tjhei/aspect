@@ -32,10 +32,10 @@ namespace aspect
 
     /**
      * A class that implements a mesh refinement criterion that refines the
-     * mesh on a free surface.  Specifically, it calculates the slope of the 
-     * surface by comparing the local normal and gravity vectors. 
-     * Cells with steeper slopes get refined. This is useful for cases where 
-     * there is steep topgraphy which needs to be tracked better. 
+     * mesh on a free surface.  Specifically, it calculates the slope of the
+     * surface by comparing the local normal and gravity vectors.
+     * Cells with steeper slopes get refined. This is useful for cases where
+     * there is steep topgraphy which needs to be tracked better.
      *
      * @ingroup MeshRefinement
      */
@@ -56,19 +56,6 @@ namespace aspect
         virtual
         void
         execute (Vector<float> &error_indicators) const;
-
-        /**
-         * Read the parameters this class declares from the parameter file.
-         */
-        virtual
-        void
-        parse_parameters (ParameterHandler &prm);
-
-      private:
-        /**
-         * A set of boundary indicators marked for refinement
-         */
-        std::set<types::boundary_id> free_surface_indicators;
     };
   }
 }
