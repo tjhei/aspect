@@ -62,7 +62,7 @@ Number of free surface degrees of freedom: 684
 
    Postprocessing:
      Topography min/max: -12.75 m, 42.41 m, 
-     RMS, max velocity:  0.000457 m/year, 0.00177 m/year
+     RMS, max velocity:  0.000456 m/year, 0.00177 m/year
 
 *** Timestep 4:  t=694364 years
    Solving mesh velocity system... 1 iterations.
@@ -74,10 +74,10 @@ Number of free surface degrees of freedom: 684
      Topography min/max: -18.64 m, 59.94 m, 
      RMS, max velocity:  0.000439 m/year, 0.00169 m/year
 
-Number of active cells: 316 (on 5 levels)
-Number of degrees of freedom: 4,767 (2,922+384+1,461)
+Number of active cells: 322 (on 5 levels)
+Number of degrees of freedom: 4,792 (2,938+385+1,469)
 
-Number of free surface degrees of freedom: 768
+Number of free surface degrees of freedom: 770
 *** Timestep 5:  t=884277 years
    Solving mesh velocity system... 1 iterations.
    Solving temperature system... 10 iterations.
@@ -85,132 +85,132 @@ Number of free surface degrees of freedom: 768
    Solving Stokes system... 0+14 iterations.
 
    Postprocessing:
-     Topography min/max: -14.36 m, 50.21 m, 
+     Topography min/max: -14.36 m, 49.91 m, 
      RMS, max velocity:  0.000444 m/year, 0.0017 m/year
 
 
 
 +---------------------------------------------+------------+------------+
-| Total wallclock time elapsed since start    |      1.88s |            |
+| Total wallclock time elapsed since start    |      2.42s |            |
 |                                             |            |            |
 | Section                         | no. calls |  wall time | % of total |
 +---------------------------------+-----------+------------+------------+
-| Assemble Stokes system          |         7 |     0.456s |        24% |
-| Assemble temperature system     |         7 |     0.227s |        12% |
-| Build Stokes preconditioner     |         7 |      0.37s |        20% |
-| Build temperature preconditioner|         7 |    0.0115s |      0.61% |
-| Solve Stokes system             |         7 |     0.378s |        20% |
-| Solve temperature system        |         7 |   0.00773s |      0.41% |
-| FreeSurface                     |         7 |     0.102s |       5.4% |
-| Initialization                  |         3 |    0.0304s |       1.6% |
-| Postprocessing                  |         6 |   0.00742s |      0.39% |
-| Refine mesh structure, part 1   |         3 |    0.0908s |       4.8% |
-| Refine mesh structure, part 2   |         3 |   0.00571s |       0.3% |
-| Setup dof systems               |         4 |      0.14s |       7.4% |
+| Assemble Stokes system          |         7 |     0.561s |        23% |
+| Assemble temperature system     |         7 |     0.306s |        13% |
+| Build Stokes preconditioner     |         7 |     0.517s |        21% |
+| Build temperature preconditioner|         7 |    0.0141s |      0.58% |
+| Solve Stokes system             |         7 |      0.41s |        17% |
+| Solve temperature system        |         7 |   0.00956s |       0.4% |
+| FreeSurface                     |         7 |     0.143s |       5.9% |
+| Initialization                  |         3 |    0.0486s |         2% |
+| Postprocessing                  |         6 |    0.0102s |      0.42% |
+| Refine mesh structure, part 1   |         3 |     0.126s |       5.2% |
+| Refine mesh structure, part 2   |         3 |   0.00808s |      0.33% |
+| Setup dof systems               |         4 |     0.193s |         8% |
 +---------------------------------+-----------+------------+------------+
 
-*** Timestep 6:  t=1.06812e+06 years
+*** Timestep 6:  t=1.06811e+06 years
    Solving mesh velocity system... 1 iterations.
    Solving temperature system... 10 iterations.
    Rebuilding Stokes preconditioner...
    Solving Stokes system... 0+13 iterations.
 
    Postprocessing:
-     Topography min/max: -16.55 m, 54.85 m, 
+     Topography min/max: -16.55 m, 54.17 m, 
      RMS, max velocity:  0.000437 m/year, 0.00166 m/year
 
-Number of active cells: 382 (on 5 levels)
-Number of degrees of freedom: 5,698 (3,494+457+1,747)
+Number of active cells: 394 (on 5 levels)
+Number of degrees of freedom: 5,860 (3,594+469+1,797)
 
-Number of free surface degrees of freedom: 914
-*** Timestep 7:  t=1.25635e+06 years
+Number of free surface degrees of freedom: 938
+*** Timestep 7:  t=1.25633e+06 years
    Solving mesh velocity system... 1 iterations.
    Solving temperature system... 9 iterations.
    Rebuilding Stokes preconditioner...
    Solving Stokes system... 0+13 iterations.
 
    Postprocessing:
-     Topography min/max: -15.57 m, 52.62 m, 
+     Topography min/max: -15.57 m, 52.11 m, 
      RMS, max velocity:  0.000436 m/year, 0.00164 m/year
 
-*** Timestep 8:  t=1.4468e+06 years
+*** Timestep 8:  t=1.44677e+06 years
    Solving mesh velocity system... 1 iterations.
    Solving temperature system... 9 iterations.
    Rebuilding Stokes preconditioner...
-   Solving Stokes system... 0+13 iterations.
+   Solving Stokes system... 0+12 iterations.
 
    Postprocessing:
-     Topography min/max: -16.11 m, 53.45 m, 
+     Topography min/max: -16.11 m, 53.1 m, 
      RMS, max velocity:  0.000433 m/year, 0.00161 m/year
 
-Number of active cells: 406 (on 5 levels)
-Number of degrees of freedom: 6,023 (3,694+482+1,847)
+Number of active cells: 454 (on 5 levels)
+Number of degrees of freedom: 6,667 (4,090+532+2,045)
 
-Number of free surface degrees of freedom: 964
-*** Timestep 9:  t=1.64068e+06 years
+Number of free surface degrees of freedom: 1064
+*** Timestep 9:  t=1.64063e+06 years
    Solving mesh velocity system... 1 iterations.
    Solving temperature system... 9 iterations.
    Rebuilding Stokes preconditioner...
    Solving Stokes system... 0+12 iterations.
 
    Postprocessing:
-     Topography min/max: -15.86 m, 52.86 m, 
+     Topography min/max: -15.86 m, 52.63 m, 
      RMS, max velocity:  0.000431 m/year, 0.00159 m/year
 
-*** Timestep 10:  t=1.83747e+06 years
+*** Timestep 10:  t=1.8374e+06 years
    Solving mesh velocity system... 1 iterations.
    Solving temperature system... 9 iterations.
    Rebuilding Stokes preconditioner...
    Solving Stokes system... 0+12 iterations.
 
    Postprocessing:
-     Topography min/max: -16.05 m, 53.1 m, 
+     Topography min/max: -16.05 m, 52.96 m, 
      RMS, max velocity:  0.000428 m/year, 0.00156 m/year
 
-Number of active cells: 454 (on 5 levels)
-Number of degrees of freedom: 6,647 (4,078+530+2,039)
+Number of active cells: 490 (on 5 levels)
+Number of degrees of freedom: 7,155 (4,390+570+2,195)
 
-Number of free surface degrees of freedom: 1060
+Number of free surface degrees of freedom: 1140
 
 
 +---------------------------------------------+------------+------------+
-| Total wallclock time elapsed since start    |       3.6s |            |
+| Total wallclock time elapsed since start    |      4.69s |            |
 |                                             |            |            |
 | Section                         | no. calls |  wall time | % of total |
 +---------------------------------+-----------+------------+------------+
-| Assemble Stokes system          |        12 |     0.875s |        24% |
-| Assemble temperature system     |        12 |     0.508s |        14% |
-| Build Stokes preconditioner     |        12 |       0.7s |        19% |
-| Build temperature preconditioner|        12 |    0.0214s |      0.59% |
-| Solve Stokes system             |        12 |     0.687s |        19% |
-| Solve temperature system        |        12 |    0.0174s |      0.48% |
-| FreeSurface                     |        12 |     0.197s |       5.5% |
-| Initialization                  |         3 |    0.0304s |      0.84% |
-| Postprocessing                  |        11 |    0.0171s |      0.48% |
-| Refine mesh structure, part 1   |         6 |     0.187s |       5.2% |
-| Refine mesh structure, part 2   |         6 |    0.0136s |      0.38% |
-| Setup dof systems               |         7 |     0.263s |       7.3% |
+| Assemble Stokes system          |        12 |       1.1s |        23% |
+| Assemble temperature system     |        12 |     0.695s |        15% |
+| Build Stokes preconditioner     |        12 |         1s |        21% |
+| Build temperature preconditioner|        12 |    0.0265s |      0.57% |
+| Solve Stokes system             |        12 |     0.742s |        16% |
+| Solve temperature system        |        12 |    0.0213s |      0.45% |
+| FreeSurface                     |        12 |     0.277s |       5.9% |
+| Initialization                  |         3 |    0.0486s |         1% |
+| Postprocessing                  |        11 |    0.0246s |      0.52% |
+| Refine mesh structure, part 1   |         6 |     0.261s |       5.6% |
+| Refine mesh structure, part 2   |         6 |    0.0196s |      0.42% |
+| Setup dof systems               |         7 |     0.356s |       7.6% |
 +---------------------------------+-----------+------------+------------+
 
 Termination requested by criterion: end step
 
 
 +---------------------------------------------+------------+------------+
-| Total wallclock time elapsed since start    |       3.6s |            |
+| Total wallclock time elapsed since start    |      4.69s |            |
 |                                             |            |            |
 | Section                         | no. calls |  wall time | % of total |
 +---------------------------------+-----------+------------+------------+
-| Assemble Stokes system          |        12 |     0.875s |        24% |
-| Assemble temperature system     |        12 |     0.508s |        14% |
-| Build Stokes preconditioner     |        12 |       0.7s |        19% |
-| Build temperature preconditioner|        12 |    0.0214s |      0.59% |
-| Solve Stokes system             |        12 |     0.687s |        19% |
-| Solve temperature system        |        12 |    0.0174s |      0.48% |
-| FreeSurface                     |        12 |     0.197s |       5.5% |
-| Initialization                  |         3 |    0.0304s |      0.84% |
-| Postprocessing                  |        11 |    0.0171s |      0.48% |
-| Refine mesh structure, part 1   |         6 |     0.187s |       5.2% |
-| Refine mesh structure, part 2   |         6 |    0.0136s |      0.38% |
-| Setup dof systems               |         7 |     0.263s |       7.3% |
+| Assemble Stokes system          |        12 |       1.1s |        23% |
+| Assemble temperature system     |        12 |     0.695s |        15% |
+| Build Stokes preconditioner     |        12 |         1s |        21% |
+| Build temperature preconditioner|        12 |    0.0265s |      0.57% |
+| Solve Stokes system             |        12 |     0.742s |        16% |
+| Solve temperature system        |        12 |    0.0213s |      0.45% |
+| FreeSurface                     |        12 |     0.277s |       5.9% |
+| Initialization                  |         3 |    0.0486s |         1% |
+| Postprocessing                  |        11 |    0.0246s |      0.52% |
+| Refine mesh structure, part 1   |         6 |     0.261s |       5.6% |
+| Refine mesh structure, part 2   |         6 |    0.0196s |      0.42% |
+| Setup dof systems               |         7 |     0.356s |       7.6% |
 +---------------------------------+-----------+------------+------------+
 
