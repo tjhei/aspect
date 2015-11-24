@@ -65,6 +65,15 @@ namespace aspect
         initialize ();
 
         /**
+         *  Initialization function which passes the boundary indicator to
+         *  the object. The funciton is called once at the beginning of the
+         *  program after the normal initialize function is run.
+         */
+        virtual
+        void
+        initialize(types::boundary_id boundary_id);
+
+        /**
          * A function that is called at the beginning of each time step. The
          * default implementation of the function does nothing, but derived
          * classes that need more elaborate setups for a given time step may

@@ -491,6 +491,7 @@ namespace aspect
           sim->initialize_simulator(*this);
         bv->parse_parameters (prm);
         bv->initialize ();
+        bv->initialize (p->first);
       }
 
     for (std::map<types::boundary_id,std::pair<std::string,std::string> >::const_iterator

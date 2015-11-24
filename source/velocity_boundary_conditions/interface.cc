@@ -46,6 +46,13 @@ namespace aspect
 
     template <int dim>
     void
+    Interface<dim>::initialize (types::boundary_id boundary_id)
+    {}
+
+
+
+    template <int dim>
+    void
     Interface<dim>::update ()
     {}
 
