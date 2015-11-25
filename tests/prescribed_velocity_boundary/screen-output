@@ -1,0 +1,33 @@
+-----------------------------------------------------------------------------
+-- This is ASPECT, the Advanced Solver for Problems in Earth's ConvecTion.
+--     . version 1.4.pre
+--     . running in DEBUG mode
+--     . running with 1 MPI process
+--     . using Trilinos
+-----------------------------------------------------------------------------
+
+Loading shared library <./libprescribed_velocity_boundary.so>
+
+initialize called with bdry=0 and called count=1
+initialize called with bdry=1 and called count=1
+initialize called with bdry=2 and called count=1
+initialize called with bdry=3 and called count=1
+Number of active cells: 16 (on 3 levels)
+Number of degrees of freedom: 268 (162+25+81)
+
+*** Timestep 0:  t=0 seconds
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 16 iterations.
+      Nonlinear Stokes residual: 60.9328
+
+   Postprocessing:
+     Writing graphical output:      output-prescribed_velocity_boundary/solution-00000
+     Errors u_L1, p_L1, u_L2, p_L2: 4.145864e-02, 5.044065e-01, 2.432442e-02, 3.912139e-01
+
+Termination requested by criterion: end time
+
+
++---------------------------------------------+------------+------------+
++---------------------------------+-----------+------------+------------+
++---------------------------------+-----------+------------+------------+
+
