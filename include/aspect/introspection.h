@@ -29,9 +29,208 @@
 
 #include <aspect/parameters.h>
 
+namespace dealii
+{
+  /**
+   * Represent a single variable of the deal.II finite element system
+   */
+  template <int dim>
+  struct Variable
+  {
+    /**
+     * Constructor for a variable.
+     *
+     * @param name A user-friendly and unique string representation.
+     *
+     * @param fe The FiniteElement class to use.
+     *
+     * @param multiplicity Number of copies of the @p fe to create.
+     *
+     * @param n_blocks Number of blocks this variable represents inside the
+     * linear system. A value of 0 will add the next variable to the current
+     * block, 1 will put this variable into a single block. A value that is
+     * euqal to the number of components will create a block for each
+     * component.
+     */
+    Variable(const std::string &name,
+             std_cxx11::shared_ptr<FiniteElement<dim> > fe,
+             const unsigned int multiplicity,
+             const unsigned int n_blocks)
+      : name(name), fe(fe), multiplicity(multiplicity), n_blocks(n_blocks),
+        first_component_index(-1), block_index(-1), base_index(-1)
+    {
+      Assert(n_blocks == 0
+             || n_blocks == 1
+             || n_blocks == n_components(),
+             ExcMessage("A Variable can only have 0, 1, or n_component number of blocks"));
+    }
+
+    unsigned int n_components() const
+    {
+      return fe->n_components() * multiplicity;
+    }
+
+    const dealii::FEValuesExtractors::Scalar &extractor_scalar() const
+    {
+      Assert(n_components()==1, ExcMessage("not a scalar FE"));
+      return scalar_extractor;
+    }
+
+    const dealii::FEValuesExtractors::Vector &extractor_vector() const
+    {
+      Assert(n_components()==dim, ExcMessage("not a vector FE"));
+      return vector_extractor;
+    }
+
+    void initialize(const unsigned int component_index,
+                    const unsigned int block_index_,
+                    const unsigned int base_index_
+                   )
+    {
+      block_index = block_index_;
+      first_component_index = component_index;
+      base_index = base_index_;
+      if (n_components()==1)
+        scalar_extractor.component = component_index;
+      else
+        scalar_extractor.component = -1;
+
+      if (n_components()==dim)
+        vector_extractor.first_vector_component = component_index;
+      else
+        vector_extractor.first_vector_component = -1;
+    }
+
+    std::string name;
+    std_cxx11::shared_ptr<FiniteElement<dim> > fe;
+    unsigned int multiplicity;
+    unsigned int n_blocks;
+
+    unsigned int first_component_index;
+    unsigned int block_index;
+    unsigned int base_index;
+
+    dealii::FEValuesExtractors::Scalar scalar_extractor;
+    dealii::FEValuesExtractors::Vector vector_extractor;
+    ComponentMask component_mask;
+  };
+
+  template <int dim>
+  class IntrospectionBase
+  {
+    public:
+      IntrospectionBase() {}
+      IntrospectionBase(const std::vector<Variable<dim> > &variables)
+      {
+        initialize(variables);
+      }
+
+      void initialize(const std::vector<Variable<dim> > &variables)
+      {
+        variables_ = variables;
+        name_map.clear();
+
+        unsigned int component_index = 0;
+        unsigned int block_index = 0;
+
+        for (unsigned int i=0; i<variables_.size(); ++i)
+          {
+            variables_[i].initialize(component_index, block_index, i);
+            component_index+= variables_[i].n_components();
+            block_index += variables_[i].n_blocks;
+
+            name_map.insert(std::make_pair(variables_[i].name, &variables_[i]));
+          }
+        Assert(variables_.back().n_blocks != 0
+               || variables_.back().n_components() == 0
+               , ExcMessage("last variable needs to have >0 blocks"));
+
+        n_components_ = component_index;
+        n_blocks_ = block_index;
+
+        fes.resize(variables_.size());
+        multiplicities.resize(variables_.size());
+        for (unsigned int i=0; i<variables_.size(); ++i)
+          {
+            fes[i] = &*(variables_[i].fe);
+            multiplicities[i] = variables_[i].multiplicity;
+            variables_[i].component_mask=ComponentMask(n_components_, false);
+            for (unsigned int c=0; c<variables_[i].n_components(); ++c)
+              variables_[i].component_mask.set(c+variables_[i].first_component_index, true);
+          }
+
+        components_to_blocks_.clear();
+        for (unsigned int i=0; i<variables_.size(); ++i)
+          {
+            for (unsigned int c=0; c<variables_[i].n_components(); ++c)
+              components_to_blocks_.push_back(variables_[i].block_index
+                                              + ((variables_[i].n_blocks>1)?c:0));
+          }
+      }
+
+      const Variable<dim> &variable(const std::string &name) const
+      {
+        typename std::map<std::string, Variable<dim>*>::const_iterator it
+          = name_map.find(name);
+        Assert(it != name_map.end(), ExcMessage("Variable '" + name + "' not found!"));
+        return *(it->second);
+      }
+
+      const std::vector<Variable<dim> > variables() const
+      {
+        return variables_;
+      }
+
+      const unsigned int n_components() const
+      {
+        return n_components_;
+      }
+      const unsigned int n_blocks() const
+      {
+        return n_blocks_;
+      }
+
+      /**
+       * Return the vector of finite element spaces used for the construction
+       * of the FESystem.
+       */
+      const std::vector<const FiniteElement<dim> *> &get_fes() const
+      {
+        return fes;
+      }
+
+      /**
+       * Return the vector of multiplicities used for the construction of the
+       * FESystem.
+       */
+      const std::vector<unsigned int> &get_multiplicities() const
+      {
+        return multiplicities;
+      }
+
+      const std::vector<unsigned int> &components_to_blocks() const
+      {
+        return components_to_blocks_;
+      }
+
+    protected:
+      std::vector<Variable<dim> > variables_;
+
+      std::map<std::string, Variable<dim>* > name_map;
+      unsigned int n_components_;
+      unsigned int n_blocks_;
+      std::vector<const FiniteElement<dim> *> fes;
+      std::vector<unsigned int> multiplicities;
+      std::vector<unsigned int> components_to_blocks_;
+  };
+}
+
 namespace aspect
 {
   using namespace dealii;
+
+
+
 
   /**
    * The introspection class provides information about the simulation as a
@@ -67,7 +266,7 @@ namespace aspect
    * @ingroup Simulator
    */
   template <int dim>
-  struct Introspection
+  struct Introspection: public dealii::IntrospectionBase<dim>
   {
     public:
       /**
@@ -75,12 +274,17 @@ namespace aspect
        * @param add_compaction_pressure Set to true if the compaction pressure
        * should be added. TODO: there are different cases for the block
        */
-      Introspection (const Parameters<dim> &parameters);
+      Introspection (const std::vector<dealii::Variable<dim> > &variables,
+                     const Parameters<dim> &parameters);
 
       /**
        * Destructor.
        */
       ~Introspection ();
+
+
+      static std::vector<Variable<dim> >
+      construct_variables (const Parameters<dim> &parameters);
 
       /**
        * @name Things that are independent of the current mesh
@@ -103,9 +307,9 @@ namespace aspect
       {
         unsigned int       velocities[dim];
         unsigned int       pressure;
-        unsigned int       fluid_velocities[dim];
-        unsigned int       fluid_pressure;
-        unsigned int       compaction_pressure;
+        //unsigned int       fluid_velocities[dim];
+        //unsigned int       fluid_pressure;
+        //unsigned int       compaction_pressure;
         unsigned int       temperature;
         std::vector<unsigned int> compositional_fields;
       };
@@ -130,9 +334,9 @@ namespace aspect
       {
         unsigned int       velocities;
         unsigned int       pressure;
-        unsigned int       fluid_velocities;
-        unsigned int       fluid_pressure;
-        unsigned int       compaction_pressure;
+        //unsigned int       fluid_velocities;
+        //unsigned int       fluid_pressure;
+        //unsigned int       compaction_pressure;
         unsigned int       temperature;
         std::vector<unsigned int> compositional_fields;
       };
@@ -152,9 +356,9 @@ namespace aspect
 
         const FEValuesExtractors::Vector              velocities;
         const FEValuesExtractors::Scalar              pressure;
-        const FEValuesExtractors::Vector              fluid_velocities;
-        const FEValuesExtractors::Scalar              fluid_pressure;
-        const FEValuesExtractors::Scalar              compaction_pressure;
+        //const FEValuesExtractors::Vector              fluid_velocities;
+        //const FEValuesExtractors::Scalar              fluid_pressure;
+        //const FEValuesExtractors::Scalar              compaction_pressure;
         const FEValuesExtractors::Scalar              temperature;
         const std::vector<FEValuesExtractors::Scalar> compositional_fields;
       };
@@ -178,9 +382,9 @@ namespace aspect
       {
         unsigned int       velocities;
         unsigned int       pressure;
-        unsigned int       fluid_velocities;
-        unsigned int       fluid_pressure;
-        unsigned int       compaction_pressure;
+        //unsigned int       fluid_velocities;
+        //unsigned int       fluid_pressure;
+        //unsigned int       compaction_pressure;
         unsigned int       temperature;
         unsigned int       compositional_fields;
       };
@@ -188,7 +392,7 @@ namespace aspect
        * A variable that enumerates the base elements of the finite element
        * that correspond to each of the variables in this problem.
        */
-      const BaseElements base_elements;
+      BaseElements base_elements;
 
 
       /**
@@ -200,9 +404,9 @@ namespace aspect
       {
         ComponentMask              velocities;
         ComponentMask              pressure;
-        ComponentMask              fluid_velocities;
-        ComponentMask              fluid_pressure;
-        ComponentMask              compaction_pressure;
+        //ComponentMask              fluid_velocities;
+        //ComponentMask              fluid_pressure;
+        //ComponentMask              compaction_pressure;
         ComponentMask              temperature;
         std::vector<ComponentMask> compositional_fields;
       };
@@ -212,12 +416,6 @@ namespace aspect
        * glossary.
        */
       ComponentMasks component_masks;
-
-      /**
-       * A variable that describes for each vector component which vector
-       * block it corresponds to.
-       */
-      std::vector<unsigned int> components_to_blocks;
 
       /**
        * @}
@@ -335,38 +533,12 @@ namespace aspect
       bool
       compositional_name_exists (const std::string &name) const;
 
-      /**
-       * Return the vector of finite element spaces used for the construction
-       * of the FESystem.
-       */
-      const std::vector<const dealii::FiniteElement<dim> *> &get_fes() const;
-
-      /**
-       * Return the vector of multiplicities used for the construction of the
-       * FESystem.
-       */
-      const std::vector<unsigned int> &get_multiplicities() const;
-
-      /**
-       * Free memory allocated inside @p fes after it is used to construct the
-       * FESystem.
-       */
-      void free_finite_element_data();
-
     private:
       /**
        * A vector that stores the names of the compositional fields that will
        * be used in the simulation.
        */
       std::vector<std::string> composition_names;
-      /**
-       * Dynamically allocated FiniteElements.
-       */
-      std::vector<const FiniteElement<dim> *> fes;
-      /**
-       * Multiplicities of the @p fes.
-       */
-      std::vector<unsigned int> multiplicities;
 
   };
 }

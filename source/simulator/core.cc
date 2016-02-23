@@ -75,6 +75,15 @@ namespace aspect
 
       return false;
     }
+
+    template <int dim>
+    std::vector<dealii::Variable<dim> > get_variables(const Parameters<dim> &parameters)
+    {
+      std::vector<dealii::Variable<dim> > variables
+        = Introspection<dim>::construct_variables (parameters);
+      // TODO add signal
+      return variables;
+    }
   }
 
 
@@ -101,7 +110,7 @@ namespace aspect
     :
     assemblers (new internal::Assembly::AssemblerLists<dim>()),
     parameters (prm, mpi_communicator_),
-    introspection (parameters),
+    introspection (get_variables<dim>(parameters), parameters),
     mpi_communicator (Utilities::MPI::duplicate_communicator (mpi_communicator_)),
     iostream_tee_device(std::cout, log_file_stream),
     iostream_tee_stream(iostream_tee_device),
@@ -175,9 +184,6 @@ namespace aspect
     rebuild_stokes_matrix (true),
     rebuild_stokes_preconditioner (true)
   {
-    // FE data is no longer needed because we constructed finite_element above
-    introspection.free_finite_element_data();
-
     if (Utilities::MPI::this_mpi_process(mpi_communicator) == 0)
       {
         // only open the logfile on processor 0, the other processors won't be
@@ -1087,7 +1093,7 @@ namespace aspect
     // cells are created.
     DoFRenumbering::hierarchical (dof_handler);
     DoFRenumbering::component_wise (dof_handler,
-                                    introspection.components_to_blocks);
+                                    introspection.components_to_blocks());
 
     // set up the introspection object that stores all sorts of
     // information about components of the finite element, component
@@ -1379,7 +1385,7 @@ namespace aspect
     // of vectors and matrices
     DoFTools::count_dofs_per_block (dof_handler,
                                     introspection.system_dofs_per_block,
-                                    introspection.components_to_blocks);
+                                    introspection.components_to_blocks());
     {
       IndexSet system_index_set = dof_handler.locally_owned_dofs();
       split_by_block (introspection.index_sets.system_partitioning,
