@@ -599,11 +599,7 @@ namespace aspect
 
         // convert melt pressures:
         if (parameters.include_melt_transport)
-          {
-            SimulatorAccess<dim> sim;
-            sim.initialize_simulator (*this);
-            melt_handler->compute_melt_variables(solution);
-          }
+          melt_handler->compute_melt_variables(solution);
 
         computing_timer.exit_section();
 
@@ -720,7 +716,6 @@ namespace aspect
                            std_cxx11::_3,
                            std_cxx11::ref(solver_history)));
 
-
         solver.solve (stokes_block,
                       distributed_stokes_solution,
                       distributed_stokes_rhs,
@@ -827,11 +822,7 @@ namespace aspect
 
     // convert melt pressures:
     if (parameters.include_melt_transport)
-      {
-        SimulatorAccess<dim> sim;
-        sim.initialize_simulator (*this);
-        melt_handler->compute_melt_variables(solution);
-      }
+      melt_handler->compute_melt_variables(solution);
 
     statistics.add_value("Iterations for Stokes solver",
                          solver_control_cheap.last_step() + solver_control_expensive.last_step());
