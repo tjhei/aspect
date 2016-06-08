@@ -333,7 +333,7 @@ namespace aspect
       dst *= -1.0;
       system_matrix.block(1,1).vmult_add (dst, src);
   //    std::cout << "schur end " << dst*nullspace << std::endl;
-      if (false && nullspace.size()>0)
+      if (true && nullspace.size()>0)
         {
           // subtract nullspace vector from destination
           const double len = nullspace.l2_norm();
@@ -362,7 +362,6 @@ namespace aspect
       if (do_solve_S)
         {
           dst.block(1) = 0.0;
-          SolverControl solver_control(10000, src.block(1).l2_norm() * S_block_tolerance, true, true);
 
           SchurComplement<PreconditionerA> schur_complement (stokes_matrix, a_preconditioner);
           schur_complement.tmp1 = src.block(0);
@@ -373,7 +372,7 @@ namespace aspect
 //                    << " " << src.block(1)*schur_complement.nullspace << std::endl;
 
           LinearAlgebra::Vector rhs2 = src.block(1);
-          if (true && nullspace.size()>0)
+          if (false && nullspace.size()>0)
             {
               // subtract nullspace vector from destination
               const double len = nullspace.block(1).l2_norm();
@@ -382,6 +381,8 @@ namespace aspect
 //              std::cout << "adjusted nullspace in prec by " << s << " " << rhs2*nullspace.block(1)
 //                        << " len=" << len << std::endl;
             }
+          SolverControl solver_control(10000, rhs2.l2_norm() * S_block_tolerance, true, true);
+
 //           SolverFGMRES<LinearAlgebra::Vector> solver(solver_control
 //           ,
 //                                                     SolverFGMRES<LinearAlgebra::Vector>::AdditionalData(1000,true));
