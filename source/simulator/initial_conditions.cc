@@ -197,6 +197,7 @@ namespace aspect
   template <int dim>
   void Simulator<dim>::compute_initial_pressure_field ()
   {
+    //return;
     // Note that this code will overwrite the velocity solution with 0 if
     // velocity and pressure are in the same block (i.e., direct solver is
     // used). As the velocity is all zero anyway, this is currently not a

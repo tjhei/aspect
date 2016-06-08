@@ -2548,7 +2548,7 @@ namespace aspect
     // for extensive benchmarking of various settings of these
     // parameters and others, see
     // https://github.com/geodynamics/aspect/pull/234
-    Amg_data.smoother_sweeps = 2;
+    Amg_data.smoother_sweeps = 5;
     Amg_data.aggregation_threshold = 0.001;
 #endif
 
@@ -2564,11 +2564,11 @@ namespace aspect
      *  does the mass matrix, we just reuse the same system_preconditioner_matrix
      *  for the Mp_preconditioner block.  Maybe a bit messy*/
     Mp_preconditioner->initialize (system_preconditioner_matrix.block(1,1));
-    if (parameters.free_surface_enabled)
+    if (parameters.include_melt_transport || parameters.free_surface_enabled)
       Amg_preconditioner->initialize (system_matrix.block(0,0),
                                       Amg_data);
     else
-      Amg_preconditioner->initialize (system_preconditioner_matrix.block(0,0),
+      Amg_preconditioner->initialize (system_preconditioner_matrix.block(0,0), //
                                       Amg_data);
 
     rebuild_stokes_preconditioner = false;

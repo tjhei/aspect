@@ -291,7 +291,7 @@ namespace aspect
       entropy_derivative_pressure(n_points, aspect::Utilities::signaling_nan<double>()),
       entropy_derivative_temperature(n_points, aspect::Utilities::signaling_nan<double>()),
       reaction_terms(n_points, std::vector<double>(n_comp, aspect::Utilities::signaling_nan<double>())),
-      force_vector(n_points, Vector<double>(dim+1))
+      force_vector(n_points, Vector<double>(dim+2))
     {}
 
 

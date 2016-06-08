@@ -244,10 +244,14 @@ namespace aspect
           Tensor<1,dim> force_u;
           for (unsigned int d=0; d<dim; ++d)
             force_u[d] = scratch.material_model_outputs.force_vector[q][d];
+          const double force_pf = scratch.material_model_outputs.force_vector[q][dim];
+          //const double force_pc = scratch.material_model_outputs.force_vector[q][dim];
 
           for (unsigned int i=0; i<dofs_per_cell; ++i)
             data.local_rhs(i) += (
-                                   (bulk_density * gravity * scratch.phi_u[i])
+                                   ((force_u + bulk_density * gravity) * scratch.phi_u[i])
+                  +
+                  (pressure_scaling * force_pf *SCALE* scratch.phi_p[i])
                                    +
                                    // add the term that results from the compressibility. compared
                                    // to the manual, this term seems to have the wrong sign, but this
@@ -899,8 +903,6 @@ namespace aspect
     {
       const unsigned int block_p = this->introspection().block_indices.pressure;
 
-      // Think what we need to do if the pressure is not an FE_Q...
-      Assert(this->get_parameters().use_locally_conservative_discretization == false, ExcNotImplemented());
       const Quadrature<dim> quadrature(this->get_fe().base_element(this->introspection().base_elements.pressure).get_unit_support_points());
       std::vector<double> porosity_values(quadrature.size());
       std::vector<double> p_c_values(quadrature.size());
@@ -940,7 +942,7 @@ namespace aspect
 
                 double p = p_f_values[j];
                 if (phi < 1.0-this->get_melt_handler().melt_transport_threshold)
-                  p = (p_c_values[j] - (phi-1.0) * p_f_values[j]) / (1.0-phi);
+                  p += p_c_values[j]/ (1.0-phi);
 
                 distributed_vector(local_dof_indices[pressure_idx]) = p;
               }
@@ -986,7 +988,7 @@ namespace aspect
     variables.insert(variables.begin()+2,
                      VariableDeclaration<dim>(
                        "compaction pressure",
-                       (parameters.use_locally_conservative_discretization)
+                       (/*true ||*/ parameters.use_locally_conservative_discretization)
                        ?
                        std_cxx11::shared_ptr<FiniteElement<dim> >(new FE_DGP<dim>(parameters.stokes_velocity_degree-1))
                        :

@@ -177,6 +177,7 @@ namespace aspect
     double                         linear_stokes_solver_tolerance;
     double                         linear_solver_A_block_tolerance;
     double                         linear_solver_S_block_tolerance;
+    bool solve_real_schur_complement;
     unsigned int                   max_nonlinear_iterations;
     unsigned int                   max_nonlinear_iterations_in_prerefinement;
     unsigned int                   n_cheap_stokes_solver_steps;

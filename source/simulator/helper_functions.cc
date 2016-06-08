@@ -761,7 +761,8 @@ namespace aspect
     if (parameters.pressure_normalization == "no")
       return;
 
-    if (parameters.use_locally_conservative_discretization == false)
+    if (parameters.use_locally_conservative_discretization == false
+        )
       {
         if ((introspection.block_indices.velocities != introspection.block_indices.pressure)
             && !parameters.include_melt_transport)
@@ -857,9 +858,6 @@ namespace aspect
   template <int dim>
   void Simulator<dim>::make_pressure_rhs_compatible(LinearAlgebra::BlockVector &vector)
   {
-    if (parameters.use_locally_conservative_discretization)
-      AssertThrow(false, ExcNotImplemented());
-
     const double global_normal_velocity_integral = 0.0;
 
     // In the following we integrate the right hand side. This integral is the
