@@ -26,11 +26,11 @@ subsection Discretization
 end
 
 subsection Mesh refinement
-  set Initial global refinement                = {2|3|4|5|6|7}
-  set Refinement fraction                      = 0.3333
+  set Initial global refinement                = {1|2|3|4}
+  set Refinement fraction                      = 0.50#3333
   set Coarsening fraction                      = 0.0
 
-  set Strategy                                 = composition, pc
+  set Strategy                                 = composition
 #melt velocity, composition#composition, velocity# gradient#,velocity#viscosity#composition
 
   set Time steps between mesh refinement       = 0
@@ -90,10 +90,10 @@ subsection Geometry model
 
   subsection Box
     set X extent  = 300000
-    set Y extent  = 200000
+    set Y extent  = 100000
     set Z extent  = 200000
     set X repetitions           = 3
-    set Y repetitions           = 2
+    set Y repetitions           = 1
     set Z repetitions           = 2
     set Box origin X coordinate = 0
     set Box origin Y coordinate = 0
@@ -127,7 +127,7 @@ subsection Compositional initial conditions
   set Model name = function # default: 
   subsection Function
     set Function constants = pi=3.14159265359
-    set Function expression = exp(-0.50e2 * pow(z / 0.100000e6 - exp(-x / 0.100000e6) - 0.1e1, 0.2e1)) * cos(y / 0.100000e6) / 0.5e1
+    set Function expression = exp(-0.50e2 * pow(z / 0.100000e6 - exp(-x / 0.100000e6) - 0.1e1, 0.2e1)) * cos(pi * y / 0.200000e6) / 0.5e1
 
     set Variable names      = x,y,z
   end

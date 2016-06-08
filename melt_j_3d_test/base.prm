@@ -34,7 +34,7 @@ subsection Mesh refinement
 #melt velocity, composition#composition, velocity# gradient#,velocity#viscosity#composition
 
   set Time steps between mesh refinement       = 0
-  set Initial adaptive refinement              = 5                    # default: 2
+  set Initial adaptive refinement              = 10                    # default: 2
   set Run postprocessors on initial refinement = true
   set Normalize individual refinement criteria = true
 
