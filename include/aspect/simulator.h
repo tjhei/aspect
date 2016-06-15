@@ -1073,13 +1073,6 @@ namespace aspect
        */
       Parameters<dim>                     parameters;
 
-      /**
-       * Shared pointer for an instance of the MeltHandler. This way,
-       * if we do not need the machinery for doing melt stuff, we do
-       * not even allocate it.
-       */
-      std_cxx11::shared_ptr<MeltHandler<dim> > melt_handler;
-
       SimulatorSignals<dim>               signals;
       const IntermediaryConstructorAction post_signal_creation;
       Introspection<dim>                  introspection;
@@ -1270,6 +1263,13 @@ namespace aspect
       /**
        * @}
        */
+
+      /**
+       * Shared pointer for an instance of the MeltHandler. This way,
+       * if we do not need the machinery for doing melt stuff, we do
+       * not even allocate it.
+       */
+      std_cxx11::shared_ptr<MeltHandler<dim> > melt_handler;
 
     public:
       /**
