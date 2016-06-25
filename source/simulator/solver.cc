@@ -394,7 +394,7 @@ namespace aspect
                 mp_preconditioner
                  );
            n_iterations_S_ += solver_control.last_step();
-           std::cout << "SCHUR: " << solver_control.last_step() << std::endl;
+           //std::cout << "SCHUR: " << solver_control.last_step() << std::endl;
 
           //dst.block(1) *= -1.0; // do not do this
         }
@@ -931,16 +931,20 @@ namespace aspect
                            std_cxx11::ref(solver_history)));
         try
           {
+	    computing_timer.enter_section ("     iterate Stokes");
             solver.solve(stokes_block,
                          distributed_stokes_solution,
                          distributed_stokes_rhs,
                          preconditioner);
+	    computing_timer.exit_section ();
           }
         // if the solver fails, report the error from processor 0 with some additional
         // information about its location, and throw a quiet exception on all other
         // processors
         catch (const std::exception &exc)
           {
+	    computing_timer.exit_section ();
+
             signals.post_stokes_solver(*this, false, solver_history);
 
             if (Utilities::MPI::this_mpi_process(mpi_communicator) == 0)
