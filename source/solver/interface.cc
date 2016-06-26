@@ -26,7 +26,7 @@
 
 namespace aspect
 {
-  namespace MeshRefinement
+  namespace Solver
   {
 // ------------------------------ Interface -----------------------------
 
@@ -48,17 +48,11 @@ namespace aspect
 
     template <int dim>
     void
-    Interface<dim>::execute (Vector<float> &error_indicators) const
+    Interface<dim>::execute () const
     {
-      for (unsigned int i=0; i<error_indicators.size(); ++i)
-        error_indicators[i] = 0;
+
     }
 
-
-    template <int dim>
-    void
-    Interface<dim>::tag_additional_cells () const
-    {}
 
 
     template <int dim>
@@ -87,14 +81,14 @@ namespace aspect
     void
     Manager<dim>::update ()
     {
-      Assert (mesh_refinement_objects.size() > 0, ExcInternalError());
+      Assert (solver_objects.size() > 0, ExcInternalError());
 
       // call the update() functions of all
       // refinement plugins.
       unsigned int index = 0;
       for (typename std::list<std_cxx11::shared_ptr<Interface<dim> > >::const_iterator
-           p = mesh_refinement_objects.begin();
-           p != mesh_refinement_objects.end(); ++p, ++index)
+           p = solver_objects.begin();
+           p != solver_objects.end(); ++p, ++index)
         {
           try
             {
@@ -150,39 +144,19 @@ namespace aspect
 
     template <int dim>
     void
-    Manager<dim>::execute (Vector<float> &error_indicators) const
+    Manager<dim>::execute () const
     {
-      Assert (mesh_refinement_objects.size() > 0, ExcInternalError());
+      Assert (solver_objects.size() > 0, ExcInternalError());
 
-      // call the execute() functions of all plugins we have
-      // here in turns. then normalize the output vector and
-      // verify that its values are non-negative numbers
-      std::vector<Vector<float> > all_error_indicators (mesh_refinement_objects.size(),
-                                                        Vector<float>(error_indicators.size()));
       unsigned int index = 0;
       for (typename std::list<std_cxx11::shared_ptr<Interface<dim> > >::const_iterator
-           p = mesh_refinement_objects.begin();
-           p != mesh_refinement_objects.end(); ++p, ++index)
+           p = solver_objects.begin();
+           p != solver_objects.end(); ++p, ++index)
         {
+          std::cout << "executing solver " << index << std::endl;
           try
             {
               (*p)->execute (all_error_indicators[index]);
-
-              for (unsigned int i=0; i<error_indicators.size(); ++i)
-                Assert (all_error_indicators[index](i) >= 0,
-                        ExcMessage ("Error indicators must be non-negative numbers!"));
-
-              // see if we want to normalize the criteria
-              if (normalize_criteria == true)
-                {
-                  const double global_max = Utilities::MPI::max (all_error_indicators[index].linfty_norm(),
-                                                                 this->get_mpi_communicator());
-                  if (global_max != 0)
-                    all_error_indicators[index] /= global_max;
-                }
-
-              // then also scale them
-              all_error_indicators[index] *= scaling_factors[index];
             }
           // plugins that throw exceptions usually do not result in
           // anything good because they result in an unwinding of the stack
@@ -228,98 +202,9 @@ namespace aspect
             }
         }
 
-      // now merge the results
-      switch  (merge_operation)
-        {
-          case plus:
-          {
-            for (unsigned int i=0; i<mesh_refinement_objects.size(); ++i)
-              error_indicators += all_error_indicators[i];
-            break;
-          }
-
-          case max:
-          {
-            error_indicators = all_error_indicators[0];
-            for (unsigned int i=1; i<mesh_refinement_objects.size(); ++i)
-              {
-                Assert (error_indicators.size() == all_error_indicators[i].size(),
-                        ExcInternalError());
-                for (unsigned int j=0; j<error_indicators.size(); ++j)
-                  error_indicators(j) = std::max (error_indicators(j),
-                                                  all_error_indicators[i](j));
-              }
-            break;
-          }
-
-          default:
-            Assert (false, ExcNotImplemented());
-        }
     }
 
 
-    template <int dim>
-    void
-    Manager<dim>::tag_additional_cells () const
-    {
-      Assert (mesh_refinement_objects.size() > 0, ExcInternalError());
-
-      // call the tag_additional_cells() functions of all
-      // plugins we have here in turns.
-      unsigned int index = 0;
-      for (typename std::list<std_cxx11::shared_ptr<Interface<dim> > >::const_iterator
-           p = mesh_refinement_objects.begin();
-           p != mesh_refinement_objects.end(); ++p, ++index)
-        {
-          try
-            {
-              (*p)->tag_additional_cells ();
-            }
-
-          // plugins that throw exceptions usually do not result in
-          // anything good because they result in an unwinding of the stack
-          // and, if only one processor triggers an exception, the
-          // destruction of objects often causes a deadlock. thus, if
-          // an exception is generated, catch it, print an error message,
-          // and abort the program
-          catch (std::exception &exc)
-            {
-              std::cerr << std::endl << std::endl
-                        << "----------------------------------------------------"
-                        << std::endl;
-              std::cerr << "Exception on MPI process <"
-                        << Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)
-                        << "> while running mesh refinement plugin <"
-                        << typeid(**p).name()
-                        << ">: " << std::endl
-                        << exc.what() << std::endl
-                        << "Aborting!" << std::endl
-                        << "----------------------------------------------------"
-                        << std::endl;
-
-              // terminate the program!
-              MPI_Abort (MPI_COMM_WORLD, 1);
-            }
-          catch (...)
-            {
-              std::cerr << std::endl << std::endl
-                        << "----------------------------------------------------"
-                        << std::endl;
-              std::cerr << "Exception on MPI process <"
-                        << Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)
-                        << "> while running mesh refinement plugin <"
-                        << typeid(**p).name()
-                        << ">: " << std::endl;
-              std::cerr << "Unknown exception!" << std::endl
-                        << "Aborting!" << std::endl
-                        << "----------------------------------------------------"
-                        << std::endl;
-
-              // terminate the program!
-              MPI_Abort (MPI_COMM_WORLD, 1);
-            }
-        }
-    }
 
 
 
@@ -343,10 +228,11 @@ namespace aspect
     void
     Manager<dim>::declare_parameters (ParameterHandler &prm)
     {
-      // first declare the postprocessors we know about to
-      // choose from
-      prm.enter_subsection("Mesh refinement");
+
+
+      prm.enter_subsection("Solver");
       {
+
         // construct a string for Patterns::MultipleSelection that
         // contains the names of all registered plugins
         const std::string pattern_of_names
@@ -518,15 +404,15 @@ namespace aspect
     namespace Plugins
     {
       template <>
-      std::list<internal::Plugins::PluginList<MeshRefinement::Interface<2> >::PluginInfo> *
-      internal::Plugins::PluginList<MeshRefinement::Interface<2> >::plugins = 0;
+      std::list<internal::Plugins::PluginList<Solver::Interface<2> >::PluginInfo> *
+      internal::Plugins::PluginList<Solver::Interface<2> >::plugins = 0;
       template <>
-      std::list<internal::Plugins::PluginList<MeshRefinement::Interface<3> >::PluginInfo> *
-      internal::Plugins::PluginList<MeshRefinement::Interface<3> >::plugins = 0;
+      std::list<internal::Plugins::PluginList<Solver::Interface<3> >::PluginInfo> *
+      internal::Plugins::PluginList<Solver::Interface<3> >::plugins = 0;
     }
   }
 
-  namespace MeshRefinement
+  namespace Solver
   {
 #define INSTANTIATE(dim) \
   template class Interface<dim>; \
