@@ -106,6 +106,7 @@ namespace aspect
 
           for (unsigned int i=0; i<dofs_per_cell; ++i)
             for (unsigned int j=0; j<dofs_per_cell; ++j)
+              {
               if (fe.system_to_component_index(i).first
                   ==
                   fe.system_to_component_index(j).first)
@@ -131,6 +132,22 @@ namespace aspect
                                            (scratch.phi_p_c[i] * scratch.phi_p_c[j])
                                           )
                                           * scratch.finite_element_values.JxW(q);
+
+              // add S between p_c and p_f
+              if (true)
+              data.local_matrix(i,j) +=(
+                  (1./eta *
+                   pressure_scaling *
+                   pressure_scaling)
+                  * scratch.phi_p[i] * scratch.phi_p_c[j]
+                  +
+                  (1./eta *
+                   pressure_scaling *
+                   pressure_scaling)
+                  * scratch.phi_p_c[i] * scratch.phi_p[j]
+                    ) * scratch.finite_element_values.JxW(q);
+
+              }
         }
     }
 
