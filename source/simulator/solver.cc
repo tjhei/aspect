@@ -402,6 +402,13 @@ namespace aspect
       {
         SolverControl solver_control(1000, src.block(1).l2_norm() * S_block_tolerance);
 
+        if (S_block_tolerance>=1.0)
+          {
+            mp_preconditioner.vmult( dst.block(1), src.block(1));
+            n_iterations_S_ += 1;
+          }
+        else
+          {
 #ifdef ASPECT_USE_PETSC
         SolverCG<LinearAlgebra::Vector> solver(solver_control);
 #else
@@ -438,7 +445,7 @@ namespace aspect
                     throw QuietException();
               }
           }
-
+          }
         dst.block(1) *= -1.0;
       }
 
