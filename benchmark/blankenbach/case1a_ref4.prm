@@ -1,0 +1,9 @@
+include base_case1a.prm
+
+set End time                               = 1.0
+subsection Mesh refinement
+  set Initial global refinement          = 4
+  set Additional refinement times              = #0.25, 0.4, 0.6
+end
+set Output directory                           = output-case1a_ref4
+
