@@ -7,9 +7,8 @@ path=$*
 echo "# Nu           Vrms           <T>   name:" | tee statistics.txt
 
 for i in $path; do
-  nusselt=`grep "" $i | gawk '{ print $2}' | sed s/.$//`
   nusselt=`grep "Outward heat flux density for boundary with id 3" $i | gawk '{ print $2}' | sed s/.$//`
   vrms=`grep "RMS velocity" $i | gawk '{ print $2}' | sed s/.$//`
   averageT=`grep "Average temperature" $i | gawk '{ print $2}' | sed s/.$//`
-  tail -1 $i | gawk "{ print \$${nusselt} \" \" \$${vrms} \" \" \$${averageT}-0.091 \" $i\" }" | tee -a statistics.txt
+  tail -1 $i | gawk "{ print \$${nusselt} \" \" \$${vrms} \" \" \$${averageT} \" $i\" }" | tee -a statistics.txt
 done
