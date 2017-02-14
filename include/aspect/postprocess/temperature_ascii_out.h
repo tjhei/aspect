@@ -102,23 +102,6 @@ namespace aspect
         double last_output_time;
 
         /**
-         * A structure for a single time step record.
-         */
-        struct DataPoint
-        {
-          double time;
-          std::vector<std::vector<double> > values;
-
-          template <class Archive>
-          void serialize (Archive &ar, const unsigned int version);
-        };
-
-        /**
-         * An array of all the past values
-         */
-        std::vector<DataPoint> entries;
-
-        /**
          * Set the time output was supposed to be written. In the simplest
          * case, this is the previous last output time plus the interval, but
          * in general we'd like to ensure that it is the largest supposed

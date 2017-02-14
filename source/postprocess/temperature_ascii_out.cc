@@ -50,6 +50,7 @@ namespace aspect
       };
       std::vector<entry> entries;
 
+      //      const QTrapez<dim> quadrature_formula;
       const QMidpoint<dim> quadrature_formula;
 
       const unsigned int n_q_points =  quadrature_formula.size();
@@ -85,10 +86,59 @@ namespace aspect
             return i.p[1] < j.p[1];
         }
       } sorter_instance;
+      /*      struct comparer
+      {
+        bool operator() (const entry &i, const entry &j)
+        {
+          return (std::abs(i.p[0]-j.p[0])<1e-6)
+      && (std::abs(i.p[1]-j.p[1])<1e-6);
+        }
+      } comparer_instance;*/
       std::sort(entries.begin(), entries.end(), sorter_instance);
+      //      entries.erase( std::unique( entries.begin(), entries.end(), comparer_instance ), entries.end() );
+
+
+
+      unsigned int n_x, n_y;
+      {
+        // find unique number of x and y values by stuffing them into a std::set
+        struct sort_double
+        {
+          bool operator() (const double &i, const double &j)
+          {
+            return i<j;
+          }
+        } sort_double_instance;
+        struct compare_double_eps
+        {
+          bool operator() (const double &i, const double &j)
+          {
+            return (std::abs(i-j)<1e-6);
+          }
+        } compare_double_instance;
+
+        std::vector<double> x_values, y_values;
+        for (unsigned int idx = 0; idx< entries.size(); ++idx)
+          {
+            x_values.push_back(entries[idx].p(0));
+            y_values.push_back(entries[idx].p(1));
+          }
+        std::sort(x_values.begin(), x_values.end(), sort_double_instance);
+        x_values.erase( std::unique( x_values.begin(), x_values.end(), compare_double_instance ), x_values.end() );
+        std::sort(y_values.begin(), y_values.end(), sort_double_instance);
+        y_values.erase( std::unique( y_values.begin(), y_values.end(), compare_double_instance ), y_values.end() );
+
+        n_x = x_values.size();
+        n_y = y_values.size();
+      }
+
 
       std::ofstream f(filename.c_str());
 
+      f << std::scientific << std::setprecision(15);
+
+      // Note: POINTS is only useful if our mesh is a structured grid
+      f << "# POINTS: " << n_x << " " << n_y << "\n";
       f << "# x y T\n";
 
       for (unsigned int idx = 0; idx< entries.size(); ++idx)
@@ -107,22 +157,6 @@ namespace aspect
     void
     TemperatureAsciiOut<dim>::declare_parameters (ParameterHandler &prm)
     {
-      prm.enter_subsection("Postprocess");
-      {
-        prm.enter_subsection("Point values");
-        {
-//          prm.declare_entry("Evaluation points", "",
-//                            // a list of points, separated by semicolons; each point has
-//                            // exactly 'dim' components/coordinates, separated by commas
-//                            Patterns::List (Patterns::List (Patterns::Double(), dim, dim, ","),
-//                                            0, Patterns::List::max_int_value, ";"),
-//                            "The list of points at which the solution should be evaluated. "
-//                            "Points need to be separated by semicolons, and coordinates of "
-//                            "each point need to be separated by commas.");
-        }
-        prm.leave_subsection();
-      }
-      prm.leave_subsection();
     }
 
 
@@ -130,32 +164,6 @@ namespace aspect
     void
     TemperatureAsciiOut<dim>::parse_parameters (ParameterHandler &prm)
     {
-      prm.enter_subsection("Postprocess");
-      {
-        prm.enter_subsection("Point values");
-        {
-//          const std::vector<std::string> point_list
-//            = Utilities::split_string_list(prm.get("Evaluation points"), ';');
-//          for (unsigned int p=0; p<point_list.size(); ++p)
-//            {
-//              const std::vector<std::string> coordinates
-//                = Utilities::split_string_list(point_list[p], ',');
-//              AssertThrow (coordinates.size() == dim,
-//                           ExcMessage ("In setting up the list of evaluation points for the <Point values> "
-//                                       "postprocessor, one of the evaluation points reads <"
-//                                       + point_list[p] +
-//                                       ">, but this does not correspond to a list of numbers with "
-//                                       "as many coordinates as you run your simulation in."));
-
-//              Point<dim> point;
-//              for (unsigned int d=0; d<dim; ++d)
-//                point[d] = Utilities::string_to_double (coordinates[d]);
-//              evaluation_points.push_back (point);
-//            }
-        }
-        prm.leave_subsection();
-      }
-      prm.leave_subsection();
     }
 
 
