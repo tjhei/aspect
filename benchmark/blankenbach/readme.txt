@@ -1,24 +1,50 @@
-case2b flux/2.5 = Nu
+Blankenback benchmark, see table 9 for reference values
 
-# case 1a, blankenbach table 9
-# Nu 4.884409 +- 0.00001
-# V_rms 42.864947 +/ 0.000020
+Output:
+# Nu           Vrms           <T>   name:
+4.78661864e+00 4.34590432e+01 5.00000000e-01 case1a_ref4.stat
+4.87927972e+00 4.29377468e+01 5.00000000e-01 case1a_ref5.stat
+4.88993106e+00 4.28733838e+01 5.00000000e-01 case1a_ref6.stat
+4.88680525e+00 4.28659548e+01 5.00000000e-01 case1a_ref7.stat
+4.88440900e+00 4.28649470e+01 0.0 case1a_reference.stat
+1.01134412e+01 2.09668282e+02 4.99994911e-01 case1b_ref4.stat
+1.02903266e+01 1.96513188e+02 4.99988425e-01 case1b_ref5.stat
+1.05150372e+01 1.93631922e+02 4.99985154e-01 case1b_ref6.stat
+1.05471266e+01 1.93263017e+02 4.99983345e-01 case1b_ref7.stat
+1.05340950e+01 1.93214540e+02 0.0 case1b_reference.stat
+1.69902453e+01 1.01175072e+03 5.00000000e-01 case1c_ref4.stat
+2.11241960e+01 9.03094212e+02 5.00000000e-01 case1c_ref5.stat
+2.13365914e+01 8.49967378e+02 5.00000000e-01 case1c_ref6.stat
+2.18874917e+01 8.36119931e+02 5.00000000e-01 case1c_ref7.stat
+2.19724650e+01 8.33989770e+02 0.0 case1c_reference.stat
+9.52888539e+00 6.83450568e+02 7.77380332e-01 case2a_ref4.stat
+9.96931688e+00 5.26034725e+02 7.58210313e-01 case2a_ref5.stat
+1.00761750e+01 4.91233242e+02 7.45586228e-01 case2a_ref6.stat
+1.00749710e+01 4.81948381e+02 7.40987748e-01 case2a_ref7.stat
+1.00660000e+01 4.80433400e+02 0.0 case2a_reference.stat
+6.02809048e+00 1.78813766e+02 4.39038829e-01 case2b_ref4.stat
+6.70091467e+00 1.71465564e+02 4.46020164e-01 case2b_ref5.stat
+6.91232842e+00 1.71856143e+02 4.53451506e-01 case2b_ref6.stat
+6.92990000e+00 1.71755000e+02 0.0 case2b_reference.stat
 
-# case 1b:
-# Nu 10.534095 +- 0.00001
-# V_rms 193.21454 +-0.0001
-
-# case 1c:
-# Nu 21.972465 +- 0.00002
-# vrms 833.98977 +- 0.0002
-
-
-
-# case 2a:
-# Nu 10.0660 +- 0.0002
-# vrms 480.4334 +- 0.1
-
-#case 2b:
-# nu 6.9299 +- 0.0005
-# vrms 171.755 +- 0.2
-
+steps needed:
+     165 output-case1a_ref4/statistics
+     281 output-case1a_ref5/statistics
+     500 output-case1a_ref6/statistics
+     968 output-case1a_ref7/statistics
+     456 output-case1b_ref4/statistics
+     794 output-case1b_ref5/statistics
+    1452 output-case1b_ref6/statistics
+    2778 output-case1b_ref7/statistics
+    1971 output-case1c_ref4/statistics
+    3684 output-case1c_ref5/statistics
+    6899 output-case1c_ref6/statistics
+   13501 output-case1c_ref7/statistics
+    2627 output-case2a_ref4/statistics
+    7335 output-case2a_ref5/statistics
+   14711 output-case2a_ref6/statistics
+   27397 output-case2a_ref7/statistics
+    2770 output-case2b_ref4/statistics
+    5579 output-case2b_ref5/statistics
+   11190 output-case2b_ref6/statistics
+    1908 output-case2b_ref7/statistics
