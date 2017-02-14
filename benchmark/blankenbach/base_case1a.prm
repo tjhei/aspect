@@ -138,7 +138,7 @@ subsection Termination criteria
 
   subsection Steady state velocity
     set Maximum relative deviation = 1e-5
-    set Time in steady state       = 0.01
+    set Time in steady state       = 0.1
   end
 end
 
