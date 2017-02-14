@@ -1,17 +1,4 @@
-
-# case 1a, blankenbach table 9
-# Nu 4.884409 +- 0.00001
-# V_rms 42.864947 +/ 0.000020
-
-# This case is identical to case 1a from the Blankenbach Benchmark
-# (Blankenbach 1989). Cases b and c can be run by changing the 
-# Viscosity to 1e-5 and 1e-6, respectively, which leads to the
-# corresponding change of the Rayleigh number from 1e4 to 1e5 and
-# 1e6. This test essentially resembles the convection-box cookbook
-# and reproduces its results very closely (a slight difference results
-# from the different refinement levels).
-# The relevant output is the vrms velocity and the heat flux through
-# the top boundary, which in this setup is identical to the Nu number. 
+# This is case 2a from the Blankenbach Benchmark (Blankenbach 1989).
 
 set End time                               = 1.0
 set Use years in output instead of seconds = false
