@@ -1,26 +1,9 @@
-/*
-  Copyright (C) 2016 by the authors of the ASPECT code.
-
-  This file is part of ASPECT.
-
-  ASPECT is free software; you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation; either version 2, or (at your option)
-  any later version.
-
-  ASPECT is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with ASPECT; see the file doc/COPYING.  If not see
-  <http://www.gnu.org/licenses/>.
-*/
-
-
-#include <aspect/postprocess/temperature_ascii_out.h>
 #include <aspect/global.h>
+
+#include <aspect/postprocess/interface.h>
+#include <aspect/simulator_access.h>
+
+#include <deal.II/base/data_out_base.h>
 
 #include <deal.II/base/quadrature_lib.h>
 #include <deal.II/fe/fe_values.h>
@@ -29,10 +12,72 @@
 #include <math.h>
 #include <algorithm>
 
+
 namespace aspect
 {
   namespace Postprocess
   {
+
+    /**
+     * A postprocessor that generates ascii data output of the temperature
+     * field to be used as initial condition.
+     *
+     * @ingroup Postprocessing
+     */
+    template <int dim>
+    class TemperatureAsciiOut : public Interface<dim>, public ::aspect::SimulatorAccess<dim>
+    {
+      public:
+        /**
+         * Constructor.
+         */
+        TemperatureAsciiOut ();
+
+        /**
+         * Evaluate the solution and compute the requested depth averages.
+         */
+        virtual
+        std::pair<std::string,std::string>
+        execute (TableHandler &statistics);
+
+        /**
+         * Declare the parameters this class takes through input files.
+         */
+        static
+        void
+        declare_parameters (ParameterHandler &prm);
+
+        /**
+         * Read the parameters this class declares from the parameter file.
+         */
+        virtual
+        void
+        parse_parameters (ParameterHandler &prm);
+	
+      private:
+        /**
+         * Interval between the generation of output in seconds. This parameter is read
+         * from the input file and consequently is not part of the state that
+         * needs to be saved and restored.
+         */
+        double output_interval;
+
+        /**
+         * A time (in seconds) the last output has been produced.
+         */
+        double last_output_time;
+
+        /**
+         * Set the time output was supposed to be written. In the simplest
+         * case, this is the previous last output time plus the interval, but
+         * in general we'd like to ensure that it is the largest supposed
+         * output time, which is smaller than the current time, to avoid
+         * falling behind with last_output_time and having to catch up once
+         * the time step becomes larger. This is done after every output.
+         */
+        void set_last_output_time (const double current_time);
+    };
+
     template <int dim>
     TemperatureAsciiOut<dim>::TemperatureAsciiOut()
     {}
@@ -155,50 +200,15 @@ namespace aspect
 
     template <int dim>
     void
-    TemperatureAsciiOut<dim>::declare_parameters (ParameterHandler &prm)
+    TemperatureAsciiOut<dim>::declare_parameters (ParameterHandler &/*prm*/)
     {
     }
 
 
     template <int dim>
     void
-    TemperatureAsciiOut<dim>::parse_parameters (ParameterHandler &prm)
+    TemperatureAsciiOut<dim>::parse_parameters (ParameterHandler &/*prm*/)
     {
-    }
-
-
-    template <int dim>
-    template <class Archive>
-    void TemperatureAsciiOut<dim>::serialize (Archive &ar, const unsigned int)
-    {
-      //ar &evaluation_points
-      //& point_values;
-    }
-
-
-    template <int dim>
-    void
-    TemperatureAsciiOut<dim>::save (std::map<std::string, std::string> &status_strings) const
-    {
-      std::ostringstream os;
-      aspect::oarchive oa (os);
-      oa << (*this);
-
-      status_strings["PointValues"] = os.str();
-    }
-
-
-    template <int dim>
-    void
-    TemperatureAsciiOut<dim>::load (const std::map<std::string, std::string> &status_strings)
-    {
-      // see if something was saved
-      if (status_strings.find("PointValues") != status_strings.end())
-        {
-          std::istringstream is (status_strings.find("PointValues")->second);
-          aspect::iarchive ia (is);
-          ia >> (*this);
-        }
     }
   }
 }

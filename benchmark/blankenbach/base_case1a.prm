@@ -1,5 +1,7 @@
 # This is case 1a from the Blankenbach Benchmark (Blankenbach 1989).
 
+set Additional shared libraries            = ./plugin/libblankenbach.so
+
 set End time                               = 1.0
 set Use years in output instead of seconds = false
 set CFL number = 5.0
@@ -116,7 +118,7 @@ subsection Visualization
 end
 
 subsection Mesh refinement
-  set Additional refinement times              = 0.25, 0.4, 0.6
+  set Additional refinement times              = #0.25, 0.4, 0.6
 end
 
 
