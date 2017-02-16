@@ -90,10 +90,6 @@ subsection Mesh refinement
   set Refinement fraction                      = 1.0
 end
 
-subsection Heating model
-  set List of model names =#  adiabatic heating, shear heating#, constant heating
-end
-
 subsection Model settings
   set Include adiabatic heating               = false
   set Include shear heating                   = false 
@@ -116,11 +112,6 @@ subsection Visualization
     set List of output variables      = material properties, adiabat, thermal conductivity, heating, artificial viscosity
   end
 end
-
-subsection Mesh refinement
-  set Additional refinement times              = #0.15, 0.25, 0.4
-end
-
 
 subsection Termination criteria  
   set Termination criteria      = steady state velocity
