@@ -95,8 +95,8 @@ namespace aspect
       };
       std::vector<entry> entries;
 
-      //      const QTrapez<dim> quadrature_formula;
-      const QMidpoint<dim> quadrature_formula;
+      const QIterated<dim> quadrature_formula (QTrapez<1>(), 2);
+      //      const QMidpoint<dim> quadrature_formula;
 
       const unsigned int n_q_points =  quadrature_formula.size();
       FEValues<dim> fe_values (this->get_mapping(), this->get_fe(),  quadrature_formula,
@@ -131,16 +131,16 @@ namespace aspect
             return i.p[1] < j.p[1];
         }
       } sorter_instance;
-      /*      struct comparer
-      {
+      struct comparer
+     {
         bool operator() (const entry &i, const entry &j)
         {
           return (std::abs(i.p[0]-j.p[0])<1e-6)
       && (std::abs(i.p[1]-j.p[1])<1e-6);
         }
-      } comparer_instance;*/
+      } comparer_instance;
       std::sort(entries.begin(), entries.end(), sorter_instance);
-      //      entries.erase( std::unique( entries.begin(), entries.end(), comparer_instance ), entries.end() );
+      entries.erase( std::unique( entries.begin(), entries.end(), comparer_instance ), entries.end() );
 
 
 
