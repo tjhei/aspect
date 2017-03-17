@@ -1419,6 +1419,7 @@ namespace aspect
     MaterialModel::declare_parameters<dim> (prm);
     HeatingModel::Manager<dim>::declare_parameters (prm);
     GeometryModel::declare_parameters <dim>(prm);
+    Solver::Manager<dim>::declare_parameters (prm);
     GravityModel::declare_parameters<dim> (prm);
     InitialConditions::declare_parameters<dim> (prm);
     CompositionalInitialConditions::declare_parameters<dim> (prm);

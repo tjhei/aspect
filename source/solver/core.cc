@@ -865,6 +865,33 @@ namespace aspect
     return initial_residual;
   }
 
+
+
+
+  template <int dim>
+  void
+  Simulator<dim>::
+  solve_timestep ()
+  {
+    Solver::SolveInfo<dim> info;
+    info.timestep_number = timestep_number;
+    info.time_step = time_step;
+    info.old_time_step = old_time_step;
+
+    info.old_solution = &old_solution;
+    info.solution = &solution;
+    info.current_linearization_point = &current_linearization_point;
+
+    LinearAlgebra::BlockVector temp1 (introspection.index_sets.system_partitioning, mpi_communicator);
+    info.temp_distributed = &temp1;
+    LinearAlgebra::BlockVector temp2 (introspection.index_sets.system_partitioning, mpi_communicator);
+    info.temp_distributed2 = &temp2;
+
+    // constant extrapolation:
+    current_linearization_point = old_solution;
+    solver_strategy.execute(info);
+  }
+
 }
 
 
@@ -876,7 +903,8 @@ namespace aspect
 {
 #define INSTANTIATE(dim) \
   template double Simulator<dim>::solve_advection (const AdvectionField &); \
-  template double Simulator<dim>::solve_stokes ();
+  template double Simulator<dim>::solve_stokes (); \
+  template void Simulator<dim>::solve_timestep ();
 
   ASPECT_INSTANTIATE(INSTANTIATE)
 }

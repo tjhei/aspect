@@ -59,6 +59,7 @@
 #include <aspect/termination_criteria/interface.h>
 #include <aspect/postprocess/interface.h>
 #include <aspect/adiabatic_conditions/interface.h>
+#include <aspect/solver/interface.h>
 
 #include <boost/iostreams/tee.hpp>
 #include <boost/iostreams/stream.hpp>
@@ -95,6 +96,12 @@ namespace aspect
       }
       template <int dim>      struct AssemblerLists;
     }
+  }
+
+  namespace Solver
+  {
+        template <int dim>
+        class Stokes;
   }
 
   /**
@@ -1151,6 +1158,7 @@ namespace aspect
       const std_cxx11::unique_ptr<BoundaryTemperature::Interface<dim> >       boundary_temperature;
       const std_cxx11::unique_ptr<BoundaryComposition::Interface<dim> >       boundary_composition;
       const std_cxx11::unique_ptr<InitialConditions::Interface<dim> >         initial_conditions;
+      Solver::Manager<dim> solver_strategy;
       const std_cxx11::unique_ptr<PrescribedStokesSolution::Interface<dim> >  prescribed_stokes_solution;
       const std_cxx11::unique_ptr<CompositionalInitialConditions::Interface<dim> >                     compositional_initial_conditions;
       const std_cxx11::unique_ptr<AdiabaticConditions::Interface<dim> >       adiabatic_conditions;
@@ -1518,6 +1526,7 @@ namespace aspect
       friend class SimulatorAccess<dim>;
       friend class FreeSurfaceHandler;  //FreeSurfaceHandler needs access to the internals of the Simulator
       friend struct Parameters<dim>;
+      friend class Solver::Stokes<dim>;
   };
 }
 

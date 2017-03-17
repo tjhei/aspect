@@ -48,9 +48,8 @@ namespace aspect
 
     template <int dim>
     void
-    Interface<dim>::execute () const
+    Interface<dim>::execute (SolveInfo<dim> &/*info*/) const
     {
-
     }
 
 
@@ -144,7 +143,7 @@ namespace aspect
 
     template <int dim>
     void
-    Manager<dim>::execute () const
+    Manager<dim>::execute (SolveInfo<dim> &info) const
     {
       Assert (solver_objects.size() > 0, ExcInternalError());
 
@@ -153,10 +152,11 @@ namespace aspect
            p = solver_objects.begin();
            p != solver_objects.end(); ++p, ++index)
         {
-          std::cout << "executing solver " << index << std::endl;
+          std::cout << "executing solver " << index << " " << typeid(**p).name() << std::endl;
           try
             {
-              (*p)->execute (all_error_indicators[index]);
+              (*p)->execute (info);
+            std::cout << "finished solver " << index << " " << typeid(**p).name() << std::endl;
             }
           // plugins that throw exceptions usually do not result in
           // anything good because they result in an unwinding of the stack
@@ -171,7 +171,7 @@ namespace aspect
                         << std::endl;
               std::cerr << "Exception on MPI process <"
                         << Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)
-                        << "> while running mesh refinement plugin <"
+                        << "> while running solver plugin <"
                         << typeid(**p).name()
                         << ">: " << std::endl
                         << exc.what() << std::endl
@@ -189,7 +189,7 @@ namespace aspect
                         << std::endl;
               std::cerr << "Exception on MPI process <"
                         << Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)
-                        << "> while running mesh refinement plugin <"
+                        << "> while running solver plugin <"
                         << typeid(**p).name()
                         << ">: " << std::endl;
               std::cerr << "Unknown exception!" << std::endl
@@ -202,6 +202,323 @@ namespace aspect
             }
         }
 
+      /*
+
+    switch (parameters.nonlinear_solver)
+      {
+        case NonlinearSolver::IMPES:
+        {
+          //We do the free surface execution at the beginning of the timestep for a specific reason.
+          //The time step size is calculated AFTER the whole solve_timestep() function.  If we call
+          //free_surface_execute() after the Stokes solve, it will be before we know what the appropriate
+          //time step to take is, and we will timestep the boundary incorrectly.
+          if (parameters.free_surface_enabled)
+            free_surface->execute ();
+
+          assemble_advection_system (AdvectionField::temperature());
+          solve_advection(AdvectionField::temperature());
+
+          if (parameters.use_discontinuous_temperature_discretization
+              && parameters.use_limiter_for_discontinuous_temperature_solution)
+            apply_limiter_to_dg_solutions(AdvectionField::temperature());
+
+          current_linearization_point.block(introspection.block_indices.temperature)
+            = solution.block(introspection.block_indices.temperature);
+
+          for (unsigned int c=0; c < parameters.n_compositional_fields; ++c)
+            {
+              assemble_advection_system (AdvectionField::composition(c));
+              solve_advection(AdvectionField::composition(c));
+              if (parameters.use_discontinuous_composition_discretization
+                  && parameters.use_limiter_for_discontinuous_composition_solution)
+                apply_limiter_to_dg_solutions(AdvectionField::composition(c));
+            }
+
+          for (unsigned int c=0; c<parameters.n_compositional_fields; ++c)
+            current_linearization_point.block(introspection.block_indices.compositional_fields[c])
+              = solution.block(introspection.block_indices.compositional_fields[c]);
+
+          // the Stokes matrix depends on the viscosity. if the viscosity
+          // depends on other solution variables, then after we need to
+          // update the Stokes matrix in every time step and so need to set
+          // the following flag. if we change the Stokes matrix we also
+          // need to update the Stokes preconditioner.
+          if (stokes_matrix_depends_on_solution() == true)
+            rebuild_stokes_matrix = rebuild_stokes_preconditioner = true;
+
+          assemble_stokes_system();
+          build_stokes_preconditioner();
+          solve_stokes();
+
+          break;
+        }
+        case NonlinearSolver::Stokes_only:
+        {
+          unsigned int iteration = 0;
+
+          do
+            {
+              // the Stokes matrix depends on the viscosity. if the viscosity
+              // depends on other solution variables, then we need to
+              // update the Stokes matrix in every iteration and so need to set
+              // the rebuild_stokes_matrix flag. if we change the Stokes matrix we also
+              // need to update the Stokes preconditioner.
+              //
+              // there is a similar case where this nonlinear solver can be used, namely for
+              // compressible models. in that case, the matrix does not depend on
+              // the previous solution, but we still need to iterate since the right
+              // hand side depends on it. in those cases, the matrix does not change,
+              // but if we have to repeat computing the right hand side, we need to
+              // also rebuild the matrix if we end up with inhomogenous velocity
+              // boundary conditions (i.e., if there are prescribed velocity boundary
+              // indicators)
+              if ((stokes_matrix_depends_on_solution() == true)
+                  ||
+                  (parameters.prescribed_velocity_boundary_indicators.size() > 0))
+                rebuild_stokes_matrix = true;
+              if (stokes_matrix_depends_on_solution() == true)
+                rebuild_stokes_preconditioner = true;
+
+              assemble_stokes_system();
+              build_stokes_preconditioner();
+              const double stokes_residual = solve_stokes();
+              current_linearization_point = solution;
+
+              pcout << "      Nonlinear Stokes residual: " << stokes_residual << std::endl;
+              if (stokes_residual < 1e-8)
+                break;
+
+              ++iteration;
+            }
+          while (! ((iteration >= parameters.max_nonlinear_iterations) // regular timestep
+                    ||
+                    ((pre_refinement_step < parameters.initial_adaptive_refinement) // pre-refinement
+                     &&
+                     (iteration >= parameters.max_nonlinear_iterations_in_prerefinement))));
+          break;
+        }
+
+
+        case NonlinearSolver::iterated_IMPES:
+        {
+          double initial_temperature_residual = 0;
+          double initial_stokes_residual      = 0;
+          std::vector<double> initial_composition_residual (parameters.n_compositional_fields,0);
+
+          unsigned int iteration = 0;
+
+          do
+            {
+              assemble_advection_system(AdvectionField::temperature());
+
+              if (iteration == 0)
+                initial_temperature_residual = system_rhs.block(introspection.block_indices.temperature).l2_norm();
+
+              const double temperature_residual = solve_advection(AdvectionField::temperature());
+
+              current_linearization_point.block(introspection.block_indices.temperature)
+                = solution.block(introspection.block_indices.temperature);
+              rebuild_stokes_matrix = true;
+              std::vector<double> composition_residual (parameters.n_compositional_fields,0);
+
+              for (unsigned int c=0; c<parameters.n_compositional_fields; ++c)
+                {
+                  assemble_advection_system (AdvectionField::composition(c));
+
+                  if (iteration == 0)
+                    initial_composition_residual[c] = system_rhs.block(introspection.block_indices.compositional_fields[c]).l2_norm();
+
+                  composition_residual[c]
+                    = solve_advection(AdvectionField::composition(c));
+                }
+
+              // for consistency we update the current linearization point only after we have solved
+              // all fields, so that we use the same point in time for every field when solving
+              for (unsigned int c=0; c<parameters.n_compositional_fields; ++c)
+                current_linearization_point.block(introspection.block_indices.compositional_fields[c])
+                  = solution.block(introspection.block_indices.compositional_fields[c]);
+
+              // the Stokes matrix depends on the viscosity. if the viscosity
+              // depends on other solution variables, then after we need to
+              // update the Stokes matrix in every time step and so need to set
+              // the following flag. if we change the Stokes matrix we also
+              // need to update the Stokes preconditioner.
+              if (stokes_matrix_depends_on_solution() == true)
+                rebuild_stokes_matrix = rebuild_stokes_preconditioner = true;
+
+              assemble_stokes_system();
+              build_stokes_preconditioner();
+
+              if (iteration == 0)
+                initial_stokes_residual = compute_initial_stokes_residual();
+
+              const double stokes_residual = solve_stokes();
+
+              current_linearization_point = solution;
+
+              // write the residual output in the same order as the output when
+              // solving the equations
+              pcout << "      Nonlinear residuals: " << temperature_residual;
+
+              for (unsigned int c=0; c<parameters.n_compositional_fields; ++c)
+                pcout << ", " << composition_residual[c];
+
+              pcout << ", " << stokes_residual;
+
+              pcout << std::endl;
+
+              double max = 0.0;
+              for (unsigned int c=0; c<parameters.n_compositional_fields; ++c)
+                {
+                  // in models with melt migration the melt advection equation includes the divergence of the velocity
+                  // and can not be expected to converge to a smaller value than the residual of the Stokes equation.
+                  // thus, we set a threshold for the initial composition residual.
+                  // this only plays a role if the right-hand side of the advection equation is very small.
+                  const double threshold = (parameters.include_melt_transport && c == introspection.compositional_index_for_name("porosity")
+                                            ?
+                                            parameters.linear_stokes_solver_tolerance * time_step
+                                            :
+                                            0.0);
+                  if (initial_composition_residual[c]>threshold)
+                    max = std::max(composition_residual[c]/initial_composition_residual[c],max);
+                }
+
+              if (initial_stokes_residual>0)
+                max = std::max(stokes_residual/initial_stokes_residual, max);
+              if (initial_temperature_residual>0)
+                max = std::max(temperature_residual/initial_temperature_residual, max);
+              pcout << "      Total relative nonlinear residual: " << max << std::endl;
+              pcout << std::endl
+                    << std::endl;
+              if (max < parameters.nonlinear_tolerance)
+                break;
+
+              ++iteration;
+//TODO: terminate here if the number of iterations is too large and we see no convergence
+            }
+          while (! ((iteration >= parameters.max_nonlinear_iterations) // regular timestep
+                    ||
+                    ((pre_refinement_step < parameters.initial_adaptive_refinement) // pre-refinement
+                     &&
+                     (iteration >= parameters.max_nonlinear_iterations_in_prerefinement))));
+
+          break;
+        }
+
+        case NonlinearSolver::iterated_Stokes:
+        {
+          if (parameters.free_surface_enabled)
+            free_surface->execute ();
+
+          // solve the temperature and composition systems once...
+          assemble_advection_system (AdvectionField::temperature());
+          solve_advection(AdvectionField::temperature());
+          current_linearization_point.block(introspection.block_indices.temperature)
+            = solution.block(introspection.block_indices.temperature);
+
+          for (unsigned int c=0; c<parameters.n_compositional_fields; ++c)
+            {
+              assemble_advection_system (AdvectionField::composition(c));
+              solve_advection(AdvectionField::composition(c));
+            }
+
+          for (unsigned int c=0; c<parameters.n_compositional_fields; ++c)
+            current_linearization_point.block(introspection.block_indices.compositional_fields[c])
+              = solution.block(introspection.block_indices.compositional_fields[c]);
+
+          // residual vector (only for the velocity)
+          LinearAlgebra::Vector residual (introspection.index_sets.system_partitioning[0], mpi_communicator);
+          LinearAlgebra::Vector tmp (introspection.index_sets.system_partitioning[0], mpi_communicator);
+
+          // ...and then iterate the solution of the Stokes system
+          double initial_stokes_residual = 0;
+          for (unsigned int i=0; (! ((i >= parameters.max_nonlinear_iterations) // regular timestep
+                                     ||
+                                     ((pre_refinement_step < parameters.initial_adaptive_refinement) // pre-refinement
+                                      &&
+                                      (i >= parameters.max_nonlinear_iterations_in_prerefinement)))); ++i)
+            {
+              // rebuild the matrix if it actually depends on the solution
+              // of the previous iteration.
+              if ((stokes_matrix_depends_on_solution() == true)
+                  ||
+                  (parameters.prescribed_velocity_boundary_indicators.size() > 0))
+                rebuild_stokes_matrix = rebuild_stokes_preconditioner = true;
+
+              assemble_stokes_system();
+              build_stokes_preconditioner();
+
+              if (i==0)
+                initial_stokes_residual = compute_initial_stokes_residual();
+
+              const double stokes_residual = solve_stokes();
+
+              pcout << "   Residual after nonlinear iteration " << i+1 << ": " << stokes_residual/initial_stokes_residual << std::endl;
+              if (stokes_residual/initial_stokes_residual < parameters.nonlinear_tolerance)
+                {
+                  break; // convergence reached, exit nonlinear iterations.
+                }
+
+              current_linearization_point.block(introspection.block_indices.velocities)
+                = solution.block(introspection.block_indices.velocities);
+              if (introspection.block_indices.velocities != introspection.block_indices.pressure)
+                current_linearization_point.block(introspection.block_indices.pressure)
+                  = solution.block(introspection.block_indices.pressure);
+
+              pcout << std::endl;
+            }
+
+          break;
+        }
+
+        case NonlinearSolver::Advection_only:
+        {
+          // Identical to IMPES except does not solve Stokes equation
+          if (parameters.free_surface_enabled)
+            free_surface->execute ();
+
+          LinearAlgebra::BlockVector distributed_stokes_solution (introspection.index_sets.system_partitioning, mpi_communicator);
+
+          VectorFunctionFromVectorFunctionObject<dim> func(std_cxx1x::bind (&PrescribedStokesSolution::Interface<dim>::stokes_solution,
+                                                                            std_cxx1x::cref(*prescribed_stokes_solution),
+                                                                            std_cxx1x::_1,
+                                                                            std_cxx1x::_2),
+                                                           0,
+                                                           dim+1, //velocity and pressure
+                                                           introspection.n_components);
+
+          VectorTools::interpolate (mapping, dof_handler, func, distributed_stokes_solution);
+
+          const unsigned int block_vel = introspection.block_indices.velocities;
+          const unsigned int block_p = introspection.block_indices.pressure;
+
+          // distribute hanging node and
+          // other constraints
+          current_constraints.distribute (distributed_stokes_solution);
+
+          solution.block(block_vel) = distributed_stokes_solution.block(block_vel);
+          solution.block(block_p) = distributed_stokes_solution.block(block_p);
+
+          assemble_advection_system (AdvectionField::temperature());
+          solve_advection(AdvectionField::temperature());
+
+          current_linearization_point.block(introspection.block_indices.temperature)
+            = solution.block(introspection.block_indices.temperature);
+
+          for (unsigned int c=0; c<parameters.n_compositional_fields; ++c)
+            {
+              assemble_advection_system (AdvectionField::composition(c));
+              solve_advection(AdvectionField::composition(c));
+              current_linearization_point.block(introspection.block_indices.compositional_fields[c])
+                = solution.block(introspection.block_indices.compositional_fields[c]);
+            }
+
+          break;
+        }
+
+        default:
+          Assert (false, ExcNotImplemented());
+      }*/
     }
 
 
@@ -237,81 +554,15 @@ namespace aspect
         // contains the names of all registered plugins
         const std::string pattern_of_names
           = std_cxx11::get<dim>(registered_plugins).get_pattern_of_names ();
+
         prm.declare_entry("Strategy",
-                          "thermal energy density",
+                          "extrapolate, temperature, stokes, compositions",
                           Patterns::MultipleSelection(pattern_of_names),
-                          "A comma separated list of mesh refinement criteria that "
-                          "will be run whenever mesh refinement is required. The "
-                          "results of each of these criteria, i.e., the refinement "
-                          "indicators they produce for all the cells of the mesh "
-                          "will then be normalized to a range between zero and one "
-                          "and the results of different criteria will then be "
-                          "merged through the operation selected in this section.\n\n"
+                          "A comma separated list of ...\n\n"
                           "The following criteria are available:\n\n"
                           +
                           std_cxx11::get<dim>(registered_plugins).get_description_string());
 
-        prm.declare_entry("Normalize individual refinement criteria",
-                          "true",
-                          Patterns::Bool(),
-                          "If multiple refinement criteria are specified in the "
-                          "``Strategy'' parameter, then they need to be combined "
-                          "somehow to form the final refinement indicators. This "
-                          "is done using the method described by the ``Refinement "
-                          "criteria merge operation'' parameter which can either "
-                          "operate on the raw refinement indicators returned by "
-                          "each strategy (i.e., dimensional quantities) or using "
-                          "normalized values where the indicators of each strategy "
-                          "are first normalized to the interval $[0,1]$ (which also "
-                          "makes them non-dimensional). This parameter determines "
-                          "whether this normalization will happen.");
-        prm.declare_entry("Refinement criteria scaling factors",
-                          "",
-                          Patterns::List (Patterns::Double(0)),
-                          "A list of scaling factors by which every individual refinement "
-                          "criterion will be multiplied by. If only a single refinement "
-                          "criterion is selected (using the ``Strategy'' parameter, then "
-                          "this parameter has no particular meaning. On the other hand, if "
-                          "multiple criteria are chosen, then these factors are used to "
-                          "weigh the various indicators relative to each other. "
-                          "\n\n"
-                          "If ``Normalize individual refinement criteria'' is set to true, "
-                          "then the criteria will first be normalized to the interval $[0,1]$ "
-                          "and then multiplied by the factors specified here. You will likely "
-                          "want to choose the factors to be not too far from 1 in that case, say "
-                          "between 1 and 10, to avoid essentially disabling those criteria "
-                          "with small weights. On the other hand, if the criteria are not "
-                          "normalized to $[0,1]$ using the parameter mentioned above, then "
-                          "the factors you specify here need to take into account the relative "
-                          "numerical size of refinement indicators (which in that case carry "
-                          "physical units)."
-                          "\n\n"
-                          "You can experimentally play with these scaling factors by choosing "
-                          "to output the refinement indicators into the graphical output of "
-                          "a run."
-                          "\n\n"
-                          "If the list of indicators given in this parameter is empty, then this "
-                          "indicates that they should all be chosen equal to one. If the list "
-                          "is not empty then it needs to have as many entries as there are "
-                          "indicators chosen in the ``Strategy'' parameter.");
-        prm.declare_entry("Refinement criteria merge operation",
-                          "max",
-                          Patterns::Selection("plus|max"),
-                          "If multiple mesh refinement criteria are computed for each cell "
-                          "(by passing a list of more than element to the \\texttt{Strategy} "
-                          "parameter in this section of the input file) "
-                          "then one will have to decide which one should win when deciding "
-                          "which cell to refine. The operation that selects from these competing "
-                          "criteria is the one that is selected here. The options are:\n\n"
-                          "\\begin{itemize}\n"
-                          "\\item \\texttt{plus}: Add the various error indicators together and "
-                          "refine those cells on which the sum of indicators is largest.\n"
-                          "\\item \\texttt{max}: Take the maximum of the various error indicators and "
-                          "refine those cells on which the maximal indicators is largest.\n"
-                          "\\end{itemize}"
-                          "The refinement indicators computed by each strategy are modified by "
-                          "the ``Normalize individual refinement criteria'' and ``Refinement "
-                          "criteria scale factors'' parameters.");
       }
       prm.leave_subsection();
 
@@ -332,30 +583,11 @@ namespace aspect
       // find out which plugins are requested and the various other
       // parameters we declare here
       std::vector<std::string> plugin_names;
-      prm.enter_subsection("Mesh refinement");
+      prm.enter_subsection("Solver");
       {
         plugin_names
           = Utilities::split_string_list(prm.get("Strategy"));
 
-        normalize_criteria = prm.get_bool ("Normalize individual refinement criteria");
-
-        scaling_factors
-          = Utilities::string_to_double(
-              Utilities::split_string_list(prm.get("Refinement criteria scaling factors")));
-        AssertThrow (scaling_factors.size() == plugin_names.size()
-                     ||
-                     scaling_factors.size() == 0,
-                     ExcMessage ("The number of scaling factors given here must either be "
-                                 "zero or equal to the number of chosen refinement criteria."));
-        if (scaling_factors.size() == 0)
-          scaling_factors = std::vector<double> (plugin_names.size(), 1.0);
-
-        if (prm.get("Refinement criteria merge operation") == "plus")
-          merge_operation = plus;
-        else if (prm.get("Refinement criteria merge operation") == "max")
-          merge_operation = max;
-        else
-          AssertThrow (false, ExcNotImplemented());
       }
       prm.leave_subsection();
 
@@ -365,23 +597,23 @@ namespace aspect
                    ExcMessage ("You need to provide at least one mesh refinement criterion in the input file!"));
       for (unsigned int name=0; name<plugin_names.size(); ++name)
         {
-          mesh_refinement_objects.push_back (std_cxx11::shared_ptr<Interface<dim> >
+          solver_objects.push_back (std_cxx11::shared_ptr<Interface<dim> >
                                              (std_cxx11::get<dim>(registered_plugins)
                                               .create_plugin (plugin_names[name],
                                                               "Mesh refinement::Refinement criteria merge operation")));
 
-          if (SimulatorAccess<dim> *sim = dynamic_cast<SimulatorAccess<dim>*>(&*mesh_refinement_objects.back()))
+          if (SimulatorAccess<dim> *sim = dynamic_cast<SimulatorAccess<dim>*>(&*solver_objects.back()))
             sim->initialize_simulator (this->get_simulator());
 
-          mesh_refinement_objects.back()->parse_parameters (prm);
-          mesh_refinement_objects.back()->initialize ();
+          solver_objects.back()->parse_parameters (prm);
+          solver_objects.back()->initialize ();
         }
     }
 
 
     template <int dim>
     void
-    Manager<dim>::register_mesh_refinement_criterion (const std::string &name,
+    Manager<dim>::register_solver (const std::string &name,
                                                       const std::string &description,
                                                       void (*declare_parameters_function) (ParameterHandler &),
                                                       Interface<dim> *(*factory_function) ())

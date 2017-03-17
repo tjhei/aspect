@@ -49,6 +49,26 @@ namespace aspect
   {
 
     /**
+     *
+     */
+    template <int dim>
+    struct SolveInfo
+    {
+      Simulator<dim> *simulator;
+      unsigned int timestep_number;
+      double time_step;
+      double old_time_step;
+
+      LinearAlgebra::BlockVector *solution;
+      LinearAlgebra::BlockVector *old_solution;
+      LinearAlgebra::BlockVector *old_old_solution;
+      LinearAlgebra::BlockVector *current_linearization_point;
+      LinearAlgebra::BlockVector *temp_distributed;
+      LinearAlgebra::BlockVector *temp_distributed2;
+    };
+
+
+    /**
      * This class declares the public interface of mesh refinement plugins.
      * Plugins have two different ways to influence adaptive refinement (and
      * can make use of either or both):
@@ -111,21 +131,7 @@ namespace aspect
          */
         virtual
         void
-        execute (Vector<float> &error_indicators) const;
-
-        /**
-         * After cells have been marked for coarsening/refinement, apply
-         * additional criteria independent of the error estimate. The default
-         * implementation does nothing.
-         *
-         * This function is also called during the initial global refinement
-         * cycle. At this point you do not have access to solutions,
-         * DoFHandlers, or finite element spaces. You can check if this is the
-         * case by querying this->get_dof_handler().n_dofs() == 0.
-         */
-        virtual
-        void
-        tag_additional_cells () const;
+        execute (SolveInfo<dim> &info) const = 0;
 
         /**
          * Declare the parameters this class takes through input files.
@@ -154,8 +160,6 @@ namespace aspect
         void
         parse_parameters (ParameterHandler &prm);
     };
-
-
 
 
 
@@ -194,7 +198,7 @@ namespace aspect
          */
         virtual
         void
-        execute () const;
+        execute (SolveInfo<dim> &info) const;
 
         /**
          * Declare the parameters of all known mesh refinement plugins, as
@@ -211,6 +215,31 @@ namespace aspect
          */
         void
         parse_parameters (ParameterHandler &prm);
+
+        /**
+         * A function that is used to register mesh refinement objects in such
+         * a way that the Manager can deal with all of them without having to
+         * know them by name. This allows the files in which individual
+         * plugins are implemented to register these plugins, rather than also
+         * having to modify the Manager class by adding the new mesh
+         * refinement class.
+         *
+         * @param name The name under which this plugin is to be called in
+         * parameter files.
+         * @param description A text description of what this model does and
+         * that will be listed in the documentation of the parameter file.
+         * @param declare_parameters_function A pointer to a function that
+         * declares the parameters for this plugin.
+         * @param factory_function A pointer to a function that creates such a
+         * mesh refinement object and returns a pointer to it.
+         */
+        static
+        void
+        register_solver (const std::string &name,
+                                            const std::string &description,
+                                            void (*declare_parameters_function) (ParameterHandler &),
+                                            Interface<dim> *(*factory_function) ());
+
 
       private:
         /**
@@ -235,10 +264,10 @@ namespace aspect
   namespace ASPECT_REGISTER_SOLVER_ ## classname \
   { \
     aspect::internal::Plugins::RegisterHelper<aspect::Solver::Interface<2>,classname<2> > \
-    dummy_ ## classname ## _2d (&aspect::Solver::Manager<2>::register_mesh_refinement_criterion, \
+    dummy_ ## classname ## _2d (&aspect::Solver::Manager<2>::register_solver, \
                                 name, description); \
     aspect::internal::Plugins::RegisterHelper<aspect::Solver::Interface<3>,classname<3> > \
-    dummy_ ## classname ## _3d (&aspect::Solver::Manager<3>::register_mesh_refinement_criterion, \
+    dummy_ ## classname ## _3d (&aspect::Solver::Manager<3>::register_solver, \
                                 name, description); \
   }
   }
