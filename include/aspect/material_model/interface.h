@@ -515,7 +515,59 @@ namespace aspect
         {}
     };
 
+    template<int dim>
+    class NamedAdditionalMaterialOutputs: public AdditionalMaterialOutputs<dim>
+    {
+      public:
+        const std::vector<std::string> &get_names() const
+        {
+          return names;
+        }
 
+        virtual const std::vector<double> &get_nth_output(const unsigned int idx) const = 0;
+
+        virtual ~NamedAdditionalMaterialOutputs()
+        {}
+
+        virtual void average (const MaterialAveraging::AveragingOperation /*operation*/,
+                              const FullMatrix<double>  &/*projection_matrix*/,
+                              const FullMatrix<double>  &/*expansion_matrix*/)
+        {}
+
+        std::vector<std::string> names;
+    };
+
+
+    template<int dim>
+    class SeismicAdditionalOutputs : NamedAdditionalMaterialOutputs<dim>
+    {
+      public:
+        SeismicAdditionalOutputs(const unsigned int n_points,
+                                 const unsigned int /*n_comp*/)
+          : vs(n_points, 0.0),
+            vp(n_points, 0.0) // TODO: invalid values?
+        {
+          names.push_back("vs");
+          names.push_back("vp");
+
+        }
+
+        virtual const std::vector<double> &get_nth_output(const unsigned int idx) const
+        {
+          switch (idx)
+            {
+              case 0:
+                return vs;
+              case 1:
+                return vp;
+              default:
+                AssertThrow(false, ExcInternalError());
+            }
+        }
+
+        std::vector<double> vs;
+        std::vector<double> vp;
+    };
 
     /**
      * A base class for parameterizations of material models. Classes derived
@@ -709,6 +761,15 @@ namespace aspect
         /**
          * @}
          */
+
+        /**
+         * If this material model can produce additional named outputs
+         * that are derived from NamedAdditionalOutputs, create them in here.
+         * By default, this does nothing.
+          */
+        virtual
+        void
+        create_additional_named_outputs (MaterialModelOutputs &outputs) const;
 
       protected:
         /**

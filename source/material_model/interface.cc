@@ -198,6 +198,15 @@ namespace aspect
     }
 
 
+    template <int dim>
+    void
+    Interface<dim>::
+    create_additional_named_outputs (MaterialModelOutputs &/*outputs*/) const
+    {
+      // by default we do nothing!
+    }
+
+
 
     template <int dim>
     std::string

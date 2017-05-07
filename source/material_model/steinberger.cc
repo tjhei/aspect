@@ -903,6 +903,24 @@ namespace aspect
         this->model_dependence.thermal_conductivity = NonlinearDependence::none;
       }
     }
+
+    template <int dim>
+    void
+    Steinberger<dim>::create_additional_named_outputs (MaterialModelOutputs &outputs) const
+    {
+
+      if (!outputs.get_additional_output<SeismicAdditionalOutputs<dim> >())
+        {
+          std::cout << "creating steinberger seismic output" << std::endl;
+
+          const unsigned int n_points = outputs.viscosities.size();
+          const unsigned int n_comp = outputs.reaction_terms[0].size();
+          outputs.additional_outputs.push_back(
+            std_cxx11::shared_ptr<MaterialModel::AdditionalMaterialOutputs<dim> >
+            (new MaterialModel::SeismicAdditionalOutputs<dim> (n_points, n_comp)));
+        }
+    }
+
   }
 }
 
