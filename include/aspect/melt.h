@@ -127,6 +127,15 @@ namespace aspect
           * permeability divided by fluid viscosity. Units: m^2/Pa/s.
           */
         virtual double reference_darcy_coefficient () const = 0;
+
+        /**
+         *
+         * returns the cell-averaged and cut-off darcy coefficient
+         */
+        double darcy_coefficient (const MaterialModel::MaterialModelInputs<dim> &inputs,
+                                  const MaterialModel::MaterialModelOutputs<dim> &outputs,
+                                  const MeltHandler<dim> &handler,
+                                  bool consider_is_melt_cell) const;
     };
 
 
@@ -220,6 +229,7 @@ namespace aspect
         virtual
         std::vector<double>
         compute_residual(internal::Assembly::Scratch::ScratchBase<dim> &scratch) const;
+
     };
 
     /**
@@ -327,6 +337,16 @@ namespace aspect
       bool is_porosity (const typename Simulator<dim>::AdvectionField &advection_field) const;
 
       /**
+       *
+       */
+      void add_current_constraints(ConstraintMatrix &constraints);
+
+      /**
+        *
+        */
+      bool is_melt_cell(const typename DoFHandler<dim>::active_cell_iterator &cell) const;
+
+      /**
        * The porosity limit for melt migration. For smaller porosities, the equations
        * reduce to the Stokes equations and neglect melt transport. In practice, this
        * means that all terms in the assembly related to the migration of melt are set
@@ -353,6 +373,13 @@ namespace aspect
        * transport.
        */
       std_cxx11::unique_ptr<BoundaryFluidPressure::Interface<dim> > boundary_fluid_pressure;
+
+    private:
+      /**
+       * is_melt_cell_vector[cell->active_cell_index()] says whether we have
+       * melt transport in this cell or not.
+       */
+      std::vector<bool> is_melt_cell_vector;
   };
 
 }
