@@ -987,26 +987,35 @@ namespace aspect
         // obtain the boundary indicators that belong to Dirichlet-type
         // composition boundary conditions and interpolate the composition
         // there
+
+        current_constraints_for_composition.resize(introspection.n_compositional_fields);
         for (unsigned int c=0; c<introspection.n_compositional_fields; ++c)
-          for (std::set<types::boundary_id>::const_iterator
-               p = parameters.fixed_composition_boundary_indicators.begin();
-               p != parameters.fixed_composition_boundary_indicators.end(); ++p)
-            {
-              Assert (is_element (*p, geometry_model->get_used_boundary_indicators()),
-                      ExcInternalError());
-              VectorTools::interpolate_boundary_values (*mapping,
-                                                        dof_handler,
-                                                        *p,
-                                                        VectorFunctionFromScalarFunctionObject<dim>(std_cxx11::bind (&BoundaryComposition::Interface<dim>::boundary_composition,
-                                                            std_cxx11::cref(*boundary_composition),
-                                                            *p,
-                                                            std_cxx11::_1,
-                                                            c),
-                                                            introspection.component_masks.compositional_fields[c].first_selected_component(),
-                                                            introspection.n_components),
-                                                        current_constraints,
-                                                        introspection.component_masks.compositional_fields[c]);
-            }
+          {
+            current_constraints_for_composition[c].clear ();
+            current_constraints_for_composition[c].reinit (introspection.index_sets.system_relevant_set);
+            current_constraints_for_composition[c].merge (constraints);
+
+            for (std::set<types::boundary_id>::const_iterator
+                 p = parameters.fixed_composition_boundary_indicators.begin();
+                 p != parameters.fixed_composition_boundary_indicators.end(); ++p)
+              {
+                Assert (is_element (*p, geometry_model->get_used_boundary_indicators()),
+                        ExcInternalError());
+                VectorTools::interpolate_boundary_values (*mapping,
+                                                          dof_handler,
+                                                          *p,
+                                                          VectorFunctionFromScalarFunctionObject<dim>(std_cxx11::bind (&BoundaryComposition::Interface<dim>::boundary_composition,
+                                                              std_cxx11::cref(*boundary_composition),
+                                                              *p,
+                                                              std_cxx11::_1,
+                                                              0),
+                                                              introspection.component_masks.compositional_fields[0].first_selected_component(),
+                                                              introspection.n_components),
+                                                          current_constraints_for_composition[c],
+                                                          introspection.component_masks.compositional_fields[0]);
+              }
+            current_constraints_for_composition[c].close();
+          }
       }
 
 
@@ -1090,7 +1099,7 @@ namespace aspect
           switch (method)
             {
               case Parameters<dim>::AdvectionFieldMethod::fem_field:
-                coupling[x.compositional_fields[c]][x.compositional_fields[c]] = DoFTools::always;
+                coupling[x.compositional_fields[c]][x.compositional_fields[c]] = (c==0)?DoFTools::always : DoFTools::none;
                 break;
 
               case Parameters<dim>::AdvectionFieldMethod::particles:
@@ -1138,8 +1147,7 @@ namespace aspect
                   {
                     // Coupling cases
                     case Parameters<dim>::AdvectionFieldMethod::fem_field:
-                      face_coupling[x.compositional_fields[c]][x.compositional_fields[c]]
-                        = DoFTools::always;
+                      face_coupling[x.compositional_fields[c]][x.compositional_fields[c]] = (c==0)?DoFTools::always : DoFTools::none;
                       break;
                     // Non-coupling cases
                     case Parameters<dim>::AdvectionFieldMethod::particles:
@@ -1223,7 +1231,7 @@ namespace aspect
         switch (method)
           {
             case Parameters<dim>::AdvectionFieldMethod::fem_field:
-              coupling[x.compositional_fields[c]][x.compositional_fields[c]] = DoFTools::always;
+              coupling[x.compositional_fields[c]][x.compositional_fields[c]] = (c==0)?DoFTools::always : DoFTools::none;
               break;
 
             case Parameters<dim>::AdvectionFieldMethod::particles:
@@ -1270,7 +1278,7 @@ namespace aspect
                 switch (method)
                   {
                     case Parameters<dim>::AdvectionFieldMethod::fem_field:
-                      face_coupling[x.compositional_fields[c]][x.compositional_fields[c]] = DoFTools::always;
+                      face_coupling[x.compositional_fields[c]][x.compositional_fields[c]] = (c==0)?DoFTools::always : DoFTools::none;
                       break;
 
                     case Parameters<dim>::AdvectionFieldMethod::particles:
