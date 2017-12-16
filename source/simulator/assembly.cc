@@ -746,9 +746,12 @@ namespace aspect
           Assert (false, ExcNotImplemented());
       }
 
-    const unsigned int block_idx = advection_field.block_index(introspection);
+    const unsigned int solve_block_idx = advection_field.is_temperature() ?
+                                         advection_field.block_index(introspection)
+                                         : AdvectionField::composition(0).block_index(introspection);
+
     preconditioner.reset (new LinearAlgebra::PreconditionILU());
-    preconditioner->initialize (system_matrix.block(block_idx, block_idx));
+    preconditioner->initialize (system_matrix.block(solve_block_idx, solve_block_idx));
     computing_timer.exit_section();
   }
 
@@ -779,11 +782,19 @@ namespace aspect
     // get all dof indices on the current cell, then extract those
     // that correspond to the solution_field we are interested in
     cell->get_dof_indices (scratch.local_dof_indices);
+
+    types::global_dof_index offset = 0;
+    if (!advection_field.is_temperature())
+      {
+        for (unsigned int b=AdvectionField::composition(0).block_index(introspection); b<advection_field.block_index(introspection); ++b)
+          offset += introspection.index_sets.system_partitioning[b].size();
+      }
+
     for (unsigned int i=0, i_advection=0; i_advection<advection_dofs_per_cell; /*increment at end of loop*/)
       {
         if (finite_element.system_to_component_index(i).first == solution_component)
           {
-            data.local_dof_indices[i_advection] = scratch.local_dof_indices[i];
+            data.local_dof_indices[i_advection] = scratch.local_dof_indices[i]-offset;
             ++i_advection;
           }
         ++i;
@@ -1010,9 +1021,11 @@ namespace aspect
     else
       computing_timer.enter_section ("   Assemble composition system");
 
-    const unsigned int block_idx = advection_field.block_index(introspection);
+    const unsigned int block_idx = advection_field.is_temperature() ?
+                                   advection_field.block_index(introspection)
+                                   : AdvectionField::composition(0).block_index(introspection);
     system_matrix.block(block_idx, block_idx) = 0;
-    system_rhs = 0;
+    system_rhs.block(block_idx) = 0;
 
     typedef
     FilteredIterator<typename DoFHandler<dim>::active_cell_iterator>

@@ -179,7 +179,7 @@ namespace aspect
               assemble_advection_system (adv_field);
 
               if (compute_initial_residual)
-                (*initial_residual)[c] = system_rhs.block(introspection.block_indices.compositional_fields[c]).l2_norm();
+                (*initial_residual)[c] = system_rhs.block(introspection.block_indices.compositional_fields[0]).l2_norm();
 
               current_residual[c] = solve_advection(adv_field);
               break;

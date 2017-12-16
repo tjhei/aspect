@@ -379,7 +379,10 @@ namespace aspect
   double Simulator<dim>::solve_advection (const AdvectionField &advection_field)
   {
     double advection_solver_tolerance = -1;
-    unsigned int block_idx = advection_field.block_index(introspection);
+    const unsigned int solve_block_idx = advection_field.is_temperature() ?
+                                         advection_field.block_index(introspection)
+                                         : AdvectionField::composition(0).block_index(introspection);
+    const unsigned int solution_block_idx = advection_field.block_index(introspection);
 
     std::string field_name = (advection_field.is_temperature()
                               ?
@@ -393,7 +396,7 @@ namespace aspect
       advection_solver_tolerance = parameters.composition_solver_tolerance;
 
     const double tolerance = std::max(1e-50,
-                                      advection_solver_tolerance*system_rhs.block(block_idx).l2_norm());
+                                      advection_solver_tolerance*system_rhs.block(solve_block_idx).l2_norm());
 
     SolverControl solver_control (1000, tolerance);
 
@@ -404,10 +407,10 @@ namespace aspect
 
     // check if matrix and/or RHS are zero
     // note: to avoid a warning, we compare against numeric_limits<double>::min() instead of 0 here
-    if (system_rhs.block(block_idx).l2_norm() <= std::numeric_limits<double>::min())
+    if (system_rhs.block(solve_block_idx).l2_norm() <= std::numeric_limits<double>::min())
       {
         pcout << "   Skipping " + field_name + " solve because RHS is zero." << std::endl;
-        solution.block(block_idx) = 0;
+        solution.block(solve_block_idx) = 0;
 
         // signal successful solver and signal residual of zero
         solver_control.check(0, 0.0);
@@ -419,8 +422,8 @@ namespace aspect
         return 0;
       }
 
-    AssertThrow(system_matrix.block(block_idx,
-                                    block_idx).linfty_norm() > std::numeric_limits<double>::min(),
+    AssertThrow(system_matrix.block(solve_block_idx,
+                                    solve_block_idx).linfty_norm() > std::numeric_limits<double>::min(),
                 ExcMessage ("The " + field_name + " equation can not be solved, because the matrix is zero, "
                             "but the right-hand side is nonzero."));
 
@@ -448,28 +451,31 @@ namespace aspect
     LinearAlgebra::BlockVector distributed_solution (
       introspection.index_sets.system_partitioning,
       mpi_communicator);
-    distributed_solution.block(block_idx) = current_linearization_point.block (block_idx);
+    distributed_solution.block(solve_block_idx) = current_linearization_point.block (solution_block_idx);
 
     // Temporary vector to hold the residual, we don't need a BlockVector here.
     LinearAlgebra::Vector temp (
-      introspection.index_sets.system_partitioning[block_idx],
+      introspection.index_sets.system_partitioning[solve_block_idx],
       mpi_communicator);
 
-    current_constraints.set_zero(distributed_solution);
+    if (advection_field.is_temperature())
+      current_constraints.set_zero(distributed_solution);
+    else
+      current_constraints_for_composition[advection_field.compositional_variable].set_zero(distributed_solution);
 
     // Compute the residual before we solve and return this at the end.
     // This is used in the nonlinear solver.
-    const double initial_residual = system_matrix.block(block_idx,block_idx).residual
+    const double initial_residual = system_matrix.block(solve_block_idx,solve_block_idx).residual
                                     (temp,
-                                     distributed_solution.block(block_idx),
-                                     system_rhs.block(block_idx));
+                                     distributed_solution.block(solve_block_idx),
+                                     system_rhs.block(solve_block_idx));
 
     // solve the linear system:
     try
       {
-        solver.solve (system_matrix.block(block_idx,block_idx),
-                      distributed_solution.block(block_idx),
-                      system_rhs.block(block_idx),
+        solver.solve (system_matrix.block(solve_block_idx,solve_block_idx),
+                      distributed_solution.block(solve_block_idx),
+                      system_rhs.block(solve_block_idx),
                       (advection_field.is_temperature()
                        ?
                        *T_preconditioner
@@ -502,9 +508,12 @@ namespace aspect
                                   advection_field.is_temperature(),
                                   advection_field.compositional_variable,
                                   solver_control);
+    if (advection_field.is_temperature())
+      current_constraints.distribute(distributed_solution);
+    else
+      current_constraints_for_composition[advection_field.compositional_variable].distribute(distributed_solution);
 
-    current_constraints.distribute (distributed_solution);
-    solution.block(block_idx) = distributed_solution.block(block_idx);
+    solution.block(solution_block_idx) = distributed_solution.block(solve_block_idx);
 
     // print number of iterations and also record it in the
     // statistics file

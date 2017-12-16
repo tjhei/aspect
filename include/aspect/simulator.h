@@ -1534,6 +1534,7 @@ namespace aspect
        */
       ConstraintMatrix                                          constraints;
       ConstraintMatrix                                          current_constraints;
+      std::vector<ConstraintMatrix> current_constraints_for_composition;
 
       /**
        * A place to store the latest correction computed by normalize_pressure().

@@ -492,6 +492,13 @@ namespace aspect
 
       const FEValuesExtractors::Scalar solution_field = advection_field.scalar_extractor(introspection);
 
+      types::global_dof_index offset = 0;
+      if (!advection_field.is_temperature())
+        {
+          for (unsigned int b=Simulator<dim>::AdvectionField::composition(0).block_index(introspection); b<advection_field.block_index(introspection); ++b)
+            offset += introspection.index_sets.system_partitioning[b].size();
+        }
+
       // interior face or periodic face - no contribution on RHS
 
       const typename DoFHandler<dim>::cell_iterator
@@ -545,7 +552,7 @@ namespace aspect
                 {
                   if (fe.system_to_component_index(i).first == solution_component)
                     {
-                      data.neighbor_dof_indices[face_no * GeometryInfo<dim>::max_children_per_face][i_advection] = neighbor_dof_indices[i];
+                      data.neighbor_dof_indices[face_no * GeometryInfo<dim>::max_children_per_face][i_advection] = neighbor_dof_indices[i] - offset;
                       ++i_advection;
                     }
                   ++i;
@@ -883,7 +890,7 @@ namespace aspect
                 {
                   if (fe.system_to_component_index(i).first == solution_component)
                     {
-                      data.neighbor_dof_indices[face_no * GeometryInfo<dim>::max_children_per_face + subface_no][i_advection] = neighbor_dof_indices[i];
+                      data.neighbor_dof_indices[face_no * GeometryInfo<dim>::max_children_per_face + subface_no][i_advection] = neighbor_dof_indices[i] - offset;
                       ++i_advection;
                     }
                   ++i;
