@@ -1026,6 +1026,17 @@ namespace aspect
   {
     system_matrix.clear ();
 
+    bool have_fem_compositional_field = false;
+    for (unsigned int c=0; c<introspection.n_compositional_fields; ++c)
+      {
+        const AdvectionField adv_field (AdvectionField::composition(c));
+        if (adv_field.advection_method(introspection)==Parameters<dim>::AdvectionFieldMethod::fem_field)
+          {
+            have_fem_compositional_field = true;
+            break;
+          }
+      }
+
     Table<2,DoFTools::Coupling> coupling (introspection.n_components,
                                           introspection.n_components);
     coupling.fill (DoFTools::none);
@@ -1083,28 +1094,11 @@ namespace aspect
             }
         }
       coupling[x.temperature][x.temperature] = DoFTools::always;
-      for (unsigned int c=0; c<introspection.n_compositional_fields; ++c)
-        {
-          const AdvectionField adv_field (AdvectionField::composition(c));
-          const typename Parameters<dim>::AdvectionFieldMethod::Kind method = adv_field.advection_method(introspection);
-          switch (method)
-            {
-              case Parameters<dim>::AdvectionFieldMethod::fem_field:
-                coupling[x.compositional_fields[c]][x.compositional_fields[c]] = DoFTools::always;
-                break;
 
-              case Parameters<dim>::AdvectionFieldMethod::particles:
-                coupling[x.compositional_fields[c]][x.compositional_fields[c]] = DoFTools::none;
-                break;
-
-              case Parameters<dim>::AdvectionFieldMethod::static_field:
-                coupling[x.compositional_fields[c]][x.compositional_fields[c]] = DoFTools::none;
-                break;
-
-              default:
-                Assert(false,ExcNotImplemented());
-            }
-        }
+      // if we have at least one compositional field that is a FEM field, we create a matrix block in the first
+      // compositional block
+      if (have_fem_compositional_field)
+        coupling[x.compositional_fields[0]][x.compositional_fields[0]] = DoFTools::always;
     }
 
     LinearAlgebra::BlockDynamicSparsityPattern sp;
@@ -1128,29 +1122,8 @@ namespace aspect
         if (parameters.use_discontinuous_temperature_discretization)
           face_coupling[x.temperature][x.temperature] = DoFTools::always;
 
-        if (parameters.use_discontinuous_composition_discretization)
-          {
-            for (unsigned int c=0; c<introspection.n_compositional_fields; ++c)
-              {
-                const AdvectionField adv_field (AdvectionField::composition(c));
-                const typename Parameters<dim>::AdvectionFieldMethod::Kind method = adv_field.advection_method(introspection);
-                switch (method)
-                  {
-                    // Coupling cases
-                    case Parameters<dim>::AdvectionFieldMethod::fem_field:
-                      face_coupling[x.compositional_fields[c]][x.compositional_fields[c]]
-                        = DoFTools::always;
-                      break;
-                    // Non-coupling cases
-                    case Parameters<dim>::AdvectionFieldMethod::particles:
-                      face_coupling[x.compositional_fields[c]][x.compositional_fields[c]]
-                        = DoFTools::none;
-                      break;
-                    default:
-                      Assert(false,ExcNotImplemented());
-                  }
-              }
-          }
+        if (parameters.use_discontinuous_composition_discretization && have_fem_compositional_field)
+          face_coupling[x.compositional_fields[0]][x.compositional_fields[0]] = DoFTools::always;
 
         DoFTools::make_flux_sparsity_pattern (dof_handler,
                                               sp,
@@ -1177,6 +1150,16 @@ namespace aspect
     system_matrix.reinit (system_partitioning, system_partitioning, sp, mpi_communicator);
 #else
     sp.compress();
+
+    // Deleting other matrix blocks (no need to have entries for
+    // constrained/hanging nodes). Note that no other matrices than c=0 are
+    // fully created anyways.
+    for (unsigned int c=1; c<introspection.n_compositional_fields; ++c)
+      {
+        const unsigned int block_idx = introspection.block_indices.compositional_fields[c];
+        sp.block(block_idx, block_idx).reinit(sp.block(block_idx, block_idx).locally_owned_range_indices(),sp.block(block_idx, block_idx).locally_owned_domain_indices()); // TODO: clearing it would be nice but clear() also resets the size
+        sp.block(block_idx, block_idx).compress();
+      }
 
     system_matrix.reinit (sp);
 #endif
@@ -1218,7 +1201,6 @@ namespace aspect
       }
     else
       coupling[x.pressure][x.pressure] = DoFTools::always;
-
     // the system_preconditioner matrix is only used for the Stokes
     // system as there we use a separate matrix for preconditioning
     // than the system_matrix object). for temperature and
@@ -1255,6 +1237,21 @@ namespace aspect
     system_preconditioner_matrix.reinit (system_partitioning, system_partitioning, sp, mpi_communicator);
 #else
     sp.compress();
+
+    // Deleting temperature and composition matrix blocks:
+    {
+      // temperature:
+      const unsigned int block_idx = introspection.block_indices.temperature;
+      sp.block(block_idx, block_idx).reinit(sp.block(block_idx, block_idx).locally_owned_range_indices(),sp.block(block_idx, block_idx).locally_owned_domain_indices()); // TODO: clearing it would be nice but clear() also resets the size
+      sp.block(block_idx, block_idx).compress();
+    }
+    // compositions:
+    for (unsigned int c=0; c<introspection.n_compositional_fields; ++c)
+      {
+        const unsigned int block_idx = introspection.block_indices.compositional_fields[c];
+        sp.block(block_idx, block_idx).reinit(sp.block(block_idx, block_idx).locally_owned_range_indices(),sp.block(block_idx, block_idx).locally_owned_domain_indices()); // TODO: clearing it would be nice but clear() also resets the size
+        sp.block(block_idx, block_idx).compress();
+      }
 
     system_preconditioner_matrix.reinit (sp);
 #endif
