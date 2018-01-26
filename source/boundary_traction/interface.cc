@@ -59,8 +59,8 @@ namespace aspect
       /**
        * We can only get here if the new-style boundary_traction function (with
        * two arguments) calls it. This means that the derived class did not override
-       * the new-style boundary_velocity function, and because we are here, it also
-       * did not override this old-style boundary_velocity function (with one argument).
+       * the new-style boundary_traction function, and because we are here, it also
+       * did not override this old-style boundary_traction function (with one argument).
        */
       Assert (false, ExcMessage ("A derived class needs to override either the "
                                  "boundary_traction(position, normal_vector) "
