@@ -13,6 +13,8 @@ aspect-manual-pix = $(shell find manual/cookbooks/ -name \*.png 2>/dev/null)
 # no changes in it:
 change-files = $(shell find modules/changes/ -type f -not -name '.*')
 
+aspect-manual-tex = $(shell ls manual/*.tex)
+
 aspect-prms = $(shell find manual/cookbooks/ -name \*.prm 2>/dev/null)
 aspect-prms-out = $(aspect-prms:=.out)
 
@@ -68,7 +70,7 @@ aspect.tag: $(aspect-files) $(change-files) modules/changes.h options.dox Makefi
 # successful. For this matter we need to catch errors from pdflatex, but we
 # need to ignore them the first time we run pdflatex, because of missing label
 # definitions, etc..
-manual.pdf: manual/manual.tex manual/manual.bib manual/parameters.tex \
+manual.pdf: $(aspect-manual-tex) manual/manual.bib \
             $(aspect-manual-pix) $(aspect-prms-out)
 	@if test -x "`which pdflatex`" \
                  -a -x "`which bibtex`" \

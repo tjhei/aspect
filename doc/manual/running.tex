@@ -1,0 +1,1368 @@
+\section{Running \aspect}
+\label{sec:running}
+
+\subsection{Overview}
+\label{sec:running-overview}
+
+After compiling \aspect{} as described above, you should have an executable
+file in the main directory. It can be called as follows:
+\begin{verbatim}
+  ./aspect parameter-file.prm
+\end{verbatim}
+or, if you want to run the program in parallel, using something like
+\begin{verbatim}
+  mpirun -np 32 ./aspect parameter-file.prm
+\end{verbatim}
+to run with 32 processors. In either case, the argument denotes the (path and)
+name of a file that contains input parameters.%
+\footnote{As a special case, if you call \aspect{} with an argument that
+consists of two dashes, ``\texttt{--}'', then the arguments will be read from
+the standard input stream of the program. In other words, you could type the
+input parameters into your shell window in this case (though that would be
+cumbersome, \aspect{} would seem to hang until you finish typing all of your
+input into the window and then terminating the input stream by typing
+\texttt{Ctrl-D}). A more common case would be to use Unix pipes so that the
+default 
+input of \aspect{} is the output of another program, as in a command like
+\texttt{cat parameter-file.prm.in | mypreprocessor | ./aspect --}, where
+\texttt{mypreprocessor} would be a program of your choice that somehow
+transforms the file \texttt{parameter-file.prm.in} into a valid input file,
+for example to systematically vary one of the input parameters.
+
+If you want to run \aspect{} in parallel, you can do something like
+\texttt{cat parameter-file.prm.in | mypreprocessor | mpirun -np 4 ./aspect
+  --}. In cases like this, \texttt{mpirun} only forwards the output of
+\texttt{mypreprocessor} to the first of the four MPI processes, which then
+sends the text to all other processors.}
+When you download \aspect{}, there are a number of sample input files in the
+\texttt{cookbooks} directory, corresponding to the examples discussed in
+Section~\ref{sec:cookbooks}, and input files for some of the benchmarks discussed
+in Section~\ref{sec:cookbooks-benchmarks} are located in the \texttt{benchmarks}
+directory. A full description of all parameters one can specify in these files
+is given in Section~\ref{sec:parameters}.
+
+Running \aspect{} with an input file will produce output that will look
+something like this (numbers will all be different, of course):
+\begin{lstlisting}[frame=single,language=ksh]
+-----------------------------------------------------------------------------
+-- This is ASPECT, the Advanced Solver for Problems in Earth's ConvecTion.
+--     . version 2.0.0-pre (include_dealii_version, c20eba0)
+--     . using deal.II 9.0.0-pre (master, 952baa0)
+--     . using Trilinos 12.10.1
+--     . using p4est 2.0.0
+--     . running in DEBUG mode
+--     . running with 1 MPI process
+-----------------------------------------------------------------------------
+
+Number of active cells: 1,536 (on 5 levels)
+Number of degrees of freedom: 20,756 (12,738+1,649+6,369)
+
+*** Timestep 0:  t=0 years
+
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 30+3 iterations.
+   Solving temperature system... 8 iterations.
+
+Number of active cells: 2,379 (on 6 levels)
+Number of degrees of freedom: 33,859 (20,786+2,680+10,393)
+
+*** Timestep 0:  t=0 years
+
+   Rebuilding Stokes preconditioner...
+   Solving Stokes system... 30+4 iterations.
+   Solving temperature system... 8 iterations.
+
+   Postprocessing:
+     Writing graphical output: output/solution/solution-00000
+     RMS, max velocity:        0.0946 cm/year, 0.183 cm/year
+     Temperature min/avg/max:  300 K, 3007 K, 6300 K
+     Inner/outer heat fluxes:  1.076e+05 W, 1.967e+05 W
+
+*** Timestep 1:  t=1.99135e+07 years
+
+   Solving Stokes system... 30+3 iterations.
+   Solving temperature system... 8 iterations.
+
+   Postprocessing:
+     Writing graphical output: output/solution/solution-00001
+     RMS, max velocity:        0.104 cm/year, 0.217 cm/year
+     Temperature min/avg/max:  300 K, 3008 K, 6300 K
+     Inner/outer heat fluxes:  1.079e+05 W, 1.988e+05 W
+
+*** Timestep 2:  t=3.98271e+07 years
+
+   Solving Stokes system... 30+3 iterations.
+   Solving temperature system... 8 iterations.
+
+   Postprocessing:
+     RMS, max velocity:       0.111 cm/year, 0.231 cm/year
+     Temperature min/avg/max: 300 K, 3008 K, 6300 K
+     Inner/outer heat fluxes: 1.083e+05 W, 2.01e+05 W
+
+*** Timestep 3:  t=5.97406e+07 years
+
+...
+\end{lstlisting}
+
+The output starts with a header that lists the used \aspect{}, \dealii{},
+\trilinos{} and \pfrst{} versions as well as the mode you compiled \aspect{} in
+(see \ref{sec:debug-mode}), and the number of parallel processes
+used\footnote{If you used the \texttt{git} version control system to download
+\aspect{} and/or \dealii{}, as in this example, you will also get the current
+branch, and unique revision identifier for the current version. This is very
+important if you modify either software between releases, or you use a
+development version that is not an official release. Note that this revision
+can not track changes you made to the software that are not part of a git
+commit.}.  With this information we strive to make
+\aspect{} models as reproducible as possible.
+
+The following output depends on the model, and in this case was produced by
+a parameter file that, among other settings, contained the following values
+(we will discuss many such input files in Section~\ref{sec:cookbooks}:
+\lstinputlisting[language=prmfile]{cookbooks/overview/simple.prm.out}
+
+In other words, these run-time parameters specify that we should start with a
+geometry that represents a spherical shell (see
+Sections~\ref{parameters:Geometry_20model} and
+\ref{parameters:Geometry_20model/Spherical_20shell} for details). The coarsest
+mesh is refined 4 times globally, i.e., every cell is refined into four
+children (or eight, in 3d) 4 times. This yields the initial number of 1,536
+cells on a mesh hierarchy that is 5 levels deep. We then solve the problem
+there once and, based on the number of adaptive refinement steps at the
+initial time set in the parameter file, use the solution so computed to refine
+the mesh once adaptively (yielding 2,379 cells on 6 levels) on which we start
+the computation over at time $t=0$.
+
+Within each time step, the output indicates the number of iterations performed
+by the linear solvers, and we generate a number of lines of output by the
+postprocessors that were selected (see
+\index[prmindex]{List of postprocessors}
+\index[prmindexfull]{Postprocess!List of postprocessors}
+Section~\ref{parameters:Postprocess}). Here, we have selected to run all
+postprocessors that are currently implemented in \aspect{} which includes the
+ones that evaluate properties of the velocity, temperature, and heat flux as
+well as a postprocessor that generates graphical output for visualization.
+
+While the screen output is useful to monitor the progress of a simulation,
+its lack of a structured output makes it not useful for later plotting things
+like the evolution of heat flux through the core-mantle boundary. To this end,
+\aspect{} creates additional files in the output directory selected in the
+input parameter file
+\index[prmindex]{Output directory}
+\index[prmindexfull]{Output directory}
+(here, the \texttt{output/} directory relative to the
+directory in which \aspect{} runs). In a simple case, this will look as
+follows:
+\begin{lstlisting}[frame=single,language=ksh]
+aspect> ls -l output/
+total 932
+-rw-rw-r-- 1 bangerth bangerth  11134 Dec 11 10:08 depth_average.gnuplot
+-rw-rw-r-- 1 bangerth bangerth  11294 Dec 11 10:08 log.txt
+-rw-rw-r-- 1 bangerth bangerth 326074 Dec 11 10:07 parameters.prm
+-rw-rw-r-- 1 bangerth bangerth 577138 Dec 11 10:07 parameters.tex
+drwxr-xr-x 2 bangerth bangerth   4096 Dec 11 10:08 solution
+-rw-rw-r-- 1 bangerth bangerth    484 Dec 11 10:08 solution.pvd
+-rw-rw-r-- 1 bangerth bangerth    451 Dec 11 10:08 solution.visit
+-rw-rw-r-- 1 bangerth bangerth   8267 Dec 11 10:08 statistics
+\end{lstlisting}
+The purpose of these files is as follows:
+\begin{itemize}
+\item \textit{A listing of all run-time parameters:} The
+  \texttt{output/parameters.prm} file contains a complete listing of all
+  run-time parameters. In particular, this includes the ones that have been
+  specified in the input parameter file passed on the command line, but it
+  also includes those parameters for which defaults have been used. It is
+  often useful to save this file together with simulation data to allow for
+  the easy reproduction of computations later on.
+  
+  There is a second file, \texttt{output/parameters.prm}, that lists these
+  parameters in \LaTeX{} format.
+
+\item \textit{Graphical output files:} One of the postprocessors chosen
+  in the parameter file used for this computation is the one that generates
+  output files that represent the solution at certain time steps. The screen output
+  indicates that it has run at time step 0, producing output files that start
+  with \texttt{output/solution/solution-00000}. Depending on the settings in the
+  parameter file, output will be generated every so many seconds or years of
+  simulation time, and subsequent output files will then start with
+  \texttt{output/solution/solution-00001}, all placed in the
+  \texttt{output/solution} subdirectory. This is because there are often
+  \textit{a lot} of output files: For many time steps, times the number of
+  processors, so they are placed in a subdirectory so as not to make it more
+  difficult than necessary to find the other files.
+  
+  At the current time, the
+  default is that \aspect{} generates this output in VTK format%
+  \footnote{The output is in fact in the VTU version of the VTK file
+    format. This is the XML-based version of this file format in which
+    contents are compressed. Given that typical file sizes for 3d simulation
+    are substantial, the compression saves a significant amount of disk
+    space.}  as that is widely used by a number of excellent visualization
+  packages and also supports parallel visualization.%
+  \footnote{The underlying \dealii{} package actually supports output in
+    around a dozen different formats, but most of them are not very useful for
+    large-scale, 3d, parallel simulations. If you need a different format than
+    VTK, you can select this using the run-time parameters discussed in
+    Section~\ref{parameters:Postprocess/Visualization}.}  If
+  the program has been run with multiple MPI processes, then the list of
+  output files will be \texttt{output/solution/solution-XXXXX.YYYY}
+  denoting that this the \texttt{XXXXX}th time we create output files and that
+  the file was generated by the \texttt{YYYY}th processor.
+
+  VTK files can be visualized by many of the large visualization packages. In
+  particular, the
+  \href{https://visit.llnl.gov}{Visit} and
+  \href{http://www.paraview.org/}{ParaView} programs, both
+  widely used, can read the files so created. However, while VTK has become a
+  de-facto standard for data visualization in scientific computing, there
+  doesn't appear to be an agreed upon way to describe which files jointly make
+  up for the simulation data of a single time step (i.e., all files with the
+  same \texttt{XXXXX} but different \texttt{YYYY} in the example above). Visit
+  and Paraview both have their method of doing things, through \texttt{.pvtu} and
+  \texttt{.visit} files. To make it easy for you to view data, \aspect{}
+  simply creates both kinds of files in each time step in which graphical data
+  is produced, and these are then also placed into the subdirectories as
+  \texttt{output/solution/solution-XXXXX.pvtu} and
+  \texttt{output/solution/solution-XXXXX.visit}.
+
+  The final two files of this kind, \texttt{output/solution.pvd} and
+  \texttt{output/solution.visit}, are files that
+  describes to Paraview and Visit, respectively, which
+  \texttt{output/solution/solution-XXXXX.pvtu} and
+  \texttt{output/solution/solution-XXXXX.YYYY.vtu} jointly form a complete
+  simulation.
+  In the former case, the file lists the \texttt{.pvtu} files of all
+  timesteps together with the simulation time to which they correspond. In the
+  latter case, it actually lists all \texttt{.vtu} that belong to one
+  simulation, grouped by the timestep they correspond to.
+  To visualize an entire simulation, not just a single time step, it is
+  therefore simplest to just load one of these files, depending on whether you
+  use Paraview or Visit.%
+  \footnote{At the time of writing this, current versions of Visit (starting
+    with version 2.5.1) actually have a bug that prevents them from
+    successfully reading the \texttt{output/solution.visit} or
+    \texttt{output/solution/solution-XXXXX.visit} files -- Visit believes that
+    each of these files corresponds to an individual time step, rather than that a whole
+    group of files together form one time step. This bug is not fixed in Visit
+    2.6.3, but may be fixed in later versions.}
+  Because loading an \textit{entire} simulation is the most common use case,
+  these are the two files you will most often load, and so they are placed in
+  the \texttt{output} directory, not the subdirectory where the actual
+  \texttt{.vtu} data files are located.
+
+  For more on visualization, see also Section~\ref{sec:viz}.
+
+\item \textit{A statistics file:} The \texttt{output/statistics} file contains
+  statistics collected during each time step, both from within the simulator
+  (e.g., the current time for a time step, the time step length, etc.) as well
+  as from the postprocessors that run at the end of each time step. The file
+  is essentially a table that allows for the simple production of time
+  trends. In the example above, and at the time when we are writing this
+  section, it looks like this:
+  \begin{lstlisting}[frame=single,language=ksh,showstringspaces=false]
+# 1: Time step number
+# 2: Time (years)
+# 3: Iterations for Stokes solver
+# 4: Time step size (year)
+# 5: Iterations for temperature solver
+# 6: Visualization file name
+# 7: RMS velocity (m/year)
+# 8: Max. velocity (m/year)
+# 9: Minimal temperature (K)
+# 10: Average temperature (K)
+# 11: Maximal temperature (K)
+# 12: Average nondimensional temperature (K)
+# 13: Core-mantle heat flux (W)
+# 14: Surface heat flux (W)
+0 0.000e+00 33 2.9543e+07 8                             "" 0.0000 0.0000 0.0000 0.0000    ...
+0 0.000e+00 34 1.9914e+07 8 output/solution/solution-00000 0.0946 0.1829 300.00 3007.2519 ...
+1 1.991e+07 33 1.9914e+07 8 output/solution/solution-00001 0.1040 0.2172 300.00 3007.8406 ...
+2 3.982e+07 33 1.9914e+07 8                             "" 0.1114 0.2306 300.00 3008.3939 ...
+  \end{lstlisting}
+  The actual columns you have in your statistics file may differ from the ones above,
+  but the format of this file should be obvious. Since the hash mark is a comment
+  marker in many programs (for example, \texttt{gnuplot} ignores lines in text
+  files that start with a hash mark), it is simple to plot these columns as time
+  series. Alternatively, the data can be imported into a spreadsheet and
+  plotted there.
+\note{As noted in Section~\ref{sec:non-dimensional}, \aspect{} can be
+  thought of as using the meter-kilogram-second (MKS, or SI) system. Unless otherwise noted,
+  the quantities in the output file are therefore also in MKS units.}
+
+  A simple way to plot the contents of this file is shown in Section~\ref{sec:viz-stat}.
+
+\item \textit{Output files generated by other postprocessors:} Similar to the
+  \texttt{output/statistics} file, several of the existing
+  postprocessors one can select from the parameter file generate their
+  data in their own files in the output directory. For example, \aspect{}'s
+  ``depth average'' postprocessor will write depth-average statistics into
+  the file \texttt{output/depth\_average.gnuplot}.
+  Input parameters chosen in the input file control how often this file is
+  updated by the postprocessor, as well as what graphical file format to use (if
+  anything other than \texttt{gnuplot} is desired).
+
+  By default, the data is written in text format that can be easily visualized,
+  see for example Figure~\ref{fig:depthaverage}. The plot
+  shows how an initially linear temperature profile forms upper and lower
+  boundary layers.
+
+\begin{figure}[tbp]
+  \centering
+  \includegraphics[width=0.6\textwidth]{depthaverage2.png}
+  \caption{\it Example output for depth average statistics. On the left axis are 13 time
+  steps, on the right is the depth (from the top at 0 to the bottom of the mantle on the
+  far right), and the upwards pointing axis is the average temperature. This
+  plot is generated by gnuplot, but the depth averages can be written in many
+  other output formats as well, if preferred (see
+  Section~\ref{parameters:Postprocess/Depth_20average}).}
+  \label{fig:depthaverage}
+\end{figure}
+
+\end{itemize}
+
+There are other parts of \aspect{} that may also create files in the output
+directory. For example, if your simulation includes advecting along particles
+(see Section~\ref{sec:particles}), then visualization information for these
+particles will also appear in this file. See
+Section~\ref{sec:cookbooks-particles} for an example of how this looks like.
+
+
+\subsection{Selecting between 2d and 3d runs}
+\label{sec:2d-vs-3d}
+
+\aspect{} can solve both two- and three-dimensional problems.%
+\footnote{For a description of what exactly we mean when we consider
+two-dimensional models, see Section~\ref{sec:meaning-of-2d}.}
+You select which one you want by putting a line like the following into
+\index[prmindex]{Dimension}
+\index[prmindexfull]{Dimension}
+the parameter file (see Section~\ref{sec:parameters}):
+\lstinputlisting[language=prmfile]{cookbooks/overview/dim.part.prm.out}
+
+Internally, dealing with the dimension builds on a feature in
+\dealii{}, upon which \aspect{} is based, that is called
+\textit{dimension-independent programming}. In essence, what this does is that
+you write your code only once in a way so that the space dimension is a
+variable (or, in fact, a template parameter) and you can compile the code for
+either 2d or 3d. The advantage is that codes can be tested and debugged in 2d
+where simulations are relatively cheap, and the same code can then be
+re-compiled and executed in 3d where simulations would otherwise be
+prohibitively expensive for finding bugs; it is also a useful feature when
+scoping out whether certain parameter settings will have the desired effect by
+testing them in 2d first, before running them in 3d. This feature is discussed
+in detail in the
+\href{https://www.dealii.org/developer/doxygen/deal.II/step_4.html}{\dealii{}
+  tutorial program step-4}.
+Like there, all the functions and classes in
+\aspect{} are compiled for both 2d and 3d. Which dimension is actually
+called internally depends on what you have set in the input file, but
+in either case, the machine code generated for 2d and 3d results from
+the same source code and should, thus, contain the same set of
+features and bugs. Running in 2d and 3d should therefore yield
+comparable results. Be prepared to wait much longer for
+computations to finish in the latter case, however.
+
+
+\subsection{Debug or optimized mode}
+\label{sec:debug-mode}
+
+\aspect{} utilizes a \dealii{} feature called \textit{debug
+  mode}. By default, \aspect{} uses debug mode, i.e., it calls a version of
+the \dealii{} library that contain lots of checks for the correctness of
+function arguments, the consistency of the internal state of data structure,
+etc. If you program with \dealii{}, for example to extend \aspect{}, it has
+been our experience over the years that, by number, most programming errors are of the
+kind where one forgets to initialize a vector, one accesses data that has not
+been updated, one tries to write into a vector that has ghost elements,
+etc. If not caught, the result of these bugs is that parts of the program use
+invalid data (data written into ghost elements is not communicated to other
+processors), that operations simply make no sense (adding vectors of different
+length), that memory is corrupted (writing past the end of an array) or, in
+rare and fortunate cases, that the program simply crashes.
+
+Debug mode is designed to catch most of these errors: It enables some 7,300
+assertions (as of late 2011) in \dealii{} where we check for errors like the
+above and, if the condition is violated, abort the program with a detailed
+message that shows the failed check, the location in the source code, and a
+stacktrace how the program got there. The downside of debug mode is, of
+course, that it makes the program much slower -- depending on application by a
+factor of 4--10. An example of the speedup one can get is shown in
+Section~\ref{sec:cookbooks-simple-box}.
+
+\aspect{} by default uses debug mode because most users will want to play with
+the source code, and because it is also a way to verify that the compilation
+process worked correctly. If you have verified that the program runs correctly
+with your input parameters, for example by letting it run for the first 10
+time steps, then you can switch to optimized mode by compiling \aspect{}
+with the command\footnote{Note that this procedure also changed with the switch to cmake.}
+\begin{verbatim}
+ make release
+\end{verbatim}
+and then compile using
+\begin{verbatim}
+ make
+\end{verbatim}
+To switch back to debug mode type:
+\begin{verbatim}
+ make debug
+\end{verbatim}
+
+\note{It goes without saying that if you make significant modifications to the
+  program, you should do the first runs in debug mode to verify that your
+  program still works as expected.}
+
+
+\subsection{Visualizing results}
+\label{sec:viz}
+
+Among the postprocessors that can be selected in the input parameter file (see
+Sections~\ref{sec:running-overview} and
+\ref{parameters:Postprocess/Visualization}) are some that can produce files in
+a format that can later be used to generate a graphical visualization of the
+solution variables $\mathbf u, p$ and $T$ at select time steps, or of
+quantities derived from these variables (for the latter, see
+Section~\ref{sec:viz-postpostprocessors}).
+
+By default, the files that are generated are in VTU format, i.e., the
+XML-based, compressed format defined by the VTK library, see
+\url{http://public.kitware.com/VTK/}. This file format has become a broadly
+accepted pseudo-standard that many visualization program support, including
+two of the visualization programs used most widely in computational science:
+Visit (see \url{https://visit.llnl.gov/}) and ParaView (see
+\url{http://www.paraview.org/}). The VTU format has a number of
+advantages beyond being widely distributed:
+\begin{itemize}
+\item It allows for compression, keeping files relatively small even for
+  sizeable computations.
+\item It is a structured XML format, allowing other programs to read it
+  without too much trouble.
+\item It has a degree of support for parallel computations where every
+  processor would only write that part of the data to a file that this
+  processor in fact owns, avoiding the need to communicate all data to a
+  single processor that then generates a single file. This requires a master
+  file for each time step that then contains a reference to the individual
+  files that together make up the output of a single time step. Unfortunately,
+  there doesn't appear to be a standard for these master records; however,
+  both ParaView and Visit have defined a format that each of these programs
+  understand and that requires placing a file with ending \texttt{.pvtu} or
+  \texttt{.visit} into the same directory as the output files from each
+  processor. Section~\ref{sec:running-overview} gives an example of what can
+  be found in the output directory.
+\end{itemize}
+
+\note{You can select other formats for output than VTU, see the run-time
+  parameters in Section~\ref{parameters:Postprocess/Visualization}. However,
+  none of the numerous formats currently implemented in \dealii{} other than
+  the VTK/VTU formats allows for splitting up data over multiple files in case
+  of parallel computations, thus making subsequent visualization of the entire
+  volume impossible. Furthermore, given the amount of data \aspect{} can
+  produce, the compression that is part of the VTU format is an important part
+  of keeping data manageable.
+\index[prmindex]{Output format}
+\index[prmindexfull]{Postprocess!Visualization!Output format}
+}
+
+\subsubsection{Visualization the graphical output using \textit{Visit}}
+In the following, let us discuss the process of visualizing a 2d computation
+using Visit. The steps necessary for other visualization programs will
+obviously differ but are, in principle, similar.
+
+To this end, let us consider a simulation of convection in a box-shaped, 2d
+region (see the ``cookbooks'' section, Section~\ref{sec:cookbooks}, and in
+particular Section~\ref{sec:cookbooks-simple-box} for
+the input file for this particular model). We can run the program with 4 processors using
+\begin{verbatim}
+  mpirun -np 4 ./aspect cookbooks/convection-box.prm
+\end{verbatim}
+Letting the program run for a while will result in several output files as
+discussed in Section~\ref{sec:running-overview} above.
+
+In order to visualize one time step, follow these steps:%
+\footnote{The instructions and screenshots were generated with Visit
+  2.1. Later versions of Visit differ slightly in the arrangement of
+  components of the graphical user interface, but the workflow and general
+  idea remains unchanged.}
+
+\begin{figure}[tbp]
+  \phantom{.}
+  \hfill
+  \subfigure[]{
+    \includegraphics[width=0.24\textwidth]{viz/visit/visit-1.png}
+    \label{fig:visit-1:a}
+  }
+  \hfill
+  \subfigure[]{
+    \includegraphics[width=0.24\textwidth]{viz/visit/visit-2.png}
+    \label{fig:visit-1:b}
+  }
+  \hfill
+  \subfigure[]{
+    \includegraphics[width=0.24\textwidth]{viz/visit/visit-3.png}
+    \label{fig:visit-1:c}
+  }
+  \hfill
+  \phantom{.}
+  \caption{\it Main window of Visit, illustrating the different steps of
+    adding content to a visualization.}
+  \label{fig:visit-1}
+\end{figure}
+
+\begin{figure}[tbp]
+  \phantom{.}
+  \hfill
+  \subfigure[]{
+    \includegraphics[width=0.48\textwidth]{viz/visit/visit-4.png}
+    \label{fig:visit-2:a}
+  }
+  \hfill
+  \subfigure[]{
+    \includegraphics[width=0.48\textwidth]{viz/visit/visit-5.png}
+    \label{fig:visit-2:b}
+  }
+  \hfill
+  \phantom{.}
+  \caption{\it Display window of Visit, showing a single plot and one where
+    different data is overlaid.}
+  \label{fig:visit-2}
+\end{figure}
+
+\begin{itemize}
+\item \textit{Selecting input files:} As mentioned above, in parallel
+  computations we usually generate one output file per processor in each time
+  step for which visualization data is produced (see, however,
+  Section~\ref{sec:viz-data}). To tell Visit which files together make up one
+  time step, \aspect{} creates a \texttt{output/solution/solution-XXXXX.visit}
+  file in the output directory. To open it, start Visit, click on the ``Open'' button in
+  the ``Sources'' area of
+  its main window (see Fig.~\ref{fig:visit-1:a}) and select the file you
+  want. Alternatively, you can also select files using the ``File $>$ Open''
+  menu item, or hit the corresponding keyboard short-cut. After adding an
+  input source, the ``Sources'' area of the main window should list the
+  selected file name. More easily, you can also just open
+  \texttt{output/solution.visit} which references \textit{all} output files for
+  all time steps. If you open this, Visit will display a slider that allows you
+  to select which time step you want to visualize, along with forward, backward,
+  and play buttons that allow you to move between time steps.
+
+\item \textit{Selecting what to plot:} \aspect{} outputs all sorts of
+  quantities that characterize the solution, such as temperature, pressure,
+  velocity, and many others on demand (see
+  Section~\ref{parameters:Postprocess/Visualization}). Once an input file has
+  been opened, you will want to add graphical representations of some of this
+  data to the still empty canvas. To this end, click on the ``Add'' button of
+  the ``Plots'' area. The resulting menu provides a number of different kinds
+  of plots. The most important for our purpose are: (i) ``Pseudocolor'' allows
+  the visualization of a scalar field (e.g., temperature, pressure, density)
+  by using a color field. (ii) ``Vector'' displays a vector-valued field
+  (e.g., velocity) using arrows. (iii) ``Mesh'' displays the mesh. The
+  ``Contour'', ``Streamline'' and ``Volume'' options are also frequently
+  useful, in particular in 3d.
+
+  Let us choose the ``Pseudocolor'' item and select the temperature field as
+  the quantity to plot. Your main window should now look as shown in
+  Fig.~\ref{fig:visit-1:b}. Then hit the ``Draw'' button to make Visit generate
+  data for the selected plots. This will yield a picture such as shown in
+  Fig.~\ref{fig:visit-2:a} in the display window of Visit.
+
+\item \textit{Overlaying data:} Visit can overlay multiple plots in the same
+  view. To this end, add another plot to the view using again the ``Add''
+  button to obtain the menu of possible plots, then the ``Draw'' button to
+  actually draw things. For example, if we add velocity vectors and the mesh,
+  the main window looks as in Fig.~\ref{fig:visit-1:c} and the main view as in
+  Fig.~\ref{fig:visit-2:b}.
+
+\item \textit{Adjusting how data is displayed:} Without going into too much
+  detail, if you double click onto the name of a plot in the ``Plots'' window,
+  you get a dialog in which many of the properties of this plot can be
+  adjusted. Further details can be changed by using ``Operators'' on a plot.
+
+\item \textit{Making the output prettier:} As can be seen in
+  Fig.~\ref{fig:visit-2}, Visit by default puts a lot of clutter around the
+  figure -- the name of the user, the name of the input file, color bars, axes
+  labels and ticks, etc. This may be useful to explore data in the beginning
+  but does not yield good pictures for presentations or publications. To
+  reduce the amount of information displayed, go to the ``Controls $>$
+  Annotations'' menu item to get a dialog in which all of these displays can
+  be selectively switched on and off.
+
+\item \textit{Saving figures:} To save a visualization into a file that can
+  then be included into presentations and publications, go to the menu item
+  ``File $>$ Save window''. This will create successively numbered files in
+  the directory from which Visit was started each time a view is saved. Things
+  like the format used for these files can be chosen using the ``File $>$ Set
+  save options'' menu item. We have found that one can often get better
+  looking pictures by selecting the ``Screenshot'' method in this dialog.
+\end{itemize}
+
+More information on all of these topics can be found in the Visit
+documentation, see \url{https://visit.llnl.gov/}. We have also recorded
+video lectures demonstrating this process interactively at
+\url{http://www.youtube.com/watch?v=3ChnUxqtt08} for Visit, and at
+\url{http://www.youtube.com/watch?v=w-65jufR-bc} for Paraview.
+
+
+\subsubsection{Visualizing statistical data}
+\label{sec:viz-stat}
+
+In addition to the graphical output discussed above, \aspect{} produces a
+statistics file that collects information produced during each time step.
+For the remainder of this section, let us assume that we have run \aspect{}
+with the input file discussed in Section~\ref{sec:cookbooks-simple-box},
+simulating convection in a box. After running \aspect{}, you will find
+a file called \texttt{statistics} in the output directory that, at the time
+of writing this, looked like this:
+This file has a structure that looks (at the time of writing this section)
+like this:
+\begin{lstlisting}[frame=single,language=ksh,showstringspaces=false]
+# 1: Time step number
+# 2: Time (seconds)
+# 3: Number of mesh cells
+# 4: Number of Stokes degrees of freedom
+# 5: Number of temperature degrees of freedom
+# 6: Iterations for temperature solver
+# 7: Iterations for Stokes solver
+# 8: Velocity iterations in Stokes preconditioner
+# 9: Schur complement iterations in Stokes preconditioner
+# 10: Time step size (seconds)
+# 11: RMS velocity (m/s)
+# 12: Max. velocity (m/s)
+# 13: Minimal temperature (K)
+# 14: Average temperature (K)
+# 15: Maximal temperature (K)
+# 16: Average nondimensional temperature (K)
+# 17: Outward heat flux through boundary with indicator 0 ("left") (W)
+# 18: Outward heat flux through boundary with indicator 1 ("right") (W)
+# 19: Outward heat flux through boundary with indicator 2 ("bottom") (W)
+# 20: Outward heat flux through boundary with indicator 3 ("top") (W)
+# 21: Visualization file name
+ 0 0.0000e+00 256 2467 1089  0 29 30 29 1.2268e-02 1.79026783e+00 2.54322608e+00
+ 1 1.2268e-02 256 2467 1089 32 29 30 30 3.7388e-03 5.89844152e+00 8.35160076e+00
+ 2 1.6007e-02 256 2467 1089 20 28 29 29 2.0239e-03 1.09071922e+01 1.54298908e+01
+ 3 1.8031e-02 256 2467 1089 15 27 28 28 1.3644e-03 1.61759153e+01 2.28931189e+01
+ 4 1.9395e-02 256 2467 1089 13 26 27 27 1.0284e-03 2.14465789e+01 3.03731397e+01
+ 5 2.0424e-02 256 2467 1089 11 25 26 26 8.2812e-04 2.66110761e+01 3.77180480e+01
+ \end{lstlisting}
+
+In other words, it first lists what the individual columns mean with a hash
+mark at the beginning of the line and then has one line for each time step
+in which the individual columns list what has been explained above.%
+\footnote{With
+  input files that ask for initial adaptive refinement, the first time step may
+  appear twice because we solve on a mesh
+  that is globally refined and we then start the entire computation
+  over again on a once adaptively refined mesh (see the parameters in
+  Section~\ref{parameters:Mesh_20refinement} for how to do that).}
+
+This file is easy to visualize. For example, one can import it as a whitespace
+separated file into a spreadsheet such as Microsoft Excel or OpenOffice/LibreOffice
+Calc and then generate graphs of one column against another. Or, maybe simpler,
+there is a multitude of simple graphing programs that do not need the overhead
+of a full fledged spreadsheet engine and simply plot graphs. One that is
+particularly simple to use and available on every major platform is \texttt{Gnuplot}.
+It is extensively documented at \url{http://www.gnuplot.info/}.
+
+\texttt{Gnuplot} is a command line program in which you enter commands that
+plot data or modify the way data is plotted. When you call it, you will first
+get a screen that looks like this:
+\begin{lstlisting}[frame=single,showstringspaces=false]
+/home/user/aspect/output gnuplot
+
+        G N U P L O T
+        Version 4.6 patchlevel 0    last modified 2012-03-04
+        Build System: Linux x86_64
+
+        Copyright (C) 1986-1993, 1998, 2004, 2007-2012
+        Thomas Williams, Colin Kelley and many others
+
+        gnuplot home:     http://www.gnuplot.info
+        faq, bugs, etc:   type "help FAQ"
+        immediate help:   type "help"  (plot window: hit 'h')
+
+Terminal type set to 'qt'
+gnuplot>
+\end{lstlisting}
+At the prompt on the last line, you can then enter commands. Given the
+description of the individual columns given above, let us first try to
+plot the heat flux through boundary 2 (the bottom
+boundary of the box), i.e., column 19, as a function of time (column 2).
+This can be achieved using the following command:
+\begin{lstlisting}[frame=single,language=gnuplot,showstringspaces=false]
+  plot "statistics" using 2:19
+\end{lstlisting}
+The left panel of Fig.~\ref{fig:viz-gnuplot-1} shows what \texttt{Gnuplot}
+will display in its output window. There are many things one can
+configure in these plots (see the \texttt{Gnuplot} manual referenced above).
+For example, let us assume that we want to add labels to the $x$- and $y$-axes,
+use not just points but lines and points for the curves,
+restrict the time axis to the range $[0,0.2]$ and the heat flux axis to
+$[-10:10]$,
+plot not only the flux through the bottom but also through the top boundary
+(column 20) and finally add a key to the figure, then the following
+commands achieve this:
+\begin{lstlisting}[frame=single,language=gnuplot,showstringspaces=false]
+  set xlabel "Time"
+  set ylabel "Heat flux"
+  set style data linespoints
+  plot [0:0.2][-10:10] "statistics" using 2:19 title "Bottom boundary", \
+                       "statistics" using 2:20 title "Top boundary"
+\end{lstlisting}
+If a line gets too long, you can continue it by ending it in a backslash as
+above. This is rarely used on the command line but useful when writing the
+commands above into a script file, see below. We have done it here to get
+the entire command into the width of the page.
+
+\begin{figure}
+  \centering
+  \phantom.
+  \hfill
+  \includegraphics[width=0.4\textwidth]{viz/statistics/1.png}
+  \hfill
+  \includegraphics[width=0.4\textwidth]{viz/statistics/2.png}
+  \hfill
+  \phantom.
+  \caption{\it Visualizing the statistics file obtained from the example in
+    Section~\ref{sec:cookbooks-simple-box} using \texttt{Gnuplot}: Output
+    using simple commands.}
+  \label{fig:viz-gnuplot-1}
+\end{figure}
+
+For those who are lazy, \texttt{Gnuplot} allows to abbreviate things in many
+different ways. For example, one can abbreviate most commands. Furthermore,
+one does not need to repeat the name of an input file if it is the same
+as the previous one in a plot command. Thus, instead of the commands above,
+the following abbreviated form would have achieved the same effect:
+\begin{lstlisting}[frame=single,language=gnuplot,showstringspaces=false]
+  se xl "Time"
+  se yl "Heat flux"
+  se sty da lp
+  pl [:0.2][-10:10] "statistics" us 2:19 t "Bottom boundary", "" us 2:20 t "Top boundary"
+\end{lstlisting}
+This is of course unreadable at first but becomes useful once you become
+more familiar with the commands offered by this program.
+
+Once you have gotten the commands that create the plot you want right, you probably
+want to save it into a file. \texttt{Gnuplot} can write output in many
+different formats. For inclusion in publications, either \texttt{eps} or
+\texttt{png} are the most common. In the latter case, the commands to
+achieve this are
+\begin{lstlisting}[frame=single,language=gnuplot,showstringspaces=false]
+  set terminal png
+  set output "heatflux.png"
+  replot
+\end{lstlisting}
+The last command will simply generate the same plot again but this time
+into the given file. The result is a graphics file similar to the one
+shown in Fig.~\ref{fig:convection-box-stats} on page \pageref{fig:convection-box-stats}.
+
+\note{After setting output to a file, \textit{all} following plot commands will
+  want to write to this file. Thus, if you want to create more plots after
+  the one just created, you need to reset output back to the screen. On Linux,
+  this is done using the command \texttt{set terminal X11}. You can then
+  continue experimenting with plots and when you have the next plot ready,
+  switch back to output to a file.}
+
+What makes \texttt{Gnuplot} so useful is that it doesn't just allow entering
+all these commands at the prompt. Rather, one can write them all into a file,
+say \texttt{plot-heatflux.gnuplot}, and then, on the command line, call
+\begin{lstlisting}[frame=single,language=ksh]
+  gnuplot plot-heatflux.gnuplot
+\end{lstlisting}
+to generate the \texttt{heatflux.png} file. This comes in handy if one wants
+to create the same plot for multiple simulations while playing with parameters
+of the physical setup. It is also a very useful tool if one wants to generate
+the same kind of plot again later with a different data set, for example when
+a reviewer requested additional computations to be made for a paper or if one
+realizes that one has forgotten or misspelled an axis label in a plot.%
+\footnote{In my own work, I usually save the \aspect{} input file, the
+  \texttt{statistics} output file and the \texttt{Gnuplot} script along with
+  the actual figure I want to include in a paper. This way, it is easy to
+  either re-run an entire simulation, or just tweak the graphic at a later
+  time. Speaking from experience, you will not believe how often one wants
+  to tweak a figure long after it was first created. In such situations it is
+  outstandingly helpful if one still has both the actual data as well as the script
+  that generated the graphic.}
+
+\texttt{Gnuplot} has many many more features we have not even touched upon. For
+example, it is equally happy to produce three-dimensional graphics, and it also
+has statistics modules that can do things like curve fits, statistical regression,
+and many more operations on the data you provide in the columns of an input file.
+We will not try to cover them here but instead refer to the manual at
+\url{http://www.gnuplot.info/}. You can also get a good amount of information
+by typing \texttt{help} at the prompt, or a command like \texttt{help plot} to
+get help on the \texttt{plot} command.
+
+
+\subsubsection{Large data issues for parallel computations}
+\label{sec:viz-data}
+
+Among the challenges in visualizing the results of parallel computations is
+dealing with the large amount of data. The first bottleneck this presents is
+during run-time when \aspect{} wants to write the visualization data of a time
+step to disk. Using the compressed VTU format, \aspect{} generates on the
+order of 10 bytes of output for each degree of freedom in 2d and more in 3d;
+thus, output of a single time step can run into the range of gigabytes that
+somehow have to get from compute nodes to disk. This stresses both the cluster
+interconnect as well as the data storage array.
+\index[prmindex]{Number of grouped files}
+\index[prmindexfull]{Postprocess!Visualization!Number of grouped files}
+
+
+There are essentially two strategies supported by \aspect{} for this scenario:
+\begin{itemize}
+\item If your cluster has a fast interconnect, for example Infiniband, and if
+  your cluster has a fast, distributed file system, then \aspect{} can produce
+  output files that are already located in the correct output directory (see
+  the options in Section~\ref{parameters:global}) on the global file
+  system. \aspect{} uses MPI I/O calls to this end, ensuring that the local
+  machines do not have to access these files using slow NFS-mounted global
+  file systems.
+
+\item If your cluster has a slow interconnect, e.g., if it is simply a
+  collection of machines connected via Ethernet, then writing data to a
+  central file server may block the rest of the program for a while. On the
+  other hand, if your machines have fast local storage for temporary file
+  systems, then \aspect{} can write data first into such a file and then move
+  it in the background to its final destination while already continuing
+  computations. To select this mode, set the appropriate variables discussed
+  in Section~\ref{parameters:Postprocess/Visualization}. Note, however, that
+  this scheme only makes sense if every machine on which MPI processes run has
+  fast local disk space for temporary storage.
+\end{itemize}
+
+\note{An alternative would be if every processor directly writes its own files
+  into the global output directory (possibly in the background), without the
+  intermediate step of the temporary file. In our experience, file servers are
+  quickly overwhelmed when encountering a few hundred machines wanting to
+  open, fill, flush and close their own file via NFS mounted file system
+  calls, sometimes completely blocking the entire cluster environment for
+  extended periods of time.}
+
+\subsection{Checkpoint/restart support}
+\label{sec:checkpoint-restart}
+
+If you do long runs, especially when using parallel computations, there are a
+number of reasons to periodically save the state of the program:
+\begin{itemize}
+\item If the program crashes for whatever reason, the entire computation may
+  be lost. A typical reason is that a program has exceeded the requested
+  wallclock time allocated by a batch scheduler on a cluster.
+\item Most of the time, no realistic initial conditions for strongly
+  convecting flow are available. Consequently, one typically starts with a
+  somewhat artificial state and simply waits for a long while till the
+  convective state enters the phase where it shows its long-term
+  behavior. However, getting there may take a good amount of CPU time and it
+  would be silly to always start from scratch for each different parameter
+  setting. Rather, one would like to start such parameter studies with a saved
+  state that has already passed this initial, unphysical, transient stage.
+\end{itemize}
+
+To this end, \aspect{} creates a set of files in the output directory
+\index[prmindex]{Output directory}
+\index[prmindexfull]{Output directory}
+(selected in the parameter file) every N time steps (controlled by the number
+of steps or wall time as specified in \texttt{subsection Checkpointing}, see
+Section~\ref{parameters:Checkpointing}) in which the entire state of the
+program is saved so that a simulation can later be continued at this
+point. The previous checkpoint files will then be deleted. To resume
+operations from the last saved state, you need to set the \texttt{Resume
+  computation} flag in the input parameter file to \texttt{true}, see
+\index[prmindex]{Resume computation}
+\index[prmindexfull]{Resume computation}
+Section~\ref{parameters:Resume computation}.
+
+\note{It is not imperative that the parameters selected in the input file are
+  exactly the same when resuming a program from a saved state than what they
+  were at the time when this state was saved. For example, one may want to
+  choose a different parametrization of the material law, or add or remove
+  postprocessors that should be run at the end of each time step. Likewise,
+  the end time, the times at which some additional mesh refinement steps
+  should happen, etc., can be different.
+
+  Yet, it is
+  clear that some other things can't be changed: For example, the geometry
+  model that was used to generate the coarse mesh and describe the boundary
+  must be the same before and after resuming a computation. Likewise, you can
+  not currently restart a computation with a different number of processors
+  than initially used to checkpoint the simulation.
+  Not all invalid
+  combinations are easy to detect, and \aspect{} may not always realize
+  immediate what is going on if you change a setting that can't be
+  changed. However, you will almost invariably get nonsensical results after
+  some time.}
+
+
+\subsection{Making \aspect{} run faster}
+
+When developing \aspect{}, we are guided by the principle that the default for
+all settings should be \textit{safe}. In particular, this means that you should
+get errors when something goes wrong, the program should not let you choose an
+input file parameter so that it doesn't make any sense, and we should solve the
+equations to best ability without cutting corners. The goal is that when you
+start working with \aspect{} that we give you the best answer we can. The
+downside is that this also makes \aspect{} run slower than may be possible. This
+section describes ways of making \aspect{} run faster -- assuming that you know
+what you are doing and are making conscious decisions.
+
+\subsubsection{Debug vs.~optimized mode}
+Both \dealii{} and \aspect{} by default have a great deal of internal checking
+to make sure that the code's state is valid. For example, if you write a new
+postprocessing plugin (see Section~\ref{sec:plugins})) in which you need to
+access the solution vector, then \dealii{}'s \texttt{Vector} class will make
+sure that you are only accessing elements of the vector that actually exist and
+are available on the current machine if this is a parallel computation. We do so
+because it turns out that by far the most bugs one introduces in programs are of
+the kind where one tries to do something that obviously doesn't make sense
+(such as accessing vector element 101 when it only has 100 elements). These
+kinds of bugs are more frequent than implementing a wrong algorithm, but they
+are fortunately easy to find if you have a sufficient number of assertions in
+your code. The downside is that assertions cost run time.
+
+As mentioned above, the default is to have all of these assertions in the code
+to catch those places where we may otherwise silently access invalid memory
+locations. However, once you have a plugin running and verified that your input
+file runs without problems, you can switch off all of these checks by switching
+from debug to optimized mode. This means re-compiling \aspect{} and linking
+against a version of the \dealii{} library without all of these internal checks.
+Because this is the first thing you will likely want to do, we have already
+discussed how to do all of this in Section~\ref{sec:debug-mode}.
+
+\subsubsection{Adjusting solver tolerances} At the heart of every time step
+lies the solution of linear systems for the Stokes equations, the temperature
+field, and possibly for compositional fields. In essence, each of these steps
+requires us to solve a linear system of the form $Ax=b$ which we do through
+iterative solvers, i.e., we try to find a sequence of approximations $x^{(k)}$
+where $x^{(k)}\rightarrow x=A^{-1}b$. This iteration is terminated at iteration
+$k$ if the approximation is ``close enough'' to the exact solution. The solvers
+we use determine this by testing after every iteration whether the
+\textit{residual}, $r^{(k)}=A(x-x^{(k)})=b-Ax^{(k)}$, satisfies
+$\|r^{(k)}\|\le\varepsilon\|r^{(0)}\|$ where $\varepsilon$ is called the
+(relative) \textit{tolerance}.
+
+Obviously, the smaller we choose $\varepsilon$, the more accurate the
+approximation $x^{(k)}$ will be. On the other hand, it will also take more
+iterations and, consequently, more CPU time to reach the stopping criterion with
+a smaller tolerance. The default value of these tolerances are chosen so that
+the approximation is typically sufficient. You can make \aspect{} run faster if
+you choose these tolerances larger.
+The parameters you can adjust are all listed in
+Section~\ref{parameters:global} and are located at the top level of the input
+file. In particular, the parameters you want to look at are \texttt{Linear
+solver tolerance}, \texttt{Temperature solver tolerance} and
+\texttt{Composition solver tolerance}.
+\index[prmindex]{Composition solver tolerance}
+\index[prmindexfull]{Composition solver tolerance}
+\index[prmindex]{Linear solver tolerance}
+\index[prmindexfull]{Linear solver tolerance}
+\index[prmindex]{Temperature solver tolerance}
+\index[prmindexfull]{Temperature solver tolerance}
+
+All this said, it is important to understand the consequences of choosing
+tolerances larger. In particular, if you choose tolerances too large, then the
+difference between the exact solution of a linear system $x$ and the
+approximation $x^{(k)}$ may become so large that you do not get an accurate
+output of your model any more. A rule of thumb in choosing tolerances is to
+start with a small value and then increase the tolerance until you come to a
+point where the output quantities start to change significantly. This is the
+point where you will want to stop.
+
+\subsubsection{Adjusting solver preconditioner tolerances} To solve the Stokes 
+equations it is necessary to lower the condition number of the
+Stokes matrix by preconditioning  it. In \aspect{} a right preconditioner $Y^{-1} = 
+\begin{pmatrix}
+\widetilde{A^{-1}} & -\widetilde{A^{-1}}B^{T}\widetilde{S^{-1}} \\
+0 & \widetilde{S^{-1}}
+\end{pmatrix}$ is used to precondition the system, where $\widetilde{A^{-1}}$ is 
+the approximate inverse of the A block and $\widetilde{S^{-1}}$ is the approximate 
+inverse of the Schur complement matrix. Matrix $\widetilde{A^{-1}}$ and 
+$\widetilde{S^{-1}}$ are calculated through a CG solve, which requires a tolerance 
+to be set. In comparison with the solver tolerances of the previous section, these 
+parameters are relatively safe to use, since they only change the preconditioner, 
+but can speed up or slow down solving the Stokes system considerably. 
+
+In practice $\widetilde{A^{-1}}$ takes by far the most time to compute, but is 
+also very important in conditioning the system. The accuracy of the computation 
+of $\widetilde{A^{-1}}$ is controlled by the parameter \texttt{Linear solver A 
+block tolerance} which has a default value of $1e-2$. Setting this tolerance 
+to a less strict value will result in more outer iterations, since the 
+preconditioner is not as good, but the amount of time to compute 
+$\widetilde{A^{-1}}$ can drop significantly resulting in a reduced total solve 
+time. The cookbook crustal deformation (Section 
+\ref{sec:cookbooks-crustal-deformation}) for example can be computed much faster 
+by setting the \texttt{Linear solver A block tolerance} to $5e-1$. The 
+calculation of $\widetilde{S^{-1}}$ is usually much faster and the 
+conditioning of the system is less sensitive to the parameter \texttt{Linear 
+solver S block tolerance}, but for some problems it might be worth it to 
+investigate.
+\index[prmindex]{Linear solver A block tolerance}
+\index[prmindexfull]{Linear solver A block tolerance}
+\index[prmindex]{Linear solver S block tolerance}
+\index[prmindexfull]{Linear solver S block tolerance}
+
+\subsubsection{Using lower order elements for the temperature/compositional discretization}
+The default settings of \aspect{} use quadratic finite elements for the
+velocity. Given that the temperature and compositional fields essentially (up
+to material parameters) satisfy advection equations of the kind $\partial_t T +
+\mathbf u \cdot \nabla T = \ldots$, it seems appropriate to also use quadratic
+finite element shape functions for the temperature and compositional fields.
+
+However, this is not mandatory. If you do not care about high accuracy in these
+fields and are mostly interested in the velocity or pressure field, you can
+select lower-order finite elements in the input file. The polynomial degrees are
+controlled with the parameters in the \textit{discretization} section of the
+input file, see Section~\ref{parameters:Discretization}, in particular by
+\texttt{Temperature polynomial degree} and
+\texttt{Composition polynomial degree}.
+\index[prmindex]{Temperature polynomial degree}
+\index[prmindexfull]{Discretization!Temperature polynomial degree}
+\index[prmindex]{Composition polynomial degree}
+\index[prmindexfull]{Discretization!Composition polynomial degree}
+
+As with the other parameters discussed above and below, it is worthwhile
+comparing the results you get with different values of these parameters when
+making a decision whether you want to save on accuracy in order to reduce
+compute time. An example of how this choice affects the accuracy you get is
+discussed in Section~\ref{sec:cookbooks-simple-box}.
+
+
+
+\subsubsection{Limiting postprocessing}
+\aspect{} has a lot of postprocessing capabilities, from generating graphical
+output to computing average temperatures or temperature fluxes. To see what all
+is possible, take a look at the \texttt{List of postprocessors} parameter that
+can be set in the input file, see Section~\ref{parameters:Postprocess}.
+\index[prmindex]{List of postprocessors}
+\index[prmindexfull]{Postprocess!List of postprocessors}
+
+Many of these postprocessors take a non-negligible amount of time. How much they
+collectively use can be inferred from the timing report \aspect{} prints
+periodically among its output, see for example the output shown in
+Section~\ref{sec:cookbooks-simple-box}. So, if your computations take too long,
+consider limiting which postprocessors you run to those you really need. Some
+postprocessors -- for example those that generate graphical output, see
+Section~\ref{parameters:Postprocess/Visualization} -- also allow you to run them
+only once every once in a while, rather than at every time step.
+
+
+\subsubsection{Switching off pressure normalization}
+In most practically relevant cases, the Stokes equations
+\eqref{eq:stokes-1}--\eqref{eq:stokes-2} only determine the pressure up to a
+constant because only the pressure gradient appears in the equations, not the
+actual value of it. However, unlike this ``mathematical'' pressure, we have a
+very specific notion of the ``physical'' pressure: namely a well-defined
+quantity that at the surface of Earth equals the air pressure, which compared to
+the hydrostatic pressure inside Earth is essentially zero.
+
+As a consequence, the default in \aspect{} is to normalize the computed
+``mathematical'' pressure in such a way that either the mean pressure at the
+surface is zero (where the geometry model describes where the ``surface'' is,
+see Section~\ref{sec:geometry-models}), or that the mean pressure in the domain
+is zero. This normalization is important if your model describes densities,
+viscosities and other quantities in dependence of the pressure -- because you
+almost certainly had the ``physical'' pressure in mind, not some unspecified
+``mathematical'' one. On the other hand, if you have a material model in which
+the pressure does not enter, then you don't need to normalize the pressure at
+all -- simply go with whatever the solver provides. In that case, you can switch
+off pressure normalization by looking at the \texttt{Pressure normalization}
+parameter at the top level of the input file, see
+Section~\ref{parameters:global}.
+\index[prmindex]{Pressure normalization}
+\index[prmindexfull]{Pressure normalization}
+
+
+\subsubsection{Regularizing models with large coefficient variation}
+Models with large jumps in viscosity and other coefficients present
+significant challenges to both discretizations and solvers. In particular,
+they can lead to very long solver
+times. Section~\ref{sec:sinker-with-averaging} presents parameters that can
+help regularize models and these typically also include significant
+improvements in run-time.
+\index[prmindex]{Material averaging}
+\index[prmindexfull]{Material model!Material averaging}
+
+
+\subsubsection{Using multithreading}
+In most cases using as many MPI processes as possible is the optimal
+parallelization strategy for \aspect{} models, but if you are limited by the
+amount of MPI communication it can be beneficial to use multiple threads per
+MPI process. While not utilized by our linear solvers, this parallelization can
+speed up the assembly of the system matrices, e.g. by around 10-15\% if you
+utilize unused logical cores, or nearly linearly if you use otherwise
+unused physical cores. This can also reduce the performance cost if you are
+memory limited and need to run your model on less than the available number of
+cores per node on a cluster to increase the available memory per core.  Running
+with for example two threads per process will offset some of the performance
+loss you will see in these situations.
+
+Multithreading is controlled by setting the command line parameter \texttt{-j}
+or \texttt{-{}-threads}. If the parameter is not set, \aspect{} will create
+exactly one thread per MPI process, i.e. multithreading is disabled.  Appending
+the parameter allows \aspect{} to spawn several threads per MPI process. Note
+that the internally used TBB library will determine the number of threads based
+on the number of available cores, i.e., if you start 2~MPI processes on a
+quadcore machine with hyperthreading (8 logical cores), \aspect{} will spawn 4
+threads on each MPI process. Also note that there is no guarantee that the
+final number of threads will exactly match the number of available logical
+cores if you start with a number of processes that is not a divisor of your
+logical cores (e.g. 3 MPI processes for 8 logical cores).
+
+\subsection{Input parameter files}
+\label{sec:parameters-overview}
+
+What \aspect{} computes is driven by two things:
+\begin{itemize}
+\item The models implemented in \aspect{}. This includes the geometries, the
+  material laws, or the initial conditions currently supported. Which of these
+  models are currently implemented is discussed below;
+  Section~\ref{sec:extending} discusses in great detail the process of
+  implementing additional models.
+
+\item Which of the implemented models is selected, and what their run-time
+  parameters are. For example, you could select a model that prescribes
+  constant coefficients throughout the domain from all the material models
+  currently implemented; you could then select appropriate values for all of
+  these constants. Both of these selections happen from a parameter file that
+  is read at run time and whose name is specified on the command line. (See
+  also Section~\ref{sec:running-overview}.)
+\end{itemize}
+In this section, let us give an overview of what can be selected in the
+parameter file. Specific parameters, their default values, and allowed values
+for these parameters are documented in Section~\ref{sec:parameters}. An index
+with page numbers for all run-time parameters can be found on
+page~\pageref{sec:runtime-parameter-index}.
+
+\subsubsection{The structure of parameter files}
+
+Most of the run-time behavior of \aspect{} is driven by a parameter file that
+looks in essence like this:
+\lstinputlisting[language=prmfile]{cookbooks/overview/structure.part.prm.out}
+
+Some parameters live at the top level, but most parameters are grouped into
+subsections. An input parameter file is therefore much like a file system: a
+few files live in the root directory; others are in a nested hierarchy of
+sub-directories. And just as with files, parameters have both a name (the
+thing to the left of the equals sign) and a content (what's to the right).
+
+All parameters you can list in this input file have been \textit{declared} in
+\aspect. What this means is that you can't just list anything in the input
+file, and expect that entries that are unknown are simply ignored.
+Rather, if your input file contains a line setting a parameter that is unknown, you
+will get an error message. Likewise, all declared parameters have a
+description of possible values associated with them -- for example, some
+parameters must be non-negative integers (the number of initial refinement
+steps), can either be true or false (whether the computation should be resumed
+from a saved state), or can only be a single element from a selection (the
+name of the material model). If an entry in your input file doesn't satisfy
+these constraints, it will be rejected at the time of reading the file (and
+not when a part of the program actually accesses the value and the programmer
+has taken the time to also implement some error checking at this location).
+Finally, because parameters have been declared, you do not \textit{need} to
+specify a parameter in the input file: if a parameter isn't listed, then the
+program will simply use the default provided when declaring the parameter.
+
+\note{In cases where a parameter requires a significant amount of text, you can
+end a line in the input file with a backslash. This indicates that the
+following line will simply continue to be part of the text of the current line,
+in the same way as the C/C++ preprocessor expands lines that end in
+backslashes. The underlying implementation always eats whitespace at
+the beginning of each continuing line, but not before the
+backslash. This means that the parameter file \\
+\hspace*{.25cm} \texttt{set Some parameter = abc}$\backslash$ \\
+\hspace*{.25cm} \texttt{\phantom{set Some parameter = }def}\\
+is equivalent to \\
+\hspace*{.25cm} \texttt{set Some parameter = abcdef}\\
+that is, with no space between \texttt{abc} and \texttt{def} despite
+the leading whitespace at the beginning of the second line. If you
+do want space between these two parts, you need to add it before the
+backslash in the first of the two lines.
+}
+
+\subsubsection{Categories of parameters}
+
+The parameters that can be provided in the input file can roughly be
+categorized into the following groups:
+\begin{itemize}
+\item Global parameters (see Section~\ref{parameters:global}): These
+  parameters determine the overall behavior of the program. Primarily they
+  describe things like the output directory, the end time of the simulation,
+  or whether the computation should be resumed from a previously saved state.
+
+\item Parameters for certain aspects of the numerical algorithm: These
+  describe, for example, the specifics of the spatial discretization. In
+  particular, this is the case for parameters concerning
+  the polynomial degree of the finite element approximation
+  (Section~\ref{parameters:Discretization}), some details about the
+  stabilization
+  (Section~\ref{parameters:Discretization/Stabilization_20parameters}), and
+  how adaptive mesh refinement is supposed to work
+  (Section~\ref{parameters:Mesh_20refinement}).
+
+\item Parameters that describe certain global aspects of the equations to be
+  solved: This includes, for example, a description if certain terms in the
+  model should be omitted or not. See
+  Section~\ref{parameters:Formulation} for the list of parameters in this
+  category.
+
+\item Parameters that characterize plugins: Certain behaviors of
+  \aspect{} are described by what we call \textit{plugins} -- self-contained
+  parts of the code that describe one particular aspect of the simulation. An
+  example would be which of the implemented material models to use, and the
+  specifics of this material model. The sample parameter file above gives an
+  indication of how this works: within a subsection of the file that pertains
+  to the material models, one can select one out of several plugins (or, in
+  the case of the postprocessors, any number, including none, of the available
+  plugins), and one can then specify the specifics of this model in a
+  sub-subsection dedicated to this particular model.
+
+  A number of components of \aspect{} are implemented via plugins. Some of
+  these, together with the sections in which their parameters are declared, are
+  the following:
+  \begin{itemize}
+  \item The material model:
+    Sections~\ref{parameters:Material_20model} and following.
+  \item The geometry:
+    Sections~\ref{parameters:Geometry_20model} and following.
+  \item The gravity description:
+    Sections~\ref{parameters:Gravity_20model} and following.
+  \item Initial conditions for the temperature:
+    Sections~\ref{parameters:Initial_20temperature_20model} and following.
+  \item Temperature boundary conditions:
+    Sections~\ref{parameters:Boundary_20temperature_20model} and following.
+  \item Postprocessors:
+    Sections~\ref{parameters:Postprocess} and following for most postprocessors,
+    section \ref{parameters:Postprocess/Visualization} and following for
+    postprocessors related to visualization.
+  \end{itemize}
+\end{itemize}
+
+The details of parameters in each of these categories can be found in the
+sections linked to above. Some of them will also be used in the cookbooks in
+Section~\ref{sec:cookbooks}.
+
+
+\subsubsection{A note on the syntax of formulas in input files}
+\label{sec:muparser-format}
+
+Input files have different ways of describing certain things to \aspect{}. For
+example, you could select a plugin for the temperature initial values that
+prescribes a constant temperature, or a
+plugin that implements a particular formula for these initial conditions in
+C++ in the code of the plugin, or a
+plugin that allows you to describe this formula in a symbolic way in the input file
+(see Section~\ref{parameters:Initial_20temperature_20model}). An example of this latter
+case is this snippet of code discussed in
+Section~\ref{sec:cookbooks-simple-box-3d}:
+%
+\lstinputlisting[language=prmfile]{cookbooks/convection-box-3d/initial.part.prm.out}
+%
+The formulas you can enter here need to use a syntax that is understood by the
+functions and classes that interpret what you write. Internally, this is done
+using the muparser library, see \url{http://muparser.beltoforion.de/}. The
+syntax is mostly self-explanatory in that it allows to use the usual symbols
+\texttt{x}, \texttt{y} and \texttt{z} to reference coordinates (unless a
+particular plugin uses different variables, such as the depth), the symbol
+\texttt{t} for time in many situations, and allows you to use all of the
+typical mathematical functions such as sine and cosine. Another common case is
+an if-statement that has the general form
+\texttt{if(condition, true-expression, false-expression)}. For more examples of
+the syntax understood, reference the documentation of the muparser library
+linked to above.
+
+\subsubsection{Compatibility of input files with newer \aspect{} versions}
+
+We strive to maintain compatibility for options in input files as long as
+possible. However, occasionally we have to reorder, rename, or remove options
+from parameter files to improve \aspect{} further. This is in particular true
+for new major versions. In order to allow running old parameter files with
+newer \aspect{} versions we provide scripts that can automatically update
+existing parameter files to the new syntax. Executing
+\texttt{doc/update\_prm\_files.sh} with one or more parameter files as
+arguments will create a backup of the old parameter file (named
+\texttt{old\_filename.bak}), and replace the existing file with a version that
+should work with the current \aspect{} version. Using this script would look
+like this:
+
+\begin{lstlisting}[frame=single,language=ksh,showstringspaces=false]
+bash doc/update_prm_files.sh cookbooks/convection_box.prm
+\end{lstlisting}
+
+\note{Not all text replacements are unique, and the structure of input files
+allows for constructions the script can not properly parse. Also we can not
+guarantee to preserve the structure and position of comments, as it is not
+always clear to which part of the input file they refer. Thus, it is important
+that you check your updated input file for errors. That being said, all input
+files in the main \aspect{} repository are updated successfully using this
+script.}
+  
+\subsection{A graphical user interface for editing \aspect{} parameter files}
+Preparing a parameter file in a text editor can be a tedious task, not
+only because the number of input parameters has grown considerably during the
+development of \aspect{}, but also because remembering the names of commonly
+used options is a waste of (human) memory. Therefore, we provide a graphical
+user interface that builds upon an available program for \dealii{}. This GUI
+allows to investigate existing input parameters, including their default values, modify
+these values in a spreadsheet like environment and then save a formatted 
+parameter file that can be used to start an ASPECT model. In the following
+subsections we describe installing and using this user interface. 
+
+\subsubsection{Installing parameter-GUI}
+The \dealii{} parameter-GUI program can be downloaded at \url{https://github.com/dealii/parameter_gui},
+and is compiled using the \texttt{cmake} program just like \aspect{} itself. The program has no
+dependencies except for the Qt development libraries that should be available as packages for 
+most Linux distributions and can also be obtained for all major operating systems at
+\url{https://www.qt.io/download-open-source/}.
+
+Example steps for installing the parameter-gui could look as follows:
+\begin{enumerate}
+\item Download the program from \url{https://github.com/dealii/parameter_gui}.
+\item Prepare a Makefile by running \texttt{cmake .} in the source folder.
+\item Compile the program by running \texttt{make}.
+\item Make sure to set the environment variable \texttt{PARAMETER\_GUI\_DIR} 
+to the directory that contains the parameter-GUI executable (optional). 
+This will allow \aspect{} to automatically enable the GUI during configuration.
+\end{enumerate}
+
+\paragraph{Installing on macOS} On a mac machine with recent macOS Sierra 10.12.4, Qt development libraries of version 4.x.x at the libraries' official website \url{https://www.qt.io/download-open-source/} may fail to install.  Alternatively, you can install \texttt{qt4} through Homebrew (also see instruction here \url{https://github.com/cartr/homebrew-qt4})
+\begin{verbatim}
+brew tap cartr/qt4
+brew tap-pin cartr/qt4
+brew install qt@4
+\end{verbatim}
+or install it through Mac Ports (\url{https://www.macports.org/})
+\begin{verbatim}
+sudo port install qt4-mac
+\end{verbatim}
+Then you can follow the Linux user instructions provided previously to download and install dealii parameter-GUI. 
+Before running \texttt{cmake .}, you may need to either pass the path of \texttt{qt4} and specify the value of variable \texttt{QT\_LIBRARIES} to the directory that contains the libraries of \texttt{qt4}
+or add those information into your \texttt{.bash\_profile}. For example, for installation through Mac Ports, you can set the following into your \texttt{.bash\_profile}
+\begin{verbatim}
+export PATH="$PATH:/opt/local/libexec/qt4"
+export QT_LIBRARIES="/opt/local/libexec/qt4"
+\end{verbatim}
+
+
+
+
+\subsubsection{Using \aspect{}-GUI}
+
+When configuring \aspect{} after executing the above steps, it should automatically pick up the
+location of the parameter-GUI, and will create a new script named \texttt{aspect-gui} within the build folder.
+If this does not happen, it is possible to hand over the location of the parameter-GUI as a cmake
+variable during configuration (e.g. \texttt{cmake -D PARAMETER\_GUI\_EXECUTABLE=path\_to\_your\_executable}).
+
+The aspect-gui script can be executed from any folder either with no argument or with one argument that contains the path to
+an existing parameter file. The script will run \aspect{} with the given (or an empty) parameter file, generate a database
+of existing input parameters, and open the parameter-GUI program with this database. The resulting window looks similar to Fig.~\ref{fig:aspect-gui}. If an existing parameter file was
+given, all parameter fields are pre-filled with the values set in the file instead of the default values.
+In the program's main window you can change parameters as necessary, and then save the file as a new parameter file. This parameter file can then be used
+to start an \aspect{} model as usual. Note that it is possible to prepare and execute the parameter file with different versions of \aspect{}, e.g. if you prepare parameter files on a local machine, and execute the model on a remote compute cluster.
+Note however that if the two \aspect{} versions contain different default values or parameter names have changed, this can lead
+to unexpected model behavior or even unusable parameter files.
+
+\begin{figure}
+\hfill
+\includegraphics[width=0.4\textwidth]{aspect-gui.png}
+\hfill
+\phantom.
+\caption{\it The parameter GUI lists all available parameter options, and allows to change and save them into a new parameter file. Input fields know about the type of the variable and will display useful options to change them (e.g. drop-down menus, file dialogs, text fields).}
+\label{fig:aspect-gui}
+\end{figure}
