@@ -3,19 +3,14 @@
 set Additional shared libraries            = ./libinclusion.so
 
 subsection Solver parameters
-<<<<<<< HEAD
-<<<<<<< HEAD
-  subsection Stokes solver parameters
-    set Stokes solver type = block AMG 
-  end
-=======
-  set Stokes solver type = block geometric multigrid
->>>>>>> 1a452d3c8... switch inclusion benchmark to GMG
-=======
-  subsection Stokes solver parameters
+  subsection Stokes solver parameters 	
+    set Number of cheap Stokes solver steps = 500
     set Stokes solver type = block geometric multigrid
   end
->>>>>>> 7e06b8a29... update and add prm
+end
+
+subsection Material model
+  set Material averaging = harmonic average
 end
 
 set Dimension                              = 2
@@ -27,6 +22,10 @@ set Pressure normalization                 = volume
 set Nonlinear solver scheme                = no Advection, iterated Stokes
 
 set Use years in output instead of seconds = false
+
+subsection Material model
+  set Material averaging =  harmonic average
+end
 
 ############### Parameters describing the model
 
@@ -85,11 +84,11 @@ end
 
 
 subsection Mesh refinement
-  set Initial adaptive refinement              = 6 
+  set Initial adaptive refinement              = 10
   set Initial global refinement                = 4
 
-  set Adapt by fraction of cells = true  
-
+  set Adapt by fraction of cells = false
+  
   set Strategy = velocity#viscosity
   set Run postprocessors on initial refinement = true
   set Coarsening fraction                      = 0.0
@@ -102,7 +101,7 @@ end
 ############### Parameters describing what to do with the solution
 
 subsection Postprocess
-  set List of postprocessors = InclusionPostprocessor, visualization
+  set List of postprocessors = InclusionPostprocessor, visualization, matrix statistics
 
 
 

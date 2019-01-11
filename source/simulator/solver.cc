@@ -22,6 +22,7 @@
 #include <aspect/simulator.h>
 #include <aspect/global.h>
 #include <aspect/melt.h>
+#include <aspect/stokes_matrix_free.h>
 
 #include <deal.II/base/signaling_nan.h>
 #include <deal.II/lac/solver_gmres.h>
@@ -527,6 +528,11 @@ namespace aspect
     TimerOutput::Scope timer (computing_timer, "Solve Stokes system");
     pcout << "   Solving Stokes system... " << std::flush;
 
+    if (parameters.stokes_solver_type == Parameters<dim>::StokesSolverType::block_gmg)
+      {
+        return stokes_matrix_free->solve();
+      }
+
     // extract Stokes parts of solution vector, without any ghost elements
     LinearAlgebra::BlockVector distributed_stokes_solution (introspection.index_sets.stokes_partitioning, mpi_communicator);
 
@@ -780,6 +786,8 @@ namespace aspect
 
         // step 1a: try if the simple and fast solver
         // succeeds in n_cheap_stokes_solver_steps steps or less.
+        Timer time;
+        time.restart();
         try
           {
             // if this cheaper solver is not desired, then simply short-cut
@@ -887,6 +895,9 @@ namespace aspect
                   }
               }
           }
+        time.stop();
+        pcout << std::endl << "Only solve took " << time.last_wall_time() << "s" << std::endl;
+
 
         // signal successful solver
         signals.post_stokes_solver(*this,
@@ -908,15 +919,31 @@ namespace aspect
         solution.block(block_p) = distributed_stokes_solution.block(block_p);
 
         // print the number of iterations to screen
-        pcout << (solver_control_cheap.last_step() != numbers::invalid_unsigned_int ?
+        // print the number of iterations to screen
+        pcout << std::endl
+              << "DoFs; iterations; " << dof_handler.n_dofs()
+              << "; "
+              << (solver_control_cheap.last_step() != numbers::invalid_unsigned_int ?
                   solver_control_cheap.last_step():
                   0)
-              << '+'
-              << (solver_control_expensive.last_step() != numbers::invalid_unsigned_int ?
-                  solver_control_expensive.last_step():
-                  0)
-              << " iterations.";
+              << "; ";
+        if (solver_control_expensive.last_step() > 0)
+          pcout << (solver_control_expensive.last_step() != numbers::invalid_unsigned_int ?
+                    solver_control_expensive.last_step():
+                    0)
+                << "; ";
         pcout << std::endl;
+
+
+//        pcout << (solver_control_cheap.last_step() != numbers::invalid_unsigned_int ?
+//                  solver_control_cheap.last_step():
+//                  0)
+//              << '+'
+//              << (solver_control_expensive.last_step() != numbers::invalid_unsigned_int ?
+//                  solver_control_expensive.last_step():
+//                  0)
+//              << " iterations.";
+//        pcout << std::endl;
       }
 
 
