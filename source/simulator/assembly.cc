@@ -358,6 +358,11 @@ namespace aspect
   void
   Simulator<dim>::assemble_stokes_preconditioner ()
   {
+    if (stokes_matrix_free)
+      {
+        pcout << "skipping assemble_stokes_preconditioner()" << std::endl;
+        return;
+      }
     system_preconditioner_matrix = 0;
 
     const QGauss<dim> quadrature_formula(parameters.stokes_velocity_degree+1);
@@ -423,8 +428,16 @@ namespace aspect
     if (rebuild_stokes_preconditioner == false)
       return;
 
-    if (parameters.use_direct_stokes_solver)
+    if (parameters.stokes_solver_type == Parameters<dim>::StokesSolverType::block_gmg)
       return;
+    else if (parameters.stokes_solver_type == Parameters<dim>::StokesSolverType::block_amg)
+      {
+        // continue below
+      }
+    else if (parameters.stokes_solver_type == Parameters<dim>::StokesSolverType::direct_solver)
+      return;
+    else
+      AssertThrow(false, ExcNotImplemented());
 
     TimerOutput::Scope timer (computing_timer, "   Build Stokes preconditioner");
     pcout << "   Rebuilding Stokes preconditioner..." << std::flush;
@@ -673,6 +686,11 @@ namespace aspect
   template <int dim>
   void Simulator<dim>::assemble_stokes_system ()
   {
+    if (stokes_matrix_free)
+      {
+        pcout << "assemble_stokes_system (): Matrix-free, so just assembling RHS..." << std::endl;
+        rebuild_stokes_matrix = false;
+      }
     TimerOutput::Scope timer (computing_timer,
                               (!assemble_newton_stokes_system ?
                                "   Assemble Stokes system" :
