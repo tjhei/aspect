@@ -527,6 +527,11 @@ namespace aspect
     TimerOutput::Scope timer (computing_timer, "   Solve Stokes system");
     pcout << "   Solving Stokes system... " << std::flush;
 
+    if (parameters.stokes_solver_type == Parameters<dim>::StokesSolverType::block_gmg)
+      {
+        return solve_stokes_block_gmg();
+      }
+
     // extract Stokes parts of solution vector, without any ghost elements
     LinearAlgebra::BlockVector distributed_stokes_solution (introspection.index_sets.stokes_partitioning, mpi_communicator);
 
