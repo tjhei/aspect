@@ -1101,10 +1101,17 @@ namespace aspect
     Mp_preconditioner.reset ();
     system_preconditioner_matrix.clear ();
 
-    // The preconditioner matrix is only used for the Stokes block (velocity and Schur complement) and is of course not
-    // used if we use a direct solver.
-    if (parameters.use_direct_stokes_solver)
+    // The preconditioner matrix is only used for the Stokes block (velocity and Schur complement) and only needed if we actually solve iteratively and matrix-based
+    if (parameters.stokes_solver_type == Parameters<dim>::StokesSolverType::block_gmg)
       return;
+  else if (parameters.stokes_solver_type == Parameters<dim>::StokesSolverType::block_amg)
+      {
+        // continue below
+      }
+    else if (parameters.stokes_solver_type == Parameters<dim>::StokesSolverType::direct_solver)
+      return;
+    else
+      AssertThrow(false, ExcNotImplemented());
 
     Table<2,DoFTools::Coupling> coupling (introspection.n_components,
                                           introspection.n_components);
