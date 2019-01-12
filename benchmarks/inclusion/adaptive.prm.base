@@ -2,6 +2,9 @@
 
 set Additional shared libraries            = ./libinclusion.so
 
+subsection Solver parameters
+  set Stokes solver type = block geometric multigrid
+end
 
 set Dimension                              = 2
 
