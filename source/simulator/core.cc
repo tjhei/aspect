@@ -25,6 +25,7 @@
 #include <aspect/melt.h>
 #include <aspect/newton.h>
 #include <aspect/free_surface.h>
+#include <aspect/stokes_matrix_free.h>
 #include <aspect/citation_info.h>
 
 #ifdef ASPECT_USE_WORLD_BUILDER
@@ -358,6 +359,11 @@ namespace aspect
         assemble_newton_stokes_system = true;
         newton_handler->initialize_simulator(*this);
         newton_handler->parameters.parse_parameters(prm);
+      }
+
+    if (parameters.stokes_solver_type == Parameters<dim>::StokesSolverType::block_gmg)
+      {
+        stokes_matrix_free = std_cxx14::make_unique<StokesMatrixFreeHandler<dim>>(*this, prm);
       }
 
     postprocess_manager.initialize_simulator (*this);
@@ -1185,10 +1191,9 @@ namespace aspect
     TimerOutput::Scope timer (computing_timer, "Setup dof systems");
 
     dof_handler.distribute_dofs(finite_element);
-    if (parameters.stokes_solver_type == Parameters<dim>::StokesSolverType::block_gmg)
-      {
-        // TODO: setup GMG
-      }
+
+    if (stokes_matrix_free)
+      stokes_matrix_free->setup_dofs();
 
     // Renumber the DoFs hierarchical so that we get the
     // same numbering if we resume the computation. This
