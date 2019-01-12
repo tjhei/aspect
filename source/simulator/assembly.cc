@@ -358,6 +358,11 @@ namespace aspect
   void
   Simulator<dim>::assemble_stokes_preconditioner ()
   {
+    if (stokes_matrix_free)
+      {
+        pcout << "skipping assemble_stokes_system()" << std::endl;
+        return;
+      }
     system_preconditioner_matrix = 0;
 
     const QGauss<dim> quadrature_formula(parameters.stokes_velocity_degree+1);
@@ -673,6 +678,11 @@ namespace aspect
   template <int dim>
   void Simulator<dim>::assemble_stokes_system ()
   {
+    if (stokes_matrix_free)
+      {
+        pcout << "skipping assemble_stokes_system()" << std::endl;
+        return;
+      }
     TimerOutput::Scope timer (computing_timer,
                               (!assemble_newton_stokes_system ?
                                "   Assemble Stokes system" :

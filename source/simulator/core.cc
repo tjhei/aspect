@@ -937,6 +937,20 @@ namespace aspect
       // needed.  All other matrix blocks are left empty here.
       if (have_fem_compositional_field)
         coupling[x.compositional_fields[0]][x.compositional_fields[0]] = DoFTools::always;
+
+      if (stokes_matrix_free)
+        {
+          // do not allocate memory for the Stokes matrix:
+          Assert(!parameters.include_melt_transport, ExcNotImplemented());
+          for (unsigned int c=0; c<dim; ++c)
+            for (unsigned int d=0; d<dim; ++d)
+              coupling[x.velocities[c]][x.velocities[d]] = DoFTools::none;
+          for (unsigned int d=0; d<dim; ++d)
+            {
+              coupling[x.velocities[d]][x.pressure] = DoFTools::none;
+              coupling[x.pressure][x.velocities[d]] = DoFTools::none;
+            }
+        }
     }
 
     LinearAlgebra::BlockDynamicSparsityPattern sp;
