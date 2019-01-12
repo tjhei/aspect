@@ -39,9 +39,18 @@ namespace aspect
   Simulator<dim>::solve_stokes_block_gmg ()
   {
     pcout << "\n   Solving Stokes using GMG " << std::endl;
+
+    // extract Stokes parts of solution vector, without any ghost elements
+    LinearAlgebra::BlockVector distributed_stokes_solution (introspection.index_sets.stokes_partitioning, mpi_communicator);
+
     double initial_nonlinear_residual = numbers::signaling_nan<double>();
     double final_linear_residual      = numbers::signaling_nan<double>();
 
+    Assert(!parameters.include_melt_transport, ExcNotImplemented("Sorry, no."));
+    const unsigned int block_vel = introspection.block_indices.velocities;
+    const unsigned int block_p = introspection.block_indices.pressure;
+    Assert(block_vel == 0, ExcNotImplemented());
+    Assert(block_p == 1, ExcNotImplemented());
 
 
     // TODO: solve. look at solver.cc solve_stokes()
