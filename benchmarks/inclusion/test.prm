@@ -90,7 +90,7 @@ end
 ############### Parameters describing what to do with the solution
 
 subsection Postprocess
-  set List of postprocessors = InclusionPostprocessor, visualization
+  set List of postprocessors = InclusionPostprocessor, visualization, memory statistics
 
 
 
