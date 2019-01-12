@@ -22,6 +22,7 @@
 #include <aspect/simulator.h>
 #include <aspect/global.h>
 #include <aspect/melt.h>
+#include <aspect/stokes_matrix_free.h>
 
 #include <deal.II/base/signaling_nan.h>
 #include <deal.II/lac/solver_gmres.h>
@@ -529,7 +530,7 @@ namespace aspect
 
     if (parameters.stokes_solver_type == Parameters<dim>::StokesSolverType::block_gmg)
       {
-        return solve_stokes_block_gmg();
+        return stokes_matrix_free->solve();
       }
 
     // extract Stokes parts of solution vector, without any ghost elements
