@@ -43,11 +43,13 @@ namespace aspect
     double final_linear_residual      = numbers::signaling_nan<double>();
 
 
-    // TODO
+
+    // TODO: solve. look at solver.cc solve_stokes()
     
+    //you can use dof_handler and current_constraints here
 
     
-        // signal successful solver
+    // TODO: signal successful solver
     /*
       signals.post_stokes_solver(*this,
                                    preconditioner_cheap.n_iterations_S() + preconditioner_expensive.n_iterations_S(),
