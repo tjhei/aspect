@@ -45,6 +45,14 @@ namespace aspect
   {
     parse_parameters(prm);
     //TODO CitationInfo::add("mf");
+
+    Assert(!sim.parameters.free_surface_enabled, ExcNotImplemented());
+    Assert(!sim.parameters.include_melt_transport, ExcNotImplemented());
+    Assert(!sim.parameters.use_locally_conservative_discretization, ExcNotImplemented());
+    Assert(sim.parameters.stokes_velocity_degree>=2, ExcNotImplemented());
+
+    Assert(sim.introspection.variable("velocity").block_index==0, ExcNotImplemented());
+    Assert(sim.introspection.variable("pressure").block_index==1, ExcNotImplemented());
   }
 
   template <int dim>
