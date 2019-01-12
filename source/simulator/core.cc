@@ -1228,7 +1228,9 @@ namespace aspect
 
     dof_handler.distribute_dofs(finite_element);
     if (parameters.stokes_solver_type == Parameters<dim>::StokesSolverType::block_gmg)
-      dof_handler.distribute_mg_dofs();
+      {
+        // TODO: setup GMG
+      }
 
     // Renumber the DoFs hierarchical so that we get the
     // same numbering if we resume the computation. This
