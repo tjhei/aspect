@@ -342,6 +342,12 @@ namespace aspect
       void setup_dofs();
 
       /**
+       * Evalute the MaterialModel to query for the viscosity on the active cells
+       * and cache the information for later usage.
+       */
+      void evaluate_viscosity();
+
+      /**
            * Declare parameters.
            */
       static
