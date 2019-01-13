@@ -82,6 +82,12 @@ namespace aspect
 
   }
 
+  template <int dim>
+  void StokesMatrixFreeHandler<dim>::evaluate_viscosity ()
+  {
+
+  }
+
 
   template <int dim>
   void StokesMatrixFreeHandler<dim>::declare_parameters(ParameterHandler &prm)
