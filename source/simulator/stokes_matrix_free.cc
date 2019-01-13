@@ -174,14 +174,14 @@ namespace aspect
       stokes_matrix.initialize(stokes_mf_storage);
 
       // TODO: Get viscosity table
-      const unsigned int n_cells = stokes_mf_storage->n_macro_cells();
-      FEEvaluation<dim,sim.parameters.stokes_velocity_degree,
-                   sim.parameters.stokes_velocity_degree+1,
-                   dim,double> velocity (stokes_mf_storage, 0);
-      const unsigned int n_q_points = velocity.n_q_points;
-      const Table<2,VectorizedArray<double> > visc_vals;
-      visc_vals.reinit (n_cells, n_q_points);
-      stokes_matrix.evaluate_2_x_viscosity(visc_vals);
+//      const unsigned int n_cells = stokes_mf_storage->n_macro_cells();
+//      FEEvaluation<dim,sim.parameters.stokes_velocity_degree,
+//                   sim.parameters.stokes_velocity_degree+1,
+//                   dim,double> velocity (stokes_mf_storage, 0);
+//      const unsigned int n_q_points = velocity.n_q_points;
+//      const Table<2,VectorizedArray<double> > visc_vals;
+//      visc_vals.reinit (n_cells, n_q_points);
+//      stokes_matrix.evaluate_2_x_viscosity(visc_vals);
     }
 
     // Mass matrix matrix-free operator...
@@ -199,15 +199,15 @@ namespace aspect
       mass_matrix.initialize(mass_mf_storage);
 
       // TODO: Get viscosity table/pressure scaling
-      const unsigned int n_cells = mass_mf_storage->n_macro_cells();
-      FEEvaluation<dim,sim.parameters.stokes_velocity_degree-1,
-                   sim.parameters.stokes_velocity_degree+1,
-                   dim,double> pressure (mass_mf_storage, 0);
-      const unsigned int n_q_points = pressure.n_q_points;
-      const Table<2,VectorizedArray<double> > visc_vals;
-      visc_vals.reinit (n_cells, n_q_points);
-      mass_matrix.evaluate_1_over_viscosity_and_scaling(visc_vals, 1.0);
-      mass_matrix.compute_diagonal();
+//      const unsigned int n_cells = mass_mf_storage->n_macro_cells();
+//      FEEvaluation<dim,sim.parameters.stokes_velocity_degree-1,
+//                   sim.parameters.stokes_velocity_degree+1,
+//                   dim,double> pressure (mass_mf_storage, 0);
+//      const unsigned int n_q_points = pressure.n_q_points;
+//      const Table<2,VectorizedArray<double> > visc_vals;
+//      visc_vals.reinit (n_cells, n_q_points);
+//      mass_matrix.evaluate_1_over_viscosity_and_scaling(visc_vals, 1.0);
+//      mass_matrix.compute_diagonal();
     }
   }
 
