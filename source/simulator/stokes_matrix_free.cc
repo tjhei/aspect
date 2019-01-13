@@ -85,6 +85,35 @@ namespace aspect
   template <int dim>
   void StokesMatrixFreeHandler<dim>::evaluate_viscosity ()
   {
+    const QGauss<dim> quadrature_formula (sim.parameters.stokes_velocity_degree+1);
+    const unsigned int n_q_points = quadrature_formula.size();
+
+    FEValues<dim> fe_values (*sim.mapping,
+                             sim.finite_element,
+                             quadrature_formula,
+                             update_values   |
+                             update_gradients |
+                             update_quadrature_points |
+                             update_JxW_values);
+
+    MaterialModel::MaterialModelInputs<dim> in(fe_values.n_quadrature_points, sim.introspection.n_compositional_fields);
+    MaterialModel::MaterialModelOutputs<dim> out(fe_values.n_quadrature_points, sim.introspection.n_compositional_fields);
+
+    // compute the integral quantities by quadrature
+    for (const auto &cell: sim.dof_handler.active_cell_iterators())
+      if (cell->is_locally_owned())
+        {
+          fe_values.reinit (cell);
+          in.reinit(fe_values, cell, sim.introspection, sim.current_linearization_point);
+
+          sim.material_model->fill_additional_material_model_inputs(in, sim.current_linearization_point, fe_values, sim.introspection);
+          sim.material_model->evaluate(in, out);
+
+          // TODO: averaging
+
+          const double viscosity = out.viscosities[0];
+        }
+
 
   }
 
