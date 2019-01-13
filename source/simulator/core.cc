@@ -1036,7 +1036,7 @@ namespace aspect
     // The preconditioner matrix is only used for the Stokes block (velocity and Schur complement) and only needed if we actually solve iteratively and matrix-based
     if (parameters.stokes_solver_type == Parameters<dim>::StokesSolverType::block_gmg)
       return;
-  else if (parameters.stokes_solver_type == Parameters<dim>::StokesSolverType::block_amg)
+    else if (parameters.stokes_solver_type == Parameters<dim>::StokesSolverType::block_amg)
       {
         // continue below
       }

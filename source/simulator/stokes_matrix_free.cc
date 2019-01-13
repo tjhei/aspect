@@ -28,6 +28,9 @@
 #include <deal.II/dofs/dof_accessor.h>
 #include <deal.II/dofs/dof_tools.h>
 
+#include <deal.II/numerics/vector_tools.h>
+
+
 #include <deal.II/fe/fe_values.h>
 
 
@@ -41,7 +44,13 @@ namespace aspect
   template <int dim>
   StokesMatrixFreeHandler<dim>::StokesMatrixFreeHandler (Simulator<dim> &simulator,
                                                          ParameterHandler &prm)
-    : sim(simulator)
+    : sim(simulator),
+
+      fe_v (FE_Q<dim>(sim.parameters.stokes_velocity_degree), dim),
+      fe_p (FE_Q<dim>(sim.parameters.stokes_velocity_degree-1),1),
+
+      dof_handler_v(sim.triangulation),
+      dof_handler_p(sim.triangulation)
   {
     parse_parameters(prm);
     //TODO CitationInfo::add("mf");
@@ -49,7 +58,7 @@ namespace aspect
     Assert(!sim.parameters.free_surface_enabled, ExcNotImplemented());
     Assert(!sim.parameters.include_melt_transport, ExcNotImplemented());
     Assert(!sim.parameters.use_locally_conservative_discretization, ExcNotImplemented());
-    Assert(sim.parameters.stokes_velocity_degree>=2, ExcNotImplemented());
+    Assert(sim.parameters.stokes_velocity_degree==2, ExcNotImplemented());
 
     Assert(sim.introspection.variable("velocity").block_index==0, ExcNotImplemented());
     Assert(sim.introspection.variable("pressure").block_index==1, ExcNotImplemented());
@@ -118,6 +127,88 @@ namespace aspect
   {
     sim.pcout << "Number of free surface degrees of freedom: "
               << std::endl;
+
+
+    dof_handler_v.distribute_dofs(fe_v);
+    dof_handler_v.distribute_mg_dofs();
+
+    dof_handler_p.clear();
+    dof_handler_p.distribute_dofs(fe_p);
+
+    IndexSet locally_relevant_dofs_v;
+    DoFTools::extract_locally_relevant_dofs (dof_handler_v,
+                                             locally_relevant_dofs_v);
+    constraints_v.reinit(locally_relevant_dofs_v);
+    DoFTools::make_hanging_node_constraints (dof_handler_v, constraints_v);
+    sim.compute_initial_velocity_boundary_constraints(constraints_v);
+    sim.compute_current_velocity_boundary_constraints(constraints_v);
+    constraints_v.close ();
+
+    IndexSet locally_relevant_dofs_p;
+    DoFTools::extract_locally_relevant_dofs (dof_handler_p,
+                                             locally_relevant_dofs_p);
+    constraints_p.reinit(locally_relevant_dofs_p);
+    DoFTools::make_hanging_node_constraints (dof_handler_p, constraints_p);
+    constraints_p.close();
+
+
+    // Stokes matrix stuff...
+    {
+      typename MatrixFree<dim,double>::AdditionalData additional_data;
+      additional_data.tasks_parallel_scheme =
+        MatrixFree<dim,double>::AdditionalData::none;
+      additional_data.mapping_update_flags = (update_values | update_gradients |
+                                              update_JxW_values | update_quadrature_points);
+
+      std::vector<const DoFHandler<dim>*> stokes_dofs;
+      stokes_dofs.push_back(&dof_handler_v);
+      stokes_dofs.push_back(&dof_handler_p);
+      std::vector<const ConstraintMatrix *> stokes_constraints;
+      stokes_constraints.push_back(&constraints_v);
+      stokes_constraints.push_back(&constraints_p);
+
+      std::shared_ptr<MatrixFree<dim,double> >
+      stokes_mf_storage(new MatrixFree<dim,double>());
+      stokes_mf_storage->reinit(stokes_dofs, stokes_constraints,
+                                QGauss<1>(sim.parameters.stokes_velocity_degree+1), additional_data);
+      stokes_matrix.initialize(stokes_mf_storage);
+
+      // TODO: Get viscosity table
+      const unsigned int n_cells = stokes_mf_storage->n_macro_cells();
+      FEEvaluation<dim,sim.parameters.stokes_velocity_degree,
+                   sim.parameters.stokes_velocity_degree+1,
+                   dim,double> velocity (stokes_mf_storage, 0);
+      const unsigned int n_q_points = velocity.n_q_points;
+      const Table<2,VectorizedArray<double> > visc_vals;
+      visc_vals.reinit (n_cells, n_q_points);
+      stokes_matrix.evaluate_2_x_viscosity(visc_vals);
+    }
+
+    // Mass matrix matrix-free operator...
+    {
+      typename MatrixFree<dim,double>::AdditionalData additional_data;
+      additional_data.tasks_parallel_scheme =
+        MatrixFree<dim,double>::AdditionalData::none;
+      additional_data.mapping_update_flags = (update_values | update_JxW_values |
+                                              update_quadrature_points);
+      std::shared_ptr<MatrixFree<dim,double> >
+      mass_mf_storage(new MatrixFree<dim,double>());
+      mass_mf_storage->reinit(dof_handler_p, constraints_p,
+                              QGauss<1>(velocity_degree+1), additional_data);
+
+      mass_matrix.initialize(mass_mf_storage);
+
+      // TODO: Get viscosity table/pressure scaling
+      const unsigned int n_cells = mass_mf_storage->n_macro_cells();
+      FEEvaluation<dim,sim.parameters.stokes_velocity_degree-1,
+                   sim.parameters.stokes_velocity_degree+1,
+                   dim,double> pressure (mass_mf_storage, 0);
+      const unsigned int n_q_points = pressure.n_q_points;
+      const Table<2,VectorizedArray<double> > visc_vals;
+      visc_vals.reinit (n_cells, n_q_points);
+      mass_matrix.evaluate_1_over_viscosity_and_scaling(visc_vals, 1.0);
+      mass_matrix.compute_diagonal();
+    }
   }
 
 
