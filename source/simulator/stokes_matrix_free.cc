@@ -177,7 +177,7 @@ namespace aspect
 
 
     dof_handler_v.distribute_dofs(fe_v);
-    dof_handler_v.distribute_mg_dofs();
+    dof_handler_v.distribute_mg_dofs(fe_v);
 
     dof_handler_p.clear();
     dof_handler_p.distribute_dofs(fe_p);
