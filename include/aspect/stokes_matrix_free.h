@@ -36,7 +36,7 @@ namespace aspect
   using namespace dealii;
 
 
-  namespace MatrixFreeOperators
+  namespace MatrixFreeStokesOperators
   {
 
     template <int dim, int degree_v, typename number>
@@ -358,8 +358,8 @@ namespace aspect
       Simulator<dim> &sim;
 
       // TODO: velocity degree not only 2, Choosing quadrature degree?
-      MatrixFreeOperators::StokesOperator<dim,2,double> stokes_matrix;
-      MatrixFreeOperators::MassMatrixOperator<dim,1,double> mass_matrix;
+      MatrixFreeStokesOperators::StokesOperator<dim,2,double> stokes_matrix;
+      MatrixFreeStokesOperators::MassMatrixOperator<dim,1,double> mass_matrix;
 
       FESystem<dim> fe_v;
       FESystem<dim> fe_p;
