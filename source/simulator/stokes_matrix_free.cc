@@ -212,7 +212,7 @@ namespace aspect
       std::shared_ptr<MatrixFree<dim,double> >
       mass_mf_storage(new MatrixFree<dim,double>());
       mass_mf_storage->reinit(dof_handler_p, constraints_p,
-                              QGauss<1>(velocity_degree+1), additional_data);
+                              QGauss<1>(sim.parameters.stokes_velocity_degree+1), additional_data);
 
       mass_matrix.initialize(mass_mf_storage);
 
