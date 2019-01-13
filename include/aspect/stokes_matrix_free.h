@@ -153,7 +153,7 @@ namespace aspect
 
     template <int dim, int degree_p, typename number>
     class MassMatrixOperator
-      : public MatrixFreeOperators::Base<dim, LinearAlgebra::distributed::Vector<number>>
+      : public MatrixFreeOperators::Base<dim, dealii::LinearAlgebra::distributed::Vector<number>>
     {
       public:
         MassMatrixOperator ();
@@ -163,16 +163,16 @@ namespace aspect
         virtual void compute_diagonal ();
 
       private:
-        virtual void apply_add (LinearAlgebra::distributed::Vector<number> &dst,
-                                const LinearAlgebra::distributed::Vector<number> &src) const;
+        virtual void apply_add (dealii::LinearAlgebra::distributed::Vector<number> &dst,
+                                const dealii::LinearAlgebra::distributed::Vector<number> &src) const;
 
         void local_apply (const dealii::MatrixFree<dim, number> &data,
-                          LinearAlgebra::distributed::Vector<number> &dst,
-                          const LinearAlgebra::distributed::Vector<number> &src,
+                          dealii::LinearAlgebra::distributed::Vector<number> &dst,
+                          const dealii::LinearAlgebra::distributed::Vector<number> &src,
                           const std::pair<unsigned int, unsigned int> &cell_range) const;
 
         void local_compute_diagonal (const MatrixFree<dim,number>                     &data,
-                                     LinearAlgebra::distributed::Vector<number>  &dst,
+                                     dealii::LinearAlgebra::distributed::Vector<number>  &dst,
                                      const unsigned int                               &dummy,
                                      const std::pair<unsigned int,unsigned int>       &cell_range) const;
 
@@ -182,14 +182,14 @@ namespace aspect
     template <int dim, int degree_p, typename number>
     MassMatrixOperator<dim,degree_p,number>::MassMatrixOperator ()
       :
-      MatrixFreeOperators::Base<dim, LinearAlgebra::distributed::Vector<number> >()
+      MatrixFreeOperators::Base<dim, dealii::LinearAlgebra::distributed::Vector<number> >()
     {}
     template <int dim, int degree_p, typename number>
     void
     MassMatrixOperator<dim,degree_p,number>::clear ()
     {
       one_over_viscosity.reinit(0, 0);
-      MatrixFreeOperators::Base<dim,LinearAlgebra::distributed::Vector<number> >::clear();
+      MatrixFreeOperators::Base<dim,dealii::LinearAlgebra::distributed::Vector<number> >::clear();
     }
     template <int dim, int degree_p, typename number>
     void
@@ -208,8 +208,8 @@ namespace aspect
     void
     MassMatrixOperator<dim,degree_p,number>
     ::local_apply (const dealii::MatrixFree<dim, number>                 &data,
-                   LinearAlgebra::distributed::Vector<number>       &dst,
-                   const LinearAlgebra::distributed::Vector<number> &src,
+                   dealii::LinearAlgebra::distributed::Vector<number>       &dst,
+                   const dealii::LinearAlgebra::distributed::Vector<number> &src,
                    const std::pair<unsigned int, unsigned int>           &cell_range) const
     {
       FEEvaluation<dim,degree_p,degree_p+2,1,number> pressure (data);
@@ -232,10 +232,10 @@ namespace aspect
     template <int dim, int degree_p, typename number>
     void
     MassMatrixOperator<dim,degree_p,number>
-    ::apply_add (LinearAlgebra::distributed::Vector<number> &dst,
-                 const LinearAlgebra::distributed::Vector<number> &src) const
+    ::apply_add (dealii::LinearAlgebra::distributed::Vector<number> &dst,
+                 const dealii::LinearAlgebra::distributed::Vector<number> &src) const
     {
-      MatrixFreeOperators::Base<dim,LinearAlgebra::distributed::Vector<number> >::
+      MatrixFreeOperators::Base<dim,dealii::LinearAlgebra::distributed::Vector<number> >::
       data->cell_loop(&MassMatrixOperator::local_apply, this, dst, src);
     }
     template <int dim, int degree_p, typename number>
@@ -244,13 +244,13 @@ namespace aspect
     ::compute_diagonal ()
     {
       this->inverse_diagonal_entries.
-      reset(new DiagonalMatrix<LinearAlgebra::distributed::Vector<number> >());
+      reset(new DiagonalMatrix<dealii::LinearAlgebra::distributed::Vector<number> >());
       this->diagonal_entries.
-      reset(new DiagonalMatrix<LinearAlgebra::distributed::Vector<number> >());
+      reset(new DiagonalMatrix<dealii::LinearAlgebra::distributed::Vector<number> >());
 
-      LinearAlgebra::distributed::Vector<number> &inverse_diagonal =
+      dealii::LinearAlgebra::distributed::Vector<number> &inverse_diagonal =
         this->inverse_diagonal_entries->get_vector();
-      LinearAlgebra::distributed::Vector<number> &diagonal =
+      dealii::LinearAlgebra::distributed::Vector<number> &diagonal =
         this->diagonal_entries->get_vector();
 
       unsigned int dummy = 0;
@@ -276,7 +276,7 @@ namespace aspect
     void
     MassMatrixOperator<dim,degree_p,number>
     ::local_compute_diagonal (const MatrixFree<dim,number>                     &data,
-                              LinearAlgebra::distributed::Vector<number>  &dst,
+                              dealii::LinearAlgebra::distributed::Vector<number>  &dst,
                               const unsigned int &,
                               const std::pair<unsigned int,unsigned int>       &cell_range) const
     {
