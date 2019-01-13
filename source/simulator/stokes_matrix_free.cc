@@ -55,13 +55,25 @@ namespace aspect
     parse_parameters(prm);
     //TODO CitationInfo::add("mf");
 
+    // This requires: porting the additional stabilization terms and using a
+    // different mapping in the MatrixFree operators:
     Assert(!sim.parameters.free_surface_enabled, ExcNotImplemented());
+    // Sorry, not any time soon:
     Assert(!sim.parameters.include_melt_transport, ExcNotImplemented());
+    // Not very difficult to do, but will require a different mass matrix
+    // operator:
     Assert(!sim.parameters.use_locally_conservative_discretization, ExcNotImplemented());
+    // TODO: this is currently hard-coded in the header:
     Assert(sim.parameters.stokes_velocity_degree==2, ExcNotImplemented());
 
+    // sanity check:
     Assert(sim.introspection.variable("velocity").block_index==0, ExcNotImplemented());
     Assert(sim.introspection.variable("pressure").block_index==1, ExcNotImplemented());
+
+    // This is not terribly complicated, but we need to check that constraints
+    // are set correctly, that the preconditioner converges, and requires
+    // testing.
+    Assert(sim.geometry_model->get_periodic_boundary_pairs().size()==0, ExcNotImplemented());
   }
 
   template <int dim>
