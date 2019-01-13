@@ -430,7 +430,7 @@ namespace aspect
 
     if (parameters.stokes_solver_type == Parameters<dim>::StokesSolverType::block_gmg)
       return;
-  else if (parameters.stokes_solver_type == Parameters<dim>::StokesSolverType::block_amg)
+    else if (parameters.stokes_solver_type == Parameters<dim>::StokesSolverType::block_amg)
       {
         // continue below
       }
