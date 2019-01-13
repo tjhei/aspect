@@ -19,8 +19,8 @@
 */
 
 
-#ifndef _aspect_stokes_matrix_free__h
-#define _aspect_stokes_matrix_free__h
+#ifndef _aspect_stokes_matrix_free_h
+#define _aspect_stokes_matrix_free_h
 
 #include <aspect/simulator.h>
 
