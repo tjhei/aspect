@@ -199,7 +199,7 @@ namespace aspect
     {
       pressure_scaling = scaling;
 
-      FEEvaluation<dim,degree_v,degree_v+1,dim,number> velocity (*this->data, 0);
+      FEEvaluation<dim,degree_p,degree_p+1,dim,number> velocity (*this->data, 0);
       Assert(visc_table.n_elements() == this->data->n_macro_cells()*velocity.n_q_points, ExcMessage("Tables are not the right size!"));
 
       one_over_viscosity = visc_table;
