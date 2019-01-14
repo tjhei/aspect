@@ -688,8 +688,8 @@ namespace aspect
   {
     if (stokes_matrix_free)
       {
-        pcout << "skipping assemble_stokes_system()" << std::endl;
-        return;
+        pcout << "assemble_stokes_system (): Matrix-free, so just assembling RHS..." << std::endl;
+        rebuild_stokes_matrix = false;
       }
     TimerOutput::Scope timer (computing_timer,
                               (!assemble_newton_stokes_system ?
