@@ -36,388 +36,437 @@
 
 namespace aspect
 {
-namespace internal
-{
-
-}
-
-template <int dim>
-StokesMatrixFreeHandler<dim>::StokesMatrixFreeHandler (Simulator<dim> &simulator,
-                                                       ParameterHandler &prm)
-  : sim(simulator),
-
-    fe_v (FE_Q<dim>(sim.parameters.stokes_velocity_degree), dim),
-    fe_p (FE_Q<dim>(sim.parameters.stokes_velocity_degree-1),1),
-
-    dof_handler_v(sim.triangulation),
-    dof_handler_p(sim.triangulation),
-
-    dof_handler_projection(sim.triangulation),
-    fe_projection(FE_DGQ<dim>(0),1)
-{
-  parse_parameters(prm);
-  //TODO CitationInfo::add("mf");
-
-  // This requires: porting the additional stabilization terms and using a
-  // different mapping in the MatrixFree operators:
-  Assert(!sim.parameters.free_surface_enabled, ExcNotImplemented());
-  // Sorry, not any time soon:
-  Assert(!sim.parameters.include_melt_transport, ExcNotImplemented());
-  // Not very difficult to do, but will require a different mass matrix
-  // operator:
-  Assert(!sim.parameters.use_locally_conservative_discretization, ExcNotImplemented());
-  // TODO: this is currently hard-coded in the header:
-  Assert(sim.parameters.stokes_velocity_degree==2, ExcNotImplemented());
-
-  // sanity check:
-  Assert(sim.introspection.variable("velocity").block_index==0, ExcNotImplemented());
-  Assert(sim.introspection.variable("pressure").block_index==1, ExcNotImplemented());
-
-  // This is not terribly complicated, but we need to check that constraints
-  // are set correctly, that the preconditioner converges, and requires
-  // testing.
-  Assert(sim.geometry_model->get_periodic_boundary_pairs().size()==0, ExcNotImplemented());
-}
-
-template <int dim>
-StokesMatrixFreeHandler<dim>::~StokesMatrixFreeHandler ()
-{
-
-}
-
-template <int dim>
-void StokesMatrixFreeHandler<dim>::evaluate_viscosity ()
-{
-  {
-    const QGauss<dim> quadrature_formula (sim.parameters.stokes_velocity_degree+1);
-
-    FEValues<dim> fe_values (*sim.mapping,
-                             sim.finite_element,
-                             quadrature_formula,
-                             update_values   |
-                             update_gradients |
-                             update_quadrature_points |
-                             update_JxW_values);
-
-    MaterialModel::MaterialModelInputs<dim> in(fe_values.n_quadrature_points, sim.introspection.n_compositional_fields);
-    MaterialModel::MaterialModelOutputs<dim> out(fe_values.n_quadrature_points, sim.introspection.n_compositional_fields);
-
-    std::vector<types::global_dof_index> local_dof_indices(fe_projection.dofs_per_cell);
-    active_coef_dof_vec = 0.;
-
-    // compute the integral quantities by quadrature
-    for (const auto &cell: sim.dof_handler.active_cell_iterators())
-      if (cell->is_locally_owned())
-      {
-        fe_values.reinit (cell);
-        in.reinit(fe_values, cell, sim.introspection, sim.current_linearization_point);
-
-        sim.material_model->fill_additional_material_model_inputs(in, sim.current_linearization_point, fe_values, sim.introspection);
-        sim.material_model->evaluate(in, out);
-
-        // TODO: averaging
-
-        const double viscosity = out.viscosities[0];
-
-        typename DoFHandler<dim>::active_cell_iterator dg_cell(&sim.triangulation,
-                                                               cell->level(),
-                                                               cell->index(),
-                                                               &dof_handler_projection);
-        dg_cell->get_dof_indices(local_dof_indices);
-        for (unsigned int i = 0; i < fe_projection.dofs_per_cell; ++i)
-          active_coef_dof_vec[local_dof_indices[i]] = viscosity;
-      }
-    active_coef_dof_vec.compress(VectorOperation::insert);
-  }
-
-  // Fill viscosities for the Stokes Operator
-  {
-    typename MatrixFree<dim,double>::AdditionalData additional_data;
-    additional_data.tasks_parallel_scheme =
-        MatrixFree<dim,double>::AdditionalData::none;
-    additional_data.mapping_update_flags = (update_values | update_quadrature_points);
-
-    std::vector<const DoFHandler<dim>*> dof_handlers;
-    dof_handlers.push_back(&dof_handler_v);
-    dof_handlers.push_back(&dof_handler_projection);
-    std::vector<const ConstraintMatrix *> projection_constraints;
-    projection_constraints.push_back(&constraints_v);
-    projection_constraints.push_back(&constraints_projection);
-
-    std::shared_ptr<MatrixFree<dim,double> >
-        mg_mf_storage(new MatrixFree<dim,double>());
-    mg_mf_storage->reinit(dof_handlers, projection_constraints,
-                          QGauss<1>(sim.parameters.stokes_velocity_degree+1), additional_data);
-
-    MatrixFreeStokesOperators::ComputeCoefficientProjection<dim,2,double> coeff_operator;
-    coeff_operator.initialize(mg_mf_storage);
-
-    dealii::LinearAlgebra::distributed::BlockVector<double> block_viscosity_values(2);
-    block_viscosity_values.collect_sizes();
-    coeff_operator.initialize_dof_vector(block_viscosity_values);
-
-    std::vector<types::global_dof_index> local_dof_indices(fe_projection.dofs_per_cell);
-
-    typename DoFHandler<dim>::active_cell_iterator cell = dof_handler_projection.begin_active(),
-        endc = dof_handler_projection.end();
-    for (; cell != endc; ++cell)
-      if (cell->is_locally_owned())
-      {
-        cell->get_dof_indices(local_dof_indices);
-        for (unsigned int i=0; i<fe_projection.dofs_per_cell; ++i )
-          block_viscosity_values.block(1)(local_dof_indices[i]) = 2.0*active_coef_dof_vec(local_dof_indices[i]);
-      }
-    block_viscosity_values.compress(VectorOperation::insert);
-
-    stokes_matrix.fill_viscosities(coeff_operator.return_viscosity_table(block_viscosity_values.block(1)));
-  }
-
-  // Fill viscosities for the Mass Matrix Operator
-  {
-    typename MatrixFree<dim,double>::AdditionalData additional_data;
-    additional_data.tasks_parallel_scheme =
-        MatrixFree<dim,double>::AdditionalData::none;
-    additional_data.mapping_update_flags = (update_values | update_quadrature_points);
-
-    std::vector<const DoFHandler<dim>*> dof_handlers;
-    dof_handlers.push_back(&dof_handler_p);
-    dof_handlers.push_back(&dof_handler_projection);
-    std::vector<const ConstraintMatrix *> projection_constraints;
-    projection_constraints.push_back(&constraints_p);
-    projection_constraints.push_back(&constraints_projection);
-
-    std::shared_ptr<MatrixFree<dim,double> >
-        mg_mf_storage(new MatrixFree<dim,double>());
-    mg_mf_storage->reinit(dof_handlers, projection_constraints,
-                          QGauss<1>(sim.parameters.stokes_velocity_degree+1), additional_data);
-
-    MatrixFreeStokesOperators::ComputeCoefficientProjection<dim,1,double> coeff_operator;
-    coeff_operator.initialize(mg_mf_storage);
-
-    dealii::LinearAlgebra::distributed::BlockVector<double> block_viscosity_values(2);
-    block_viscosity_values.collect_sizes();
-    coeff_operator.initialize_dof_vector(block_viscosity_values);
-
-    std::vector<types::global_dof_index> local_dof_indices(fe_projection.dofs_per_cell);
-
-    typename DoFHandler<dim>::active_cell_iterator cell = dof_handler_projection.begin_active(),
-        endc = dof_handler_projection.end();
-    for (; cell != endc; ++cell)
-      if (cell->is_locally_owned())
-      {
-        cell->get_dof_indices(local_dof_indices);
-        for (unsigned int i=0; i<fe_projection.dofs_per_cell; ++i )
-          block_viscosity_values.block(1)(local_dof_indices[i]) = 1.0/active_coef_dof_vec(local_dof_indices[i]);
-      }
-    block_viscosity_values.compress(VectorOperation::insert);
-
-    mass_matrix.fill_viscosities_and_pressure_scaling(coeff_operator.return_viscosity_table(block_viscosity_values.block(1)),
-                                                      sim.pressure_scaling);
-  }
-
-  // Fill viscosities for the ABlock Operators
+  namespace internal
   {
 
   }
-}
 
+  template <int dim>
+  StokesMatrixFreeHandler<dim>::StokesMatrixFreeHandler (Simulator<dim> &simulator,
+                                                         ParameterHandler &prm)
+    : sim(simulator),
 
-template <int dim>
-void StokesMatrixFreeHandler<dim>::declare_parameters(ParameterHandler &prm)
-{
-  prm.enter_subsection ("Solver parameters");
-  prm.enter_subsection ("Matrix Free");
+      fe_v (FE_Q<dim>(sim.parameters.stokes_velocity_degree), dim),
+      fe_p (FE_Q<dim>(sim.parameters.stokes_velocity_degree-1),1),
+
+      dof_handler_v(sim.triangulation),
+      dof_handler_p(sim.triangulation),
+
+      dof_handler_projection(sim.triangulation),
+      fe_projection(FE_DGQ<dim>(0),1)
   {
-    prm.declare_entry("Free surface stabilization theta", "0.5",
-                      Patterns::Double(0,1),
-                      "Theta parameter described in Kaus et. al. 2010. "
-                      "An unstabilized free surface can overshoot its "
-                      "equilibrium position quite easily and generate "
-                      "unphysical results.  One solution is to use a "
-                      "quasi-implicit correction term to the forces near the "
-                      "free surface.  This parameter describes how much "
-                      "the free surface is stabilized with this term, "
-                      "where zero is no stabilization, and one is fully "
-                      "implicit.");
+    parse_parameters(prm);
+    //TODO CitationInfo::add("mf");
+
+    // This requires: porting the additional stabilization terms and using a
+    // different mapping in the MatrixFree operators:
+    Assert(!sim.parameters.free_surface_enabled, ExcNotImplemented());
+    // Sorry, not any time soon:
+    Assert(!sim.parameters.include_melt_transport, ExcNotImplemented());
+    // Not very difficult to do, but will require a different mass matrix
+    // operator:
+    Assert(!sim.parameters.use_locally_conservative_discretization, ExcNotImplemented());
+    // TODO: this is currently hard-coded in the header:
+    Assert(sim.parameters.stokes_velocity_degree==2, ExcNotImplemented());
+
+    // sanity check:
+    Assert(sim.introspection.variable("velocity").block_index==0, ExcNotImplemented());
+    Assert(sim.introspection.variable("pressure").block_index==1, ExcNotImplemented());
+
+    // This is not terribly complicated, but we need to check that constraints
+    // are set correctly, that the preconditioner converges, and requires
+    // testing.
+    Assert(sim.geometry_model->get_periodic_boundary_pairs().size()==0, ExcNotImplemented());
   }
-  prm.leave_subsection ();
-  prm.leave_subsection ();
-}
 
-template <int dim>
-void StokesMatrixFreeHandler<dim>::parse_parameters(ParameterHandler &prm)
-{
-  prm.enter_subsection ("Solver parameters");
-  prm.enter_subsection ("Matrix Free");
+  template <int dim>
+  StokesMatrixFreeHandler<dim>::~StokesMatrixFreeHandler ()
   {
-    //free_surface_theta = prm.get_double("Free surface stabilization theta");
+
   }
-  prm.leave_subsection ();
-  prm.leave_subsection ();
-}
 
-
-
-template <int dim>
-std::pair<double,double> StokesMatrixFreeHandler<dim>::solve()
-{
-  sim.pcout << "solve() "
-            << std::endl;
-
-
-  double initial_nonlinear_residual = numbers::signaling_nan<double>();
-  double final_linear_residual      = numbers::signaling_nan<double>();
-  return std::pair<double,double>(initial_nonlinear_residual,
-                                  final_linear_residual);
-}
-
-
-
-template <int dim>
-void StokesMatrixFreeHandler<dim>::setup_dofs()
-{
+  template <int dim>
+  void StokesMatrixFreeHandler<dim>::evaluate_viscosity ()
   {
-    dof_handler_v.distribute_dofs(fe_v);
-    dof_handler_v.distribute_mg_dofs(fe_v);
-
-    IndexSet locally_relevant_dofs;
-    DoFTools::extract_locally_relevant_dofs (dof_handler_v,
-                                             locally_relevant_dofs);
-    constraints_v.reinit(locally_relevant_dofs);
-    DoFTools::make_hanging_node_constraints (dof_handler_v, constraints_v);
-    sim.compute_initial_velocity_boundary_constraints(constraints_v);
-    sim.compute_current_velocity_boundary_constraints(constraints_v);
-    constraints_v.close ();
-
-    // GMG
-    const unsigned int n_levels = sim.triangulation.n_global_levels();
-    mg_matrices.clear_elements();
-    // TODO: minlevel != 0
-    mg_matrices.resize(0, n_levels-1);
-
-    mg_constrained_dofs.clear();
-    std::set<types::boundary_id> dirichlet_boundary;
-    dirichlet_boundary.insert(0); //Is this the dirichlet boundary?
-    mg_constrained_dofs.initialize(dof_handler_v);
-    mg_constrained_dofs.make_zero_boundary_constraints(dof_handler_v, dirichlet_boundary);
-
-    for (unsigned int level=0; level<n_levels; ++level)
     {
-      IndexSet relevant_dofs;
-      DoFTools::extract_locally_relevant_level_dofs(dof_handler_v, level, relevant_dofs);
-      ConstraintMatrix level_constraints;
-      level_constraints.reinit(relevant_dofs);
-      level_constraints.add_lines(mg_constrained_dofs.get_boundary_indices(level));
-      level_constraints.close();
+      const QGauss<dim> quadrature_formula (sim.parameters.stokes_velocity_degree+1);
 
-      {
-        typename MatrixFree<dim,double>::AdditionalData additional_data;
-        additional_data.tasks_parallel_scheme =
+      FEValues<dim> fe_values (*sim.mapping,
+                               sim.finite_element,
+                               quadrature_formula,
+                               update_values   |
+                               update_gradients |
+                               update_quadrature_points |
+                               update_JxW_values);
+
+      MaterialModel::MaterialModelInputs<dim> in(fe_values.n_quadrature_points, sim.introspection.n_compositional_fields);
+      MaterialModel::MaterialModelOutputs<dim> out(fe_values.n_quadrature_points, sim.introspection.n_compositional_fields);
+
+      std::vector<types::global_dof_index> local_dof_indices(fe_projection.dofs_per_cell);
+      active_coef_dof_vec = 0.;
+
+      // compute the integral quantities by quadrature
+      for (const auto &cell: sim.dof_handler.active_cell_iterators())
+        if (cell->is_locally_owned())
+          {
+            fe_values.reinit (cell);
+            in.reinit(fe_values, cell, sim.introspection, sim.current_linearization_point);
+
+            sim.material_model->fill_additional_material_model_inputs(in, sim.current_linearization_point, fe_values, sim.introspection);
+            sim.material_model->evaluate(in, out);
+
+            // TODO: averaging
+
+            const double viscosity = out.viscosities[0];
+
+            typename DoFHandler<dim>::active_cell_iterator dg_cell(&sim.triangulation,
+                                                                   cell->level(),
+                                                                   cell->index(),
+                                                                   &dof_handler_projection);
+            dg_cell->get_dof_indices(local_dof_indices);
+            for (unsigned int i = 0; i < fe_projection.dofs_per_cell; ++i)
+              active_coef_dof_vec[local_dof_indices[i]] = viscosity;
+          }
+      active_coef_dof_vec.compress(VectorOperation::insert);
+    }
+
+    // Fill viscosities for the Stokes Operator
+    {
+      typename MatrixFree<dim,double>::AdditionalData additional_data;
+      additional_data.tasks_parallel_scheme =
+        MatrixFree<dim,double>::AdditionalData::none;
+      additional_data.mapping_update_flags = (update_values | update_quadrature_points);
+
+      std::vector<const DoFHandler<dim>*> dof_handlers;
+      dof_handlers.push_back(&dof_handler_v);
+      dof_handlers.push_back(&dof_handler_projection);
+      std::vector<const ConstraintMatrix *> projection_constraints;
+      projection_constraints.push_back(&constraints_v);
+      projection_constraints.push_back(&constraints_projection);
+
+      std::shared_ptr<MatrixFree<dim,double> >
+      mg_mf_storage(new MatrixFree<dim,double>());
+      mg_mf_storage->reinit(dof_handlers, projection_constraints,
+                            QGauss<1>(sim.parameters.stokes_velocity_degree+1), additional_data);
+
+      MatrixFreeStokesOperators::ComputeCoefficientProjection<dim,2,double> coeff_operator;
+      coeff_operator.initialize(mg_mf_storage);
+
+      dealii::LinearAlgebra::distributed::BlockVector<double> block_viscosity_values(2);
+      block_viscosity_values.collect_sizes();
+      coeff_operator.initialize_dof_vector(block_viscosity_values);
+
+      std::vector<types::global_dof_index> local_dof_indices(fe_projection.dofs_per_cell);
+
+      typename DoFHandler<dim>::active_cell_iterator cell = dof_handler_projection.begin_active(),
+                                                     endc = dof_handler_projection.end();
+      for (; cell != endc; ++cell)
+        if (cell->is_locally_owned())
+          {
+            cell->get_dof_indices(local_dof_indices);
+            for (unsigned int i=0; i<fe_projection.dofs_per_cell; ++i )
+              block_viscosity_values.block(1)(local_dof_indices[i]) = 2.0*active_coef_dof_vec(local_dof_indices[i]);
+          }
+      block_viscosity_values.compress(VectorOperation::insert);
+
+      stokes_matrix.fill_viscosities(coeff_operator.return_viscosity_table(block_viscosity_values.block(1)));
+    }
+
+    // Fill viscosities for the Mass Matrix Operator
+    {
+      typename MatrixFree<dim,double>::AdditionalData additional_data;
+      additional_data.tasks_parallel_scheme =
+        MatrixFree<dim,double>::AdditionalData::none;
+      additional_data.mapping_update_flags = (update_values | update_quadrature_points);
+
+      std::vector<const DoFHandler<dim>*> dof_handlers;
+      dof_handlers.push_back(&dof_handler_p);
+      dof_handlers.push_back(&dof_handler_projection);
+      std::vector<const ConstraintMatrix *> projection_constraints;
+      projection_constraints.push_back(&constraints_p);
+      projection_constraints.push_back(&constraints_projection);
+
+      std::shared_ptr<MatrixFree<dim,double> >
+      mg_mf_storage(new MatrixFree<dim,double>());
+      mg_mf_storage->reinit(dof_handlers, projection_constraints,
+                            QGauss<1>(sim.parameters.stokes_velocity_degree+1), additional_data);
+
+      MatrixFreeStokesOperators::ComputeCoefficientProjection<dim,1,double> coeff_operator;
+      coeff_operator.initialize(mg_mf_storage);
+
+      dealii::LinearAlgebra::distributed::BlockVector<double> block_viscosity_values(2);
+      block_viscosity_values.collect_sizes();
+      coeff_operator.initialize_dof_vector(block_viscosity_values);
+
+      std::vector<types::global_dof_index> local_dof_indices(fe_projection.dofs_per_cell);
+
+      typename DoFHandler<dim>::active_cell_iterator cell = dof_handler_projection.begin_active(),
+                                                     endc = dof_handler_projection.end();
+      for (; cell != endc; ++cell)
+        if (cell->is_locally_owned())
+          {
+            cell->get_dof_indices(local_dof_indices);
+            for (unsigned int i=0; i<fe_projection.dofs_per_cell; ++i )
+              block_viscosity_values.block(1)(local_dof_indices[i]) = 1.0/active_coef_dof_vec(local_dof_indices[i]);
+          }
+      block_viscosity_values.compress(VectorOperation::insert);
+
+      mass_matrix.fill_viscosities_and_pressure_scaling(coeff_operator.return_viscosity_table(block_viscosity_values.block(1)),
+                                                        sim.pressure_scaling);
+    }
+
+    // Fill viscosities for the ABlock Operators
+    {
+      unsigned int n_levels = sim.triangulation.n_global_levels();
+      level_coef_dof_vec = 0.;
+      level_coef_dof_vec.resize(0,n_levels-1);
+
+      MGTransferMatrixFree<dim,double> transfer(mg_constrained_dofs);
+      transfer.build(dof_handler_projection);
+      transfer.interpolate_to_mg(dof_handler_projection,level_coef_dof_vec,active_coef_dof_vec);
+
+      for (unsigned int level=0; level<n_levels; ++level)
+        {
+          ConstraintMatrix level_constraints;
+          {
+            IndexSet relevant_dofs;
+            DoFTools::extract_locally_relevant_level_dofs(dof_handler_v, level, relevant_dofs);
+            level_constraints.reinit(relevant_dofs);
+            level_constraints.add_lines(mg_constrained_dofs.get_boundary_indices(level));
+            level_constraints.close();
+          }
+
+          ConstraintMatrix level_constraints_projection;
+          {
+            IndexSet relevant_dofs;
+            DoFTools::extract_locally_relevant_level_dofs(dof_handler_projection, level, relevant_dofs);
+            level_constraints_projection.reinit(relevant_dofs);
+            level_constraints_projection.close();
+          }
+
+          typename MatrixFree<dim,double>::AdditionalData additional_data;
+          additional_data.tasks_parallel_scheme =
             MatrixFree<dim,double>::AdditionalData::none;
-        additional_data.mapping_update_flags = (update_gradients | update_JxW_values |
-                                                update_quadrature_points);
-        additional_data.level_mg_handler = level;
-        std::shared_ptr<MatrixFree<dim,double> >
-            mg_mf_storage_level(new MatrixFree<dim,double>());
-        mg_mf_storage_level->reinit(dof_handler_v, level_constraints,
-                                    QGauss<1>(sim.parameters.stokes_velocity_degree+1),
-                                    additional_data);
+          additional_data.mapping_update_flags = (update_values | update_quadrature_points);
+          additional_data.level_mg_handler = level;
 
-        mg_matrices[level].initialize(mg_mf_storage_level, mg_constrained_dofs, level);
-      }
+          std::vector<const DoFHandler<dim>*> dof_handlers;
+          dof_handlers.push_back(&dof_handler_v);
+          dof_handlers.push_back(&dof_handler_projection);
+          std::vector<const ConstraintMatrix *> projection_constraints;
+          projection_constraints.push_back(&level_constraints);
+          projection_constraints.push_back(&level_constraints_projection);
+
+          std::shared_ptr<MatrixFree<dim,double> >
+          mg_mf_storage_level(new MatrixFree<dim,double>());
+          mg_mf_storage_level->reinit(dof_handlers, projection_constraints,
+                                      QGauss<1>(sim.parameters.stokes_velocity_degree+1),
+                                      additional_data);
+
+          std::vector<MGConstrainedDoFs> mg_constrained_dofs_vec;
+          mg_constrained_dofs_vec.push_back(mg_constrained_dofs);
+          mg_constrained_dofs_vec.push_back(mg_constrained_dofs_projection);
+
+          MatrixFreeStokesOperators::ComputeCoefficientProjection<dim,2,double> coeff_operator;
+          coeff_operator.initialize(mg_mf_storage_level, mg_constrained_dofs_vec, level);
+
+          dealii::LinearAlgebra::distributed::BlockVector<double> block_viscosity_values(2);
+          block_viscosity_values.collect_sizes();
+          coeff_operator.initialize_dof_vector(block_viscosity_values);
+
+          std::vector<types::global_dof_index> local_dof_indices(fe_projection.dofs_per_cell);
+          typename DoFHandler<dim>::cell_iterator cell = dof_handler_projection.begin(level),
+                                                  endc = dof_handler_projection.end(level);
+          for (; cell != endc; ++cell)
+            if (cell->is_locally_owned_on_level())
+              {
+                cell->get_mg_dof_indices(local_dof_indices);
+                for (unsigned int i=0; i<fe_projection.dofs_per_cell; ++i )
+                  block_viscosity_values.block(1)(local_dof_indices[i]) = 2.0*level_coef_dof_vec[level](local_dof_indices[i]);
+              }
+          block_viscosity_values.compress(VectorOperation::insert);
+
+          mg_matrices[level].fill_viscosities(coeff_operator.return_viscosity_table(block_viscosity_values.block(1)));
+        }
     }
   }
 
-  {
-    dof_handler_p.clear();
-    dof_handler_p.distribute_dofs(fe_p);
 
-    IndexSet locally_relevant_dofs;
-    DoFTools::extract_locally_relevant_dofs (dof_handler_p,
-                                             locally_relevant_dofs);
-    constraints_p.reinit(locally_relevant_dofs);
-    DoFTools::make_hanging_node_constraints (dof_handler_p, constraints_p);
-    constraints_p.close();
+  template <int dim>
+  void StokesMatrixFreeHandler<dim>::declare_parameters(ParameterHandler &prm)
+  {
+    prm.enter_subsection ("Solver parameters");
+    prm.enter_subsection ("Matrix Free");
+    {
+      prm.declare_entry("Free surface stabilization theta", "0.5",
+                        Patterns::Double(0,1),
+                        "Theta parameter described in Kaus et. al. 2010. "
+                        "An unstabilized free surface can overshoot its "
+                        "equilibrium position quite easily and generate "
+                        "unphysical results.  One solution is to use a "
+                        "quasi-implicit correction term to the forces near the "
+                        "free surface.  This parameter describes how much "
+                        "the free surface is stabilized with this term, "
+                        "where zero is no stabilization, and one is fully "
+                        "implicit.");
+    }
+    prm.leave_subsection ();
+    prm.leave_subsection ();
   }
 
-  // Coefficient transfer objects
+  template <int dim>
+  void StokesMatrixFreeHandler<dim>::parse_parameters(ParameterHandler &prm)
   {
-    dof_handler_projection.distribute_dofs(fe_projection);
-    dof_handler_projection.distribute_mg_dofs(fe_projection);
-
-
-    IndexSet locally_relevant_dofs;
-    DoFTools::extract_locally_relevant_dofs (dof_handler_projection,
-                                             locally_relevant_dofs);
-    constraints_projection.reinit(locally_relevant_dofs);
-    DoFTools::make_hanging_node_constraints (dof_handler_projection, constraints_projection);
-    // TODO: boundary constraints if not DG(0)?
-    constraints_projection.close ();
-
-    mg_constrained_dofs_projection.initialize(dof_handler_projection);
-
-    active_coef_dof_vec.reinit(dof_handler_projection.locally_owned_dofs(), sim.triangulation.get_communicator());
+    prm.enter_subsection ("Solver parameters");
+    prm.enter_subsection ("Matrix Free");
+    {
+      //free_surface_theta = prm.get_double("Free surface stabilization theta");
+    }
+    prm.leave_subsection ();
+    prm.leave_subsection ();
   }
 
 
-  // Stokes matrix stuff...
+
+  template <int dim>
+  std::pair<double,double> StokesMatrixFreeHandler<dim>::solve()
   {
-    typename MatrixFree<dim,double>::AdditionalData additional_data;
-    additional_data.tasks_parallel_scheme =
+    sim.pcout << "solve() "
+              << std::endl;
+
+
+    double initial_nonlinear_residual = numbers::signaling_nan<double>();
+    double final_linear_residual      = numbers::signaling_nan<double>();
+    return std::pair<double,double>(initial_nonlinear_residual,
+                                    final_linear_residual);
+  }
+
+
+
+  template <int dim>
+  void StokesMatrixFreeHandler<dim>::setup_dofs()
+  {
+    {
+      dof_handler_v.distribute_dofs(fe_v);
+      dof_handler_v.distribute_mg_dofs(fe_v);
+
+      IndexSet locally_relevant_dofs;
+      DoFTools::extract_locally_relevant_dofs (dof_handler_v,
+                                               locally_relevant_dofs);
+      constraints_v.reinit(locally_relevant_dofs);
+      DoFTools::make_hanging_node_constraints (dof_handler_v, constraints_v);
+      sim.compute_initial_velocity_boundary_constraints(constraints_v);
+      sim.compute_current_velocity_boundary_constraints(constraints_v);
+      constraints_v.close ();
+
+      // GMG
+      const unsigned int n_levels = sim.triangulation.n_global_levels();
+      mg_matrices.clear_elements();
+      // TODO: minlevel != 0
+      mg_matrices.resize(0, n_levels-1);
+
+      mg_constrained_dofs.clear();
+      std::set<types::boundary_id> dirichlet_boundary;
+      dirichlet_boundary.insert(0); //Is this the dirichlet boundary?
+      mg_constrained_dofs.initialize(dof_handler_v);
+      mg_constrained_dofs.make_zero_boundary_constraints(dof_handler_v, dirichlet_boundary);
+
+      for (unsigned int level=0; level<n_levels; ++level)
+        {
+          IndexSet relevant_dofs;
+          DoFTools::extract_locally_relevant_level_dofs(dof_handler_v, level, relevant_dofs);
+          ConstraintMatrix level_constraints;
+          level_constraints.reinit(relevant_dofs);
+          level_constraints.add_lines(mg_constrained_dofs.get_boundary_indices(level));
+          level_constraints.close();
+
+          {
+            typename MatrixFree<dim,double>::AdditionalData additional_data;
+            additional_data.tasks_parallel_scheme =
+              MatrixFree<dim,double>::AdditionalData::none;
+            additional_data.mapping_update_flags = (update_gradients | update_JxW_values |
+                                                    update_quadrature_points);
+            additional_data.level_mg_handler = level;
+            std::shared_ptr<MatrixFree<dim,double> >
+            mg_mf_storage_level(new MatrixFree<dim,double>());
+            mg_mf_storage_level->reinit(dof_handler_v, level_constraints,
+                                        QGauss<1>(sim.parameters.stokes_velocity_degree+1),
+                                        additional_data);
+
+            mg_matrices[level].initialize(mg_mf_storage_level, mg_constrained_dofs, level);
+          }
+        }
+    }
+
+    {
+      dof_handler_p.clear();
+      dof_handler_p.distribute_dofs(fe_p);
+
+      IndexSet locally_relevant_dofs;
+      DoFTools::extract_locally_relevant_dofs (dof_handler_p,
+                                               locally_relevant_dofs);
+      constraints_p.reinit(locally_relevant_dofs);
+      DoFTools::make_hanging_node_constraints (dof_handler_p, constraints_p);
+      constraints_p.close();
+    }
+
+    // Coefficient transfer objects
+    {
+      dof_handler_projection.distribute_dofs(fe_projection);
+      dof_handler_projection.distribute_mg_dofs(fe_projection);
+
+
+      IndexSet locally_relevant_dofs;
+      DoFTools::extract_locally_relevant_dofs (dof_handler_projection,
+                                               locally_relevant_dofs);
+      constraints_projection.reinit(locally_relevant_dofs);
+      DoFTools::make_hanging_node_constraints (dof_handler_projection, constraints_projection);
+      // TODO: boundary constraints if not DG(0)?
+      constraints_projection.close ();
+
+      mg_constrained_dofs_projection.initialize(dof_handler_projection);
+
+      active_coef_dof_vec.reinit(dof_handler_projection.locally_owned_dofs(), sim.triangulation.get_communicator());
+    }
+
+
+    // Stokes matrix stuff...
+    {
+      typename MatrixFree<dim,double>::AdditionalData additional_data;
+      additional_data.tasks_parallel_scheme =
         MatrixFree<dim,double>::AdditionalData::none;
-    additional_data.mapping_update_flags = (update_values | update_gradients |
-                                            update_JxW_values | update_quadrature_points);
+      additional_data.mapping_update_flags = (update_values | update_gradients |
+                                              update_JxW_values | update_quadrature_points);
 
-    std::vector<const DoFHandler<dim>*> stokes_dofs;
-    stokes_dofs.push_back(&dof_handler_v);
-    stokes_dofs.push_back(&dof_handler_p);
-    std::vector<const ConstraintMatrix *> stokes_constraints;
-    stokes_constraints.push_back(&constraints_v);
-    stokes_constraints.push_back(&constraints_p);
+      std::vector<const DoFHandler<dim>*> stokes_dofs;
+      stokes_dofs.push_back(&dof_handler_v);
+      stokes_dofs.push_back(&dof_handler_p);
+      std::vector<const ConstraintMatrix *> stokes_constraints;
+      stokes_constraints.push_back(&constraints_v);
+      stokes_constraints.push_back(&constraints_p);
 
-    std::shared_ptr<MatrixFree<dim,double> >
-        stokes_mf_storage(new MatrixFree<dim,double>());
-    stokes_mf_storage->reinit(stokes_dofs, stokes_constraints,
+      std::shared_ptr<MatrixFree<dim,double> >
+      stokes_mf_storage(new MatrixFree<dim,double>());
+      stokes_mf_storage->reinit(stokes_dofs, stokes_constraints,
+                                QGauss<1>(sim.parameters.stokes_velocity_degree+1), additional_data);
+      stokes_matrix.initialize(stokes_mf_storage);
+    }
+
+    // Mass matrix matrix-free operator...
+    {
+      typename MatrixFree<dim,double>::AdditionalData additional_data;
+      additional_data.tasks_parallel_scheme =
+        MatrixFree<dim,double>::AdditionalData::none;
+      additional_data.mapping_update_flags = (update_values | update_JxW_values |
+                                              update_quadrature_points);
+      std::shared_ptr<MatrixFree<dim,double> >
+      mass_mf_storage(new MatrixFree<dim,double>());
+      mass_mf_storage->reinit(dof_handler_p, constraints_p,
                               QGauss<1>(sim.parameters.stokes_velocity_degree+1), additional_data);
-    stokes_matrix.initialize(stokes_mf_storage);
 
-    // TODO: Get viscosity table
-    //      const unsigned int n_cells = stokes_mf_storage->n_macro_cells();
-    //      FEEvaluation<dim,sim.parameters.stokes_velocity_degree,
-    //                   sim.parameters.stokes_velocity_degree+1,
-    //                   dim,double> velocity (stokes_mf_storage, 0);
-    //      const unsigned int n_q_points = velocity.n_q_points;
-    //      const Table<2,VectorizedArray<double> > visc_vals;
-    //      visc_vals.reinit (n_cells, n_q_points);
-    //      stokes_matrix.evaluate_2_x_viscosity(visc_vals);
+      mass_matrix.initialize(mass_mf_storage);
+    }
   }
-
-  // Mass matrix matrix-free operator...
-  {
-    typename MatrixFree<dim,double>::AdditionalData additional_data;
-    additional_data.tasks_parallel_scheme =
-        MatrixFree<dim,double>::AdditionalData::none;
-    additional_data.mapping_update_flags = (update_values | update_JxW_values |
-                                            update_quadrature_points);
-    std::shared_ptr<MatrixFree<dim,double> >
-        mass_mf_storage(new MatrixFree<dim,double>());
-    mass_mf_storage->reinit(dof_handler_p, constraints_p,
-                            QGauss<1>(sim.parameters.stokes_velocity_degree+1), additional_data);
-
-    mass_matrix.initialize(mass_mf_storage);
-
-    // TODO: Get viscosity table/pressure scaling
-    //      const unsigned int n_cells = mass_mf_storage->n_macro_cells();
-    //      FEEvaluation<dim,sim.parameters.stokes_velocity_degree-1,
-    //                   sim.parameters.stokes_velocity_degree+1,
-    //                   dim,double> pressure (mass_mf_storage, 0);
-    //      const unsigned int n_q_points = pressure.n_q_points;
-    //      const Table<2,VectorizedArray<double> > visc_vals;
-    //      visc_vals.reinit (n_cells, n_q_points);
-    //      mass_matrix.evaluate_1_over_viscosity_and_scaling(visc_vals, 1.0);
-    //      mass_matrix.compute_diagonal();
-  }
-}
 
 
 }
@@ -429,5 +478,5 @@ namespace aspect
 #define INSTANTIATE(dim) \
   template class StokesMatrixFreeHandler<dim>;
 
-ASPECT_INSTANTIATE(INSTANTIATE)
+  ASPECT_INSTANTIATE(INSTANTIATE)
 }
