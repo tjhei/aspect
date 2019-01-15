@@ -202,8 +202,8 @@ namespace aspect
                    (parameters.stokes_solver_type == Parameters<dim>::StokesSolverType::block_gmg
                     ?
                     typename parallel::distributed::Triangulation<dim>::Settings
-                   (parallel::distributed::Triangulation<dim>::mesh_reconstruction_after_repartitioning |
-                    parallel::distributed::Triangulation<dim>::construct_multigrid_hierarchy)
+                    (parallel::distributed::Triangulation<dim>::mesh_reconstruction_after_repartitioning |
+                     parallel::distributed::Triangulation<dim>::construct_multigrid_hierarchy)
                     :
                     parallel::distributed::Triangulation<dim>::mesh_reconstruction_after_repartitioning)),
 
@@ -1261,9 +1261,6 @@ namespace aspect
 
     dof_handler.distribute_dofs(finite_element);
 
-    if (stokes_matrix_free)
-      stokes_matrix_free->setup_dofs();
-
     // Renumber the DoFs hierarchical so that we get the
     // same numbering if we resume the computation. This
     // is because the numbering depends on the order the
@@ -1347,6 +1344,10 @@ namespace aspect
 
     compute_initial_velocity_boundary_constraints(constraints);
     constraints.close();
+
+    if (stokes_matrix_free)
+      stokes_matrix_free->setup_dofs();
+
     signals.post_compute_no_normal_flux_constraints(triangulation);
 
     // Finally initialize vectors. We delay construction of the sparsity
@@ -1884,6 +1885,8 @@ namespace aspect
     computing_timer.print_summary ();
 
     CitationInfo::print_info_block (pcout);
+
+    stokes_matrix_free.reset();
   }
 }
 
