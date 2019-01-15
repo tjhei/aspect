@@ -40,6 +40,7 @@
 #include <deal.II/lac/block_vector.h>
 #include <deal.II/lac/la_parallel_vector.h>
 #include <deal.II/lac/la_parallel_block_vector.h>
+#include <deal.II/lac/read_write_vector.h>
 
 namespace aspect
 {
@@ -576,6 +577,11 @@ namespace aspect
       void evaluate_viscosity();
 
       /**
+           * Add correction to system RHS
+           */
+      void correct_stokes_rhs();
+
+      /**
                * Declare parameters.
                */
       static
@@ -594,19 +600,26 @@ namespace aspect
       Simulator<dim> &sim;
 
       // TODO: velocity degree not only 2, Choosing quadrature degree?
-      MatrixFreeStokesOperators::StokesOperator<dim,2,double> stokes_matrix;
-      MatrixFreeStokesOperators::MassMatrixOperator<dim,1,double> mass_matrix;
+      typedef MatrixFreeStokesOperators::StokesOperator<dim,2,double> StokesMatrixType;
+      typedef MatrixFreeStokesOperators::MassMatrixOperator<dim,1,double> MassMatrixType;
+      typedef MatrixFreeStokesOperators::ABlockOperator<dim,2,double> ABlockMatrixType;
 
+      StokesMatrixType stokes_matrix;
+      MassMatrixType mass_matrix;
+
+      FESystem<dim> stokes_fe;
       FESystem<dim> fe_v;
       FESystem<dim> fe_p;
 
+      DoFHandler<dim> stokes_dof_handler;
       DoFHandler<dim> dof_handler_v;
       DoFHandler<dim> dof_handler_p;
 
+      ConstraintMatrix stokes_constraints;
       ConstraintMatrix constraints_v;
       ConstraintMatrix constraints_p;
 
-      MGLevelObject<MatrixFreeStokesOperators::ABlockOperator<dim,2,double> > mg_matrices;
+      MGLevelObject<ABlockMatrixType> mg_matrices;
       MGConstrainedDoFs              mg_constrained_dofs;
 
       // Stuff for coefficient projection
@@ -617,6 +630,9 @@ namespace aspect
 
       dealii::LinearAlgebra::distributed::Vector<double> active_coef_dof_vec;
       MGLevelObject<dealii::LinearAlgebra::distributed::Vector<double> > level_coef_dof_vec;
+
+
+      MGTransferMatrixFree<dim,double> mg_transfer;
 
       //friend class Simulator<dim>;
       //friend class SimulatorAccess<dim>;
