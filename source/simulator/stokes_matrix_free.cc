@@ -19,7 +19,6 @@
  */
 
 
-#include <aspect/simulator.h>
 #include <aspect/stokes_matrix_free.h>
 #include <aspect/global.h>
 #include <aspect/citation_info.h>
@@ -33,22 +32,295 @@
 #include <deal.II/fe/fe_dgq.h>
 #include <deal.II/fe/fe_values.h>
 
+#include <deal.II/base/signaling_nan.h>
+#include <deal.II/lac/solver_gmres.h>
+
 
 namespace aspect
 {
   namespace internal
   {
+    namespace ChangeVectorTypes
+    {
+      void import(TrilinosWrappers::MPI::Vector &out,
+                  const dealii::LinearAlgebra::ReadWriteVector<double> &rwv,
+                  const VectorOperation::values                 operation)
+      {
+        Assert(out.size() == rwv.size(),
+               ExcMessage("Both vectors need to have the same size for import() to work!"));
+
+        Assert(out.locally_owned_elements() == rwv.get_stored_elements(),
+               ExcNotImplemented());
+
+        if (operation == VectorOperation::insert)
+          {
+            for (const auto idx : out.locally_owned_elements())
+              out[idx] = rwv[idx];
+          }
+        else if (operation == VectorOperation::add)
+          {
+            for (const auto idx : out.locally_owned_elements())
+              out[idx] += rwv[idx];
+          }
+        else
+          AssertThrow(false, ExcNotImplemented());
+
+        out.compress(operation);
+      }
+
+
+      void copy(TrilinosWrappers::MPI::Vector &out,
+                const dealii::LinearAlgebra::distributed::Vector<double> &in)
+      {
+        dealii::LinearAlgebra::ReadWriteVector<double> rwv(out.locally_owned_elements());
+        rwv.import(in, VectorOperation::insert);
+        //This import function doesn't exist until after 9.0
+        //Implemented above
+        import(out, rwv,VectorOperation::insert);
+      }
+
+      void copy(dealii::LinearAlgebra::distributed::Vector<double> &out,
+                const TrilinosWrappers::MPI::Vector &in)
+      {
+        dealii::LinearAlgebra::ReadWriteVector<double> rwv;
+        rwv.reinit(in);
+        out.import(rwv, VectorOperation::insert);
+      }
+
+      void copy(TrilinosWrappers::MPI::BlockVector &out,
+                const dealii::LinearAlgebra::distributed::BlockVector<double> &in)
+      {
+        const unsigned int n_blocks = in.n_blocks();
+        for (unsigned int b=0; b<n_blocks; ++b)
+          copy(out.block(b),in.block(b));
+      }
+
+      void copy(dealii::LinearAlgebra::distributed::BlockVector<double> &out,
+                const TrilinosWrappers::MPI::BlockVector &in)
+      {
+        const unsigned int n_blocks = in.n_blocks();
+        for (unsigned int b=0; b<n_blocks; ++b)
+          copy(out.block(b),in.block(b));
+      }
+    }
+
+    /**
+     * Implement the block Schur preconditioner for the Stokes system.
+     */
+    template <class StokesMatrixType, class MassMatrixType, class PreconditionerMp,class PreconditionerA>
+    class BlockSchurPreconditioner : public Subscriptor
+    {
+      public:
+        /**
+         * @brief Constructor
+         *
+         * @param S The entire Stokes matrix
+         * @param Spre The matrix whose blocks are used in the definition of
+         *     the preconditioning of the Stokes matrix, i.e. containing approximations
+         *     of the A and S blocks.
+         * @param Mppreconditioner Preconditioner object for the Schur complement,
+         *     typically chosen as the mass matrix.
+         * @param Apreconditioner Preconditioner object for the matrix A.
+         * @param do_solve_A A flag indicating whether we should actually solve with
+         *     the matrix $A$, or only apply one preconditioner step with it.
+         * @param A_block_tolerance The tolerance for the CG solver which computes
+         *     the inverse of the A block.
+         * @param S_block_tolerance The tolerance for the CG solver which computes
+         *     the inverse of the S block (Schur complement matrix).
+         **/
+        BlockSchurPreconditioner (const StokesMatrixType  &S,
+                                  const MassMatrixType  &Mass,
+                                  const PreconditionerMp                     &Mppreconditioner,
+                                  const PreconditionerA                      &Apreconditioner,
+                                  const bool                                  do_solve_A,
+                                  const double                                A_block_tolerance,
+                                  const double                                S_block_tolerance);
+
+        /**
+         * Matrix vector product with this preconditioner object.
+         */
+        void vmult (dealii::LinearAlgebra::distributed::BlockVector<double>       &dst,
+                    const dealii::LinearAlgebra::distributed::BlockVector<double> &src) const;
+
+        unsigned int n_iterations_A() const;
+        unsigned int n_iterations_S() const;
+
+      private:
+        /**
+         * References to the various matrix object this preconditioner works on.
+         */
+        const StokesMatrixType &stokes_matrix;
+        const MassMatrixType &mass_matrix;
+        const PreconditionerMp                    &mp_preconditioner;
+        const PreconditionerA                     &a_preconditioner;
+
+        /**
+         * Whether to actually invert the $\tilde A$ part of the preconditioner matrix
+         * or to just apply a single preconditioner step with it.
+         **/
+        const bool do_solve_A;
+        mutable unsigned int n_iterations_A_;
+        mutable unsigned int n_iterations_S_;
+        const double A_block_tolerance;
+        const double S_block_tolerance;
+    };
+
+
+    template <class StokesMatrixType, class MassMatrixType, class PreconditionerMp,class PreconditionerA>
+    BlockSchurPreconditioner<StokesMatrixType, MassMatrixType, PreconditionerMp, PreconditionerA>::
+    BlockSchurPreconditioner (const StokesMatrixType  &S,
+                              const MassMatrixType  &Mass,
+                              const PreconditionerMp                     &Mppreconditioner,
+                              const PreconditionerA                      &Apreconditioner,
+                              const bool                                  do_solve_A,
+                              const double                                A_block_tolerance,
+                              const double                                S_block_tolerance)
+      :
+      stokes_matrix     (S),
+      mass_matrix     (Mass),
+      mp_preconditioner (Mppreconditioner),
+      a_preconditioner  (Apreconditioner),
+      do_solve_A        (do_solve_A),
+      n_iterations_A_(0),
+      n_iterations_S_(0),
+      A_block_tolerance(A_block_tolerance),
+      S_block_tolerance(S_block_tolerance)
+    {}
+
+    template <class StokesMatrixType, class MassMatrixType, class PreconditionerMp,class PreconditionerA>
+    unsigned int
+    BlockSchurPreconditioner<StokesMatrixType, MassMatrixType, PreconditionerMp, PreconditionerA>::
+    n_iterations_A() const
+    {
+      return n_iterations_A_;
+    }
+
+    template <class StokesMatrixType, class MassMatrixType, class PreconditionerMp,class PreconditionerA>
+    unsigned int
+    BlockSchurPreconditioner<StokesMatrixType, MassMatrixType, PreconditionerMp, PreconditionerA>::
+    n_iterations_S() const
+    {
+      return n_iterations_S_;
+    }
+
+    template <class StokesMatrixType, class MassMatrixType, class PreconditionerMp,class PreconditionerA>
+    void
+    BlockSchurPreconditioner<StokesMatrixType, MassMatrixType, PreconditionerMp, PreconditionerA>::
+    vmult (dealii::LinearAlgebra::distributed::BlockVector<double>       &dst,
+           const dealii::LinearAlgebra::distributed::BlockVector<double>  &src) const
+    {
+      dealii::LinearAlgebra::distributed::BlockVector<double> utmp(src);
+
+      // first solve with the bottom left block, which we have built
+      // as a mass matrix with the inverse of the viscosity
+      {
+        SolverControl solver_control(1000, src.block(1).l2_norm() * S_block_tolerance);
+
+        SolverCG<dealii::LinearAlgebra::distributed::Vector<double> > solver(solver_control);
+        // Trilinos reports a breakdown
+        // in case src=dst=0, even
+        // though it should return
+        // convergence without
+        // iterating. We simply skip
+        // solving in this case.
+        if (src.block(1).l2_norm() > 1e-50)
+          {
+            try
+              {
+                dst.block(1) = 0.0;
+                solver.solve(mass_matrix,
+                             dst.block(1), src.block(1),
+                             mp_preconditioner);
+                n_iterations_S_ += solver_control.last_step();
+              }
+            // if the solver fails, report the error from processor 0 with some additional
+            // information about its location, and throw a quiet exception on all other
+            // processors
+            catch (const std::exception &exc)
+              {
+                if (Utilities::MPI::this_mpi_process(src.block(0).get_mpi_communicator()) == 0)
+                  AssertThrow (false,
+                               ExcMessage (std::string("The iterative (bottom right) solver in BlockSchurPreconditioner::vmult "
+                                                       "did not converge to a tolerance of "
+                                                       + Utilities::to_string(solver_control.tolerance()) +
+                                                       ". It reported the following error:\n\n")
+                                           +
+                                           exc.what()))
+                  else
+                    throw QuietException();
+              }
+          }
+        dst.block(1) *= -1.0;
+      }
+
+      // apply the top right block
+      {
+        // TODO: figure out how to just multiply the top right block
+        dealii::LinearAlgebra::distributed::BlockVector<double>  dst_tmp(dst);
+        dst_tmp.block(0) *= 0.0;
+        stokes_matrix.vmult(utmp, dst_tmp); // B^T
+        utmp.block(0) *= -1.0;
+        utmp.block(0) += src.block(0);
+      }
+
+      // now either solve with the top left block (if do_solve_A==true)
+      // or just apply one preconditioner sweep (for the first few
+      // iterations of our two-stage outer GMRES iteration)
+      if (do_solve_A == true)
+        {
+          Assert(false, ExcNotImplemented());
+          /*
+                SolverControl solver_control(10000, utmp.block(0).l2_norm() * A_block_tolerance);
+                SolverCG<LinearAlgebra::distributed::Vector<double>> solver(solver_control);
+                try
+                {
+                  dst.block(0) = 0.0;
+                  solver.solve(stokes_matrix.block(0,0), dst.block(0), utmp.block(0),
+                               a_preconditioner);
+                  n_iterations_A_ += solver_control.last_step();
+                }
+                // if the solver fails, report the error from processor 0 with some additional
+                // information about its location, and throw a quiet exception on all other
+                // processors
+                catch (const std::exception &exc)
+                {
+                  if (Utilities::MPI::this_mpi_process(src.block(0).get_mpi_communicator()) == 0)
+                    AssertThrow (false,
+                                 ExcMessage (std::string("The iterative (top left) solver in BlockSchurPreconditioner::vmult "
+                                                         "did not converge to a tolerance of "
+                                                         + Utilities::to_string(solver_control.tolerance()) +
+                                                         ". It reported the following error:\n\n")
+                                             +
+                                             exc.what()))
+                        else
+                        throw QuietException();
+                }
+                */
+        }
+      else
+        {
+
+          a_preconditioner.vmult (dst.block(0), utmp.block(0));
+          n_iterations_A_ += 1;
+        }
+    }
 
   }
+
+
+
 
   template <int dim>
   StokesMatrixFreeHandler<dim>::StokesMatrixFreeHandler (Simulator<dim> &simulator,
                                                          ParameterHandler &prm)
     : sim(simulator),
 
+      stokes_fe (FE_Q<dim>(sim.parameters.stokes_velocity_degree),dim,
+                 FE_Q<dim>(sim.parameters.stokes_velocity_degree-1),1),
       fe_v (FE_Q<dim>(sim.parameters.stokes_velocity_degree), dim),
       fe_p (FE_Q<dim>(sim.parameters.stokes_velocity_degree-1),1),
 
+      stokes_dof_handler(sim.triangulation),
       dof_handler_v(sim.triangulation),
       dof_handler_p(sim.triangulation),
 
@@ -287,8 +559,66 @@ namespace aspect
           block_viscosity_values.compress(VectorOperation::insert);
 
           mg_matrices[level].fill_viscosities(coeff_operator.return_viscosity_table(block_viscosity_values.block(1)));
+          mg_matrices[level].compute_diagonal();
         }
     }
+  }
+
+
+  template <int dim>
+  void StokesMatrixFreeHandler<dim>::correct_stokes_rhs()
+  {
+    dealii::LinearAlgebra::distributed::BlockVector<double> rhs_correction, u0;
+    u0.reinit(2);
+    rhs_correction.reinit(2);
+    stokes_matrix.initialize_dof_vector(rhs_correction);
+    stokes_matrix.initialize_dof_vector(u0);
+
+    u0 = 0;
+    stokes_constraints.distribute(u0);
+    u0.update_ghost_values();
+    const Table<2, VectorizedArray<double>> viscosity_table = stokes_matrix.get_visc_table();
+
+    FEEvaluation<dim,2,3,dim,double>
+    velocity (*stokes_matrix.get_matrix_free(), 0);
+    FEEvaluation<dim,1,3,1,double>
+    pressure (*stokes_matrix.get_matrix_free(), 1);
+
+    for (unsigned int cell=0; cell<stokes_matrix.get_matrix_free()->n_macro_cells(); ++cell)
+      {
+        velocity.reinit (cell);
+        velocity.read_dof_values_plain (u0.block(0));
+        velocity.evaluate (false,true,false);
+        pressure.reinit (cell);
+        pressure.read_dof_values_plain (u0.block(1));
+        pressure.evaluate (true,false,false);
+
+        for (unsigned int q=0; q<velocity.n_q_points; ++q)
+          {
+            SymmetricTensor<2,dim,VectorizedArray<double>> sym_grad_u =
+                                                          velocity.get_symmetric_gradient (q);
+            VectorizedArray<double> pres = pressure.get_value(q);
+            VectorizedArray<double> div = -trace(sym_grad_u);
+            pressure.submit_value   (sim.pressure_scaling*div, q);
+
+            sym_grad_u *= viscosity_table(cell,q);
+            for (unsigned int d=0; d<dim; ++d)
+              sym_grad_u[d][d] -= sim.pressure_scaling*pres;
+
+            velocity.submit_symmetric_gradient(sym_grad_u, q);
+          }
+
+        velocity.integrate (false,true);
+        velocity.distribute_local_to_global (rhs_correction.block(0));
+        pressure.integrate (true,false);
+        pressure.distribute_local_to_global (rhs_correction.block(1));
+      }
+    rhs_correction.compress(VectorOperation::add);
+
+    LinearAlgebra::BlockVector stokes_rhs_correction (sim.introspection.index_sets.stokes_partitioning, sim.mpi_communicator);
+    internal::ChangeVectorTypes::copy(stokes_rhs_correction,rhs_correction);
+    sim.system_rhs.block(0) -= stokes_rhs_correction.block(0);
+    sim.system_rhs.block(1) -= stokes_rhs_correction.block(1);
   }
 
 
@@ -337,6 +667,323 @@ namespace aspect
 
     double initial_nonlinear_residual = numbers::signaling_nan<double>();
     double final_linear_residual      = numbers::signaling_nan<double>();
+
+    LinearAlgebra::BlockVector distributed_stokes_solution (sim.introspection.index_sets.stokes_partitioning, sim.mpi_communicator);
+
+
+    typedef dealii::LinearAlgebra::distributed::Vector<double> vector_t;
+
+    //Chebyshev smoother
+    typedef PreconditionChebyshev<ABlockMatrixType,vector_t> SmootherType;
+    mg::SmootherRelaxation<SmootherType, vector_t>
+    mg_smoother;
+    MGLevelObject<typename SmootherType::AdditionalData> smoother_data;
+    smoother_data.resize(0, sim.triangulation.n_global_levels()-1);
+    for (unsigned int level = 0; level<sim.triangulation.n_global_levels(); ++level)
+      {
+        if (level > 0)
+          {
+            smoother_data[level].smoothing_range = 15.;
+            smoother_data[level].degree = 4;
+            smoother_data[level].eig_cg_n_iterations = 10;
+          }
+        else
+          {
+            smoother_data[0].smoothing_range = 1e-3;
+            smoother_data[0].degree = numbers::invalid_unsigned_int;
+            smoother_data[0].eig_cg_n_iterations = mg_matrices[0].m();
+          }
+        mg_matrices[level].compute_diagonal();
+        smoother_data[level].preconditioner = mg_matrices[level].get_matrix_diagonal_inverse();
+      }
+    mg_smoother.initialize(mg_matrices, smoother_data);
+
+    // Coarse Solver
+    // TODO: change coarse solver
+    ABlockMatrixType &coarse_matrix = mg_matrices[0];
+    SolverControl coarse_solver_control (1000, 1e-12, true, false);
+    SolverCG<vector_t> coarse_solver(coarse_solver_control);
+    PreconditionIdentity coarse_prec_identity;
+    MGCoarseGridIterativeSolver<vector_t, SolverCG<vector_t>,
+                                ABlockMatrixType, PreconditionIdentity> mg_coarse;
+    mg_coarse.initialize(coarse_solver, coarse_matrix, coarse_prec_identity);
+
+    // MG matrices
+    mg::Matrix<vector_t > mg_matrix(mg_matrices);
+
+    // Interface matrices
+    MGLevelObject<MatrixFreeOperators::MGInterfaceOperator<ABlockMatrixType> > mg_interface_matrices;
+    mg_interface_matrices.resize(0, sim.triangulation.n_global_levels()-1);
+    for (unsigned int level=0; level<sim.triangulation.n_global_levels(); ++level)
+      mg_interface_matrices[level].initialize(mg_matrices[level]);
+    mg::Matrix<vector_t > mg_interface(mg_interface_matrices);
+
+    // MG object
+    Multigrid<vector_t > mg(mg_matrix,
+                            mg_coarse,
+                            mg_transfer,
+                            mg_smoother,
+                            mg_smoother);
+    mg.set_edge_matrices(mg_interface, mg_interface);
+
+
+    // MG Preconditioner
+    typedef PreconditionMG<dim, vector_t, MGTransferMatrixFree<dim,double> > APreconditioner;
+    APreconditioner prec_A(dof_handler_v, mg, mg_transfer);
+
+    typedef PreconditionChebyshev<MassMatrixType,vector_t> MassPreconditioner;
+    MassPreconditioner prec_S;
+    typename MassPreconditioner::AdditionalData prec_S_data;
+    prec_S_data.smoothing_range = 1e-3;
+    prec_S_data.degree = numbers::invalid_unsigned_int;
+    prec_S_data.eig_cg_n_iterations = mass_matrix.m();
+    prec_S_data.preconditioner = mass_matrix.get_matrix_diagonal_inverse();
+    prec_S.initialize(mass_matrix,prec_S_data);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+    // Many parts of the solver depend on the block layout (velocity = 0,
+    // pressure = 1). For example the linearized_stokes_initial_guess vector or the StokesBlock matrix
+    // wrapper. Let us make sure that this holds (and shorten their names):
+    const unsigned int block_vel = sim.introspection.block_indices.velocities;
+    const unsigned int block_p = (sim.parameters.include_melt_transport) ?
+                                 sim.introspection.variable("fluid pressure").block_index
+                                 : sim.introspection.block_indices.pressure;
+    Assert(block_vel == 0, ExcNotImplemented());
+    Assert(block_p == 1, ExcNotImplemented());
+    Assert(!sim.parameters.include_melt_transport
+           || sim.introspection.variable("compaction pressure").block_index == 1, ExcNotImplemented());
+
+
+    // create a completely distributed vector that will be used for
+    // the scaled and denormalized solution and later used as a
+    // starting guess for the linear solver
+    LinearAlgebra::BlockVector linearized_stokes_initial_guess (sim.introspection.index_sets.stokes_partitioning, sim.mpi_communicator);
+
+    // copy the velocity and pressure from current_linearization_point into
+    // the vector linearized_stokes_initial_guess. We need to do the copy because
+    // linearized_stokes_variables has a different
+    // layout than current_linearization_point, which also contains all the
+    // other solution variables.
+    if (!sim.assemble_newton_stokes_system)
+      {
+        linearized_stokes_initial_guess.block (block_vel) = sim.current_linearization_point.block (block_vel);
+        linearized_stokes_initial_guess.block (block_p) = sim.current_linearization_point.block (block_p);
+
+        sim.denormalize_pressure (sim.last_pressure_normalization_adjustment,
+                                  linearized_stokes_initial_guess,
+                                  sim.current_linearization_point);
+      }
+    else
+      {
+        // The Newton solver solves for updates to variables, for which our best guess is zero when
+        // the it isn't the first nonlinear iteration. When it is the first nonlinear iteration, we
+        // have to assemble the full (non-defect correction) Picard, to get the boundary conditions
+        // right in combination with being able to use the initial guess optimally. So we may never
+        // end up here when it is the first nonlinear iteration.
+        Assert(sim.nonlinear_iteration != 0,
+               ExcMessage ("The Newton solver may not be active in the first nonlinear iteration"));
+
+        linearized_stokes_initial_guess.block (block_vel) = 0;
+        linearized_stokes_initial_guess.block (block_p) = 0;
+      }
+
+    sim.current_constraints.set_zero (linearized_stokes_initial_guess);
+    linearized_stokes_initial_guess.block (block_p) /= sim.pressure_scaling;
+
+    //Update coefficients and add correction to system rhs
+    evaluate_viscosity();
+    correct_stokes_rhs();
+
+    double solver_tolerance = 0;
+    if (sim.assemble_newton_stokes_system == false)
+      {
+        // (ab)use the distributed solution vector to temporarily put a residual in
+        // (we don't care about the residual vector -- all we care about is the
+        // value (number) of the initial residual). The initial residual is returned
+        // to the caller (for nonlinear computations). This value is computed before
+        // the solve because we want to compute || A^{k+1} U^k - F^{k+1} ||, which is
+        // the nonlinear residual. Because the place where the nonlinear residual is
+        // checked against the nonlinear tolerance comes after the solve, the system
+        // is solved one time too many in the case of a nonlinear Picard solver.
+        LinearAlgebra::BlockVector rhs_tmp (sim.introspection.index_sets.stokes_partitioning, sim.mpi_communicator);
+        rhs_tmp.block(0) = sim.system_rhs.block(0);
+        rhs_tmp.block(1) = sim.system_rhs.block(1);
+
+        dealii::LinearAlgebra::distributed::BlockVector<double> x;
+        stokes_matrix.initialize_dof_vector(x);
+        internal::ChangeVectorTypes::copy(x,linearized_stokes_initial_guess);
+
+        dealii::LinearAlgebra::distributed::BlockVector<double> Ax;
+        stokes_matrix.initialize_dof_vector(Ax);
+        stokes_matrix.vmult(Ax,x);
+
+        LinearAlgebra::BlockVector res (sim.introspection.index_sets.stokes_partitioning, sim.mpi_communicator);
+        internal::ChangeVectorTypes::copy(res,Ax);
+        res *= -1;
+        res += rhs_tmp;
+        initial_nonlinear_residual = res.l2_norm();
+
+        // Note: the residual is computed with a zero velocity, effectively computing
+        // || B^T p - g ||, which we are going to use for our solver tolerance.
+        // We do not use the current velocity for the initial residual because
+        // this would not decrease the number of iterations if we had a better
+        // initial guess (say using a smaller timestep). But we need to use
+        // the pressure instead of only using the norm of the rhs, because we
+        // are only interested in the part of the rhs not balanced by the static
+        // pressure (the current pressure is a good approximation for the static
+        // pressure).
+        x.block(0) = 0;
+        dealii::LinearAlgebra::distributed::BlockVector<double> Btp;
+        stokes_matrix.initialize_dof_vector(Btp);
+        stokes_matrix.vmult(Btp,x);
+
+        res = 0;
+        internal::ChangeVectorTypes::copy(res,Btp);
+        res *= -1;
+        res += rhs_tmp;
+        const double residual_u = res.block(0).l2_norm();
+
+        const double residual_p = sim.system_rhs.block(1).l2_norm();
+
+        solver_tolerance = sim.parameters.linear_stokes_solver_tolerance *
+                           std::sqrt(residual_u*residual_u+residual_p*residual_p);
+      }
+    else
+      {
+        // if we are solving for the Newton update, then the initial guess of the solution
+        // vector is the zero vector, and the starting (nonlinear) residual is simply
+        // the norm of the (Newton) right hand side vector
+        const double residual_u = sim.system_rhs.block(0).l2_norm();
+        const double residual_p = sim.system_rhs.block(1).l2_norm();
+        solver_tolerance = sim.parameters.linear_stokes_solver_tolerance *
+                           std::sqrt(residual_u*residual_u+residual_p*residual_p);
+
+        // as described in the documentation of the function, the initial
+        // nonlinear residual for the Newton method is computed by just
+        // taking the norm of the right hand side
+        initial_nonlinear_residual = std::sqrt(residual_u*residual_u+residual_p*residual_p);
+      }
+    // Now overwrite the solution vector again with the current best guess
+    // to solve the linear system
+    distributed_stokes_solution = linearized_stokes_initial_guess;
+
+    // extract Stokes parts of rhs vector
+    LinearAlgebra::BlockVector distributed_stokes_rhs(sim.introspection.index_sets.stokes_partitioning);
+
+    distributed_stokes_rhs.block(block_vel) = sim.system_rhs.block(block_vel);
+    distributed_stokes_rhs.block(block_p) = sim.system_rhs.block(block_p);
+
+    PrimitiveVectorMemory<dealii::LinearAlgebra::distributed::BlockVector<double> > mem;
+
+    // create Solver controls for the cheap and expensive solver phase
+    SolverControl solver_control_cheap (sim.parameters.n_cheap_stokes_solver_steps,
+                                        solver_tolerance);
+
+    //  SolverControl solver_control_expensive (sim.parameters.n_expensive_stokes_solver_steps,
+    //                                          solver_tolerance);
+
+    solver_control_cheap.enable_history_data();
+    //solver_control_expensive.enable_history_data();
+
+
+    // create a cheap preconditioner that consists of only a single V-cycle
+    const internal::BlockSchurPreconditioner<StokesMatrixType, MassMatrixType, MassPreconditioner, APreconditioner>
+    preconditioner_cheap (stokes_matrix, mass_matrix,
+                          prec_S, prec_A,
+                          false,
+                          sim.parameters.linear_solver_A_block_tolerance,
+                          sim.parameters.linear_solver_S_block_tolerance);
+
+    try
+      {
+        SolverFGMRES<dealii::LinearAlgebra::distributed::BlockVector<double> >
+        solver(solver_control_cheap, mem,
+               SolverFGMRES<dealii::LinearAlgebra::distributed::BlockVector<double> >::
+               AdditionalData(50));
+
+        dealii::LinearAlgebra::distributed::BlockVector<double> solution_copy, rhs_copy;
+        stokes_matrix.initialize_dof_vector(solution_copy);
+        stokes_matrix.initialize_dof_vector(rhs_copy);
+        internal::ChangeVectorTypes::copy(solution_copy,distributed_stokes_solution);
+        internal::ChangeVectorTypes::copy(rhs_copy,distributed_stokes_rhs);
+        solution_copy.update_ghost_values();
+
+        solver.solve (stokes_matrix,
+                      solution_copy,
+                      rhs_copy,
+                      preconditioner_cheap);
+
+        solution_copy.update_ghost_values();
+        internal::ChangeVectorTypes::copy(distributed_stokes_solution,solution_copy);
+      }
+    catch (SolverControl::NoConvergence)
+      {
+        sim.pcout << "********************************************************************" << std::endl
+                  << "SOLVER DID NOT CONVERGE AFTER "
+                  << sim.parameters.n_cheap_stokes_solver_steps
+                  << " ITERATIONS. res=" << solver_control_cheap.last_value() << std::endl
+                  << "********************************************************************" << std::endl;
+      }
+
+
+
+    // signal successful solver
+    //  signals.post_stokes_solver(*this,
+    //                             preconditioner_cheap.n_iterations_S() + preconditioner_expensive.n_iterations_S(),
+    //                             preconditioner_cheap.n_iterations_A() + preconditioner_expensive.n_iterations_A(),
+    //                             solver_control_cheap,
+    //                             solver_control_expensive);
+
+    // distribute hanging node and
+    // other constraints
+    sim.current_constraints.distribute (distributed_stokes_solution);
+
+    // now rescale the pressure back to real physical units
+    distributed_stokes_solution.block(block_p) *= sim.pressure_scaling;
+
+    // then copy back the solution from the temporary (non-ghosted) vector
+    // into the ghosted one with all solution components
+    sim.solution.block(block_vel) = distributed_stokes_solution.block(block_vel);
+    sim.solution.block(block_p) = distributed_stokes_solution.block(block_p);
+
+    // print the number of iterations to screen
+    sim.pcout << (solver_control_cheap.last_step() != numbers::invalid_unsigned_int ?
+                  solver_control_cheap.last_step():
+                  0)
+              << '+'
+              << 0
+              << " iterations.";
+    sim.pcout << std::endl;
+
+
+    // do some cleanup now that we have the solution
+    sim.remove_nullspace(sim.solution, distributed_stokes_solution);
+    if (!sim.assemble_newton_stokes_system)
+      sim.last_pressure_normalization_adjustment = sim.normalize_pressure(sim.solution);
+
+    // convert melt pressures:
+    //if (sim.parameters.include_melt_transport)
+    //melt_handler->compute_melt_variables(solution);
+
+
+
+
+
+
+
     return std::pair<double,double>(initial_nonlinear_residual,
                                     final_linear_residual);
   }
@@ -346,6 +993,26 @@ namespace aspect
   template <int dim>
   void StokesMatrixFreeHandler<dim>::setup_dofs()
   {
+    {
+      stokes_dof_handler.distribute_dofs(stokes_fe);
+      std::vector<unsigned int> stokes_sub_blocks(dim + 1, 0);
+      stokes_sub_blocks[dim] = 1;
+      DoFRenumbering::component_wise(stokes_dof_handler, stokes_sub_blocks);
+
+      IndexSet stokes_relevant_set;
+      DoFTools::extract_locally_relevant_dofs(stokes_dof_handler,
+                                              stokes_relevant_set);
+
+      stokes_constraints.clear();
+      stokes_constraints.reinit(stokes_relevant_set);
+
+      DoFTools::make_hanging_node_constraints(stokes_dof_handler,
+                                              stokes_constraints);
+      sim.compute_initial_velocity_boundary_constraints(stokes_constraints);
+      sim.compute_current_velocity_boundary_constraints(stokes_constraints);
+      stokes_constraints.close();
+    }
+
     {
       dof_handler_v.distribute_dofs(fe_v);
       dof_handler_v.distribute_mg_dofs(fe_v);
@@ -358,44 +1025,6 @@ namespace aspect
       sim.compute_initial_velocity_boundary_constraints(constraints_v);
       sim.compute_current_velocity_boundary_constraints(constraints_v);
       constraints_v.close ();
-
-      // GMG
-      const unsigned int n_levels = sim.triangulation.n_global_levels();
-      mg_matrices.clear_elements();
-      // TODO: minlevel != 0
-      mg_matrices.resize(0, n_levels-1);
-
-      mg_constrained_dofs.clear();
-      std::set<types::boundary_id> dirichlet_boundary;
-      dirichlet_boundary.insert(0); //Is this the dirichlet boundary?
-      mg_constrained_dofs.initialize(dof_handler_v);
-      mg_constrained_dofs.make_zero_boundary_constraints(dof_handler_v, dirichlet_boundary);
-
-      for (unsigned int level=0; level<n_levels; ++level)
-        {
-          IndexSet relevant_dofs;
-          DoFTools::extract_locally_relevant_level_dofs(dof_handler_v, level, relevant_dofs);
-          ConstraintMatrix level_constraints;
-          level_constraints.reinit(relevant_dofs);
-          level_constraints.add_lines(mg_constrained_dofs.get_boundary_indices(level));
-          level_constraints.close();
-
-          {
-            typename MatrixFree<dim,double>::AdditionalData additional_data;
-            additional_data.tasks_parallel_scheme =
-              MatrixFree<dim,double>::AdditionalData::none;
-            additional_data.mapping_update_flags = (update_gradients | update_JxW_values |
-                                                    update_quadrature_points);
-            additional_data.level_mg_handler = level;
-            std::shared_ptr<MatrixFree<dim,double> >
-            mg_mf_storage_level(new MatrixFree<dim,double>());
-            mg_mf_storage_level->reinit(dof_handler_v, level_constraints,
-                                        QGauss<1>(sim.parameters.stokes_velocity_degree+1),
-                                        additional_data);
-
-            mg_matrices[level].initialize(mg_mf_storage_level, mg_constrained_dofs, level);
-          }
-        }
     }
 
     {
@@ -466,17 +1095,68 @@ namespace aspect
 
       mass_matrix.initialize(mass_mf_storage);
     }
+
+    // GMG Matrix-free operators
+    {
+      const unsigned int n_levels = sim.triangulation.n_global_levels();
+      mg_matrices.clear_elements();
+      // TODO: minlevel != 0
+      mg_matrices.resize(0, n_levels-1);
+
+      mg_constrained_dofs.clear();
+      std::set<types::boundary_id> dirichlet_boundary = sim.boundary_velocity_manager.get_zero_boundary_velocity_indicators();
+      for (auto it: sim.boundary_velocity_manager.get_active_boundary_velocity_names())
+        {
+          int bdryid = it.first;
+          std::string component=it.second.first;
+          Assert(component=="", ExcNotImplemented());
+          dirichlet_boundary.insert(bdryid);
+        }
+      mg_constrained_dofs.initialize(dof_handler_v);
+      mg_constrained_dofs.make_zero_boundary_constraints(dof_handler_v, dirichlet_boundary);
+
+      for (unsigned int level=0; level<n_levels; ++level)
+        {
+          IndexSet relevant_dofs;
+          DoFTools::extract_locally_relevant_level_dofs(dof_handler_v, level, relevant_dofs);
+          ConstraintMatrix level_constraints;
+          level_constraints.reinit(relevant_dofs);
+          level_constraints.add_lines(mg_constrained_dofs.get_boundary_indices(level));
+          level_constraints.close();
+
+          {
+            typename MatrixFree<dim,double>::AdditionalData additional_data;
+            additional_data.tasks_parallel_scheme =
+              MatrixFree<dim,double>::AdditionalData::none;
+            additional_data.mapping_update_flags = (update_gradients | update_JxW_values |
+                                                    update_quadrature_points);
+            additional_data.level_mg_handler = level;
+            std::shared_ptr<MatrixFree<dim,double> >
+            mg_mf_storage_level(new MatrixFree<dim,double>());
+            mg_mf_storage_level->reinit(dof_handler_v, level_constraints,
+                                        QGauss<1>(sim.parameters.stokes_velocity_degree+1),
+                                        additional_data);
+
+            mg_matrices[level].initialize(mg_mf_storage_level, mg_constrained_dofs, level);
+          }
+        }
+
+      //Setup GMG transfer
+      mg_transfer.clear();
+      mg_transfer.initialize_constraints(mg_constrained_dofs);
+      mg_transfer.build(dof_handler_v);
+    }
   }
 
-
 }
+
 
 
 // explicit instantiation of the functions we implement in this file
-namespace aspect
-{
+  namespace aspect
+  {
 #define INSTANTIATE(dim) \
   template class StokesMatrixFreeHandler<dim>;
 
-  ASPECT_INSTANTIATE(INSTANTIATE)
-}
+    ASPECT_INSTANTIATE(INSTANTIATE)
+  }
