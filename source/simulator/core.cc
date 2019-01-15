@@ -199,7 +199,13 @@ namespace aspect
                    typename Triangulation<dim>::MeshSmoothing
                    (Triangulation<dim>::smoothing_on_refinement |
                     Triangulation<dim>::smoothing_on_coarsening),
-                   parallel::distributed::Triangulation<dim>::mesh_reconstruction_after_repartitioning),
+                   (parameters.stokes_solver_type == Parameters<dim>::StokesSolverType::block_gmg
+                    ?
+                    typename parallel::distributed::Triangulation<dim>::Settings
+                   (parallel::distributed::Triangulation<dim>::mesh_reconstruction_after_repartitioning |
+                    parallel::distributed::Triangulation<dim>::construct_multigrid_hierarchy)
+                    :
+                    parallel::distributed::Triangulation<dim>::mesh_reconstruction_after_repartitioning)),
 
     mapping(construct_mapping<dim>(*geometry_model,*initial_topography_model)),
 

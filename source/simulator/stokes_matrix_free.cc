@@ -421,7 +421,7 @@ namespace aspect
       mg_mf_storage->reinit(dof_handlers, projection_constraints,
                             QGauss<1>(sim.parameters.stokes_velocity_degree+1), additional_data);
 
-      MatrixFreeStokesOperators::ComputeCoefficientProjection<dim,2,double> coeff_operator;
+      MatrixFreeStokesOperators::ComputeCoefficientProjection<dim,3,double> coeff_operator;
       coeff_operator.initialize(mg_mf_storage);
 
       dealii::LinearAlgebra::distributed::BlockVector<double> block_viscosity_values(2);
@@ -463,7 +463,7 @@ namespace aspect
       mg_mf_storage->reinit(dof_handlers, projection_constraints,
                             QGauss<1>(sim.parameters.stokes_velocity_degree+1), additional_data);
 
-      MatrixFreeStokesOperators::ComputeCoefficientProjection<dim,1,double> coeff_operator;
+      MatrixFreeStokesOperators::ComputeCoefficientProjection<dim,3,double> coeff_operator;
       coeff_operator.initialize(mg_mf_storage);
 
       dealii::LinearAlgebra::distributed::BlockVector<double> block_viscosity_values(2);
@@ -485,6 +485,7 @@ namespace aspect
 
       mass_matrix.fill_viscosities_and_pressure_scaling(coeff_operator.return_viscosity_table(block_viscosity_values.block(1)),
                                                         sim.pressure_scaling);
+      mass_matrix.compute_diagonal();
     }
 
     // Fill viscosities for the ABlock Operators
@@ -539,7 +540,7 @@ namespace aspect
           mg_constrained_dofs_vec.push_back(mg_constrained_dofs);
           mg_constrained_dofs_vec.push_back(mg_constrained_dofs_projection);
 
-          MatrixFreeStokesOperators::ComputeCoefficientProjection<dim,2,double> coeff_operator;
+          MatrixFreeStokesOperators::ComputeCoefficientProjection<dim,3,double> coeff_operator;
           coeff_operator.initialize(mg_mf_storage_level, mg_constrained_dofs_vec, level);
 
           dealii::LinearAlgebra::distributed::BlockVector<double> block_viscosity_values(2);
@@ -568,9 +569,10 @@ namespace aspect
   template <int dim>
   void StokesMatrixFreeHandler<dim>::correct_stokes_rhs()
   {
-    dealii::LinearAlgebra::distributed::BlockVector<double> rhs_correction, u0;
-    u0.reinit(2);
-    rhs_correction.reinit(2);
+    dealii::LinearAlgebra::distributed::BlockVector<double> rhs_correction(2);
+    rhs_correction.collect_sizes();
+    dealii::LinearAlgebra::distributed::BlockVector<double> u0(2);
+    u0.collect_sizes();
     stokes_matrix.initialize_dof_vector(rhs_correction);
     stokes_matrix.initialize_dof_vector(u0);
 
@@ -663,6 +665,11 @@ namespace aspect
   {
     sim.pcout << "solve() "
               << std::endl;
+
+
+    //Update coefficients and add correction to system rhs
+    evaluate_viscosity();
+    correct_stokes_rhs();
 
 
     double initial_nonlinear_residual = numbers::signaling_nan<double>();
@@ -803,9 +810,6 @@ namespace aspect
     sim.current_constraints.set_zero (linearized_stokes_initial_guess);
     linearized_stokes_initial_guess.block (block_p) /= sim.pressure_scaling;
 
-    //Update coefficients and add correction to system rhs
-    evaluate_viscosity();
-    correct_stokes_rhs();
 
     double solver_tolerance = 0;
     if (sim.assemble_newton_stokes_system == false)
@@ -822,11 +826,13 @@ namespace aspect
         rhs_tmp.block(0) = sim.system_rhs.block(0);
         rhs_tmp.block(1) = sim.system_rhs.block(1);
 
-        dealii::LinearAlgebra::distributed::BlockVector<double> x;
+        dealii::LinearAlgebra::distributed::BlockVector<double> x(2);
+        x.collect_sizes();
         stokes_matrix.initialize_dof_vector(x);
         internal::ChangeVectorTypes::copy(x,linearized_stokes_initial_guess);
 
-        dealii::LinearAlgebra::distributed::BlockVector<double> Ax;
+        dealii::LinearAlgebra::distributed::BlockVector<double> Ax(2);
+        Ax.collect_sizes();
         stokes_matrix.initialize_dof_vector(Ax);
         stokes_matrix.vmult(Ax,x);
 
@@ -846,7 +852,8 @@ namespace aspect
         // pressure (the current pressure is a good approximation for the static
         // pressure).
         x.block(0) = 0;
-        dealii::LinearAlgebra::distributed::BlockVector<double> Btp;
+        dealii::LinearAlgebra::distributed::BlockVector<double> Btp(2);
+        Btp.collect_sizes();
         stokes_matrix.initialize_dof_vector(Btp);
         stokes_matrix.vmult(Btp,x);
 
@@ -914,7 +921,10 @@ namespace aspect
                SolverFGMRES<dealii::LinearAlgebra::distributed::BlockVector<double> >::
                AdditionalData(50));
 
-        dealii::LinearAlgebra::distributed::BlockVector<double> solution_copy, rhs_copy;
+        dealii::LinearAlgebra::distributed::BlockVector<double> solution_copy(2);
+        solution_copy.collect_sizes();
+        dealii::LinearAlgebra::distributed::BlockVector<double> rhs_copy(2);
+        rhs_copy.collect_sizes();
         stokes_matrix.initialize_dof_vector(solution_copy);
         stokes_matrix.initialize_dof_vector(rhs_copy);
         internal::ChangeVectorTypes::copy(solution_copy,distributed_stokes_solution);
