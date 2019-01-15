@@ -75,7 +75,7 @@ end
 
 
 subsection Mesh refinement
-  set Initial adaptive refinement              = 13
+  set Initial adaptive refinement              = 0
   set Initial global refinement                = 4
 
   set Strategy = velocity#viscosity

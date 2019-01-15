@@ -320,7 +320,6 @@ namespace aspect
       fe_v (FE_Q<dim>(sim.parameters.stokes_velocity_degree), dim),
       fe_p (FE_Q<dim>(sim.parameters.stokes_velocity_degree-1),1),
 
-      stokes_dof_handler(sim.triangulation),
       dof_handler_v(sim.triangulation),
       dof_handler_p(sim.triangulation),
 
@@ -354,7 +353,7 @@ namespace aspect
   template <int dim>
   StokesMatrixFreeHandler<dim>::~StokesMatrixFreeHandler ()
   {
-
+    sim.mapping.reset();
   }
 
   template <int dim>
@@ -441,7 +440,8 @@ namespace aspect
           }
       block_viscosity_values.compress(VectorOperation::insert);
 
-      stokes_matrix.fill_viscosities(coeff_operator.return_viscosity_table(block_viscosity_values.block(1)));
+      stokes_matrix.fill_viscosities_and_pressure_scaling(coeff_operator.return_viscosity_table(block_viscosity_values.block(1)),
+                                                          sim.pressure_scaling);
     }
 
     // Fill viscosities for the Mass Matrix Operator
@@ -570,14 +570,14 @@ namespace aspect
   void StokesMatrixFreeHandler<dim>::correct_stokes_rhs()
   {
     dealii::LinearAlgebra::distributed::BlockVector<double> rhs_correction(2);
-    rhs_correction.collect_sizes();
     dealii::LinearAlgebra::distributed::BlockVector<double> u0(2);
+    rhs_correction.collect_sizes();
     u0.collect_sizes();
     stokes_matrix.initialize_dof_vector(rhs_correction);
     stokes_matrix.initialize_dof_vector(u0);
 
     u0 = 0;
-    stokes_constraints.distribute(u0);
+    sim.current_constraints.distribute(u0);
     u0.update_ghost_values();
     const Table<2, VectorizedArray<double>> viscosity_table = stokes_matrix.get_visc_table();
 
@@ -680,6 +680,13 @@ namespace aspect
 
     typedef dealii::LinearAlgebra::distributed::Vector<double> vector_t;
 
+
+    //Jacobi Smoother
+//    typedef PreconditionJacobi<ABlockMatrixType> SmootherType;
+//    MGSmootherPrecondition<ABlockMatrixType, SmootherType, vector_t> mg_smoother;
+//    mg_smoother.initialize(mg_matrices, typename SmootherType::AdditionalData(0.6667));
+//    mg_smoother.set_steps(2);
+
     //Chebyshev smoother
     typedef PreconditionChebyshev<ABlockMatrixType,vector_t> SmootherType;
     mg::SmootherRelaxation<SmootherType, vector_t>
@@ -700,7 +707,6 @@ namespace aspect
             smoother_data[0].degree = numbers::invalid_unsigned_int;
             smoother_data[0].eig_cg_n_iterations = mg_matrices[0].m();
           }
-        mg_matrices[level].compute_diagonal();
         smoother_data[level].preconditioner = mg_matrices[level].get_matrix_diagonal_inverse();
       }
     mg_smoother.initialize(mg_matrices, smoother_data);
@@ -738,6 +744,7 @@ namespace aspect
     typedef PreconditionMG<dim, vector_t, MGTransferMatrixFree<dim,double> > APreconditioner;
     APreconditioner prec_A(dof_handler_v, mg, mg_transfer);
 
+    //Mass matrix Preconditioner
     typedef PreconditionChebyshev<MassMatrixType,vector_t> MassPreconditioner;
     MassPreconditioner prec_S;
     typename MassPreconditioner::AdditionalData prec_S_data;
@@ -896,9 +903,9 @@ namespace aspect
     PrimitiveVectorMemory<dealii::LinearAlgebra::distributed::BlockVector<double> > mem;
 
     // create Solver controls for the cheap and expensive solver phase
-    SolverControl solver_control_cheap (sim.parameters.n_cheap_stokes_solver_steps,
-                                        solver_tolerance);
-
+    SolverControl solver_control_cheap (200,//sim.parameters.n_cheap_stokes_solver_steps,
+                                        solver_tolerance, true);
+    sim.pcout << solver_tolerance << std::endl;
     //  SolverControl solver_control_expensive (sim.parameters.n_expensive_stokes_solver_steps,
     //                                          solver_tolerance);
 
@@ -914,6 +921,18 @@ namespace aspect
                           sim.parameters.linear_solver_A_block_tolerance,
                           sim.parameters.linear_solver_S_block_tolerance);
 
+    dealii::LinearAlgebra::distributed::BlockVector<double> solution_copy(2);
+    dealii::LinearAlgebra::distributed::BlockVector<double> rhs_copy(2);
+    solution_copy.collect_sizes();
+    rhs_copy.collect_sizes();
+    stokes_matrix.initialize_dof_vector(solution_copy);
+    stokes_matrix.initialize_dof_vector(rhs_copy);
+    internal::ChangeVectorTypes::copy(solution_copy,distributed_stokes_solution);
+    internal::ChangeVectorTypes::copy(rhs_copy,distributed_stokes_rhs);
+    solution_copy.update_ghost_values();
+
+
+    //deallog.depth_console(10);
     try
       {
         SolverFGMRES<dealii::LinearAlgebra::distributed::BlockVector<double> >
@@ -921,23 +940,12 @@ namespace aspect
                SolverFGMRES<dealii::LinearAlgebra::distributed::BlockVector<double> >::
                AdditionalData(50));
 
-        dealii::LinearAlgebra::distributed::BlockVector<double> solution_copy(2);
-        solution_copy.collect_sizes();
-        dealii::LinearAlgebra::distributed::BlockVector<double> rhs_copy(2);
-        rhs_copy.collect_sizes();
-        stokes_matrix.initialize_dof_vector(solution_copy);
-        stokes_matrix.initialize_dof_vector(rhs_copy);
-        internal::ChangeVectorTypes::copy(solution_copy,distributed_stokes_solution);
-        internal::ChangeVectorTypes::copy(rhs_copy,distributed_stokes_rhs);
-        solution_copy.update_ghost_values();
-
         solver.solve (stokes_matrix,
                       solution_copy,
                       rhs_copy,
                       preconditioner_cheap);
 
-        solution_copy.update_ghost_values();
-        internal::ChangeVectorTypes::copy(distributed_stokes_solution,solution_copy);
+        final_linear_residual = solver_control_cheap.last_value();
       }
     catch (SolverControl::NoConvergence)
       {
@@ -946,9 +954,9 @@ namespace aspect
                   << sim.parameters.n_cheap_stokes_solver_steps
                   << " ITERATIONS. res=" << solver_control_cheap.last_value() << std::endl
                   << "********************************************************************" << std::endl;
+
+        //Assert(false,ExcNotImplemented());
       }
-
-
 
     // signal successful solver
     //  signals.post_stokes_solver(*this,
@@ -959,6 +967,9 @@ namespace aspect
 
     // distribute hanging node and
     // other constraints
+    solution_copy.update_ghost_values();
+    internal::ChangeVectorTypes::copy(distributed_stokes_solution,solution_copy);
+
     sim.current_constraints.distribute (distributed_stokes_solution);
 
     // now rescale the pressure back to real physical units
@@ -988,12 +999,6 @@ namespace aspect
     //if (sim.parameters.include_melt_transport)
     //melt_handler->compute_melt_variables(solution);
 
-
-
-
-
-
-
     return std::pair<double,double>(initial_nonlinear_residual,
                                     final_linear_residual);
   }
@@ -1004,28 +1009,10 @@ namespace aspect
   void StokesMatrixFreeHandler<dim>::setup_dofs()
   {
     {
-      stokes_dof_handler.distribute_dofs(stokes_fe);
-      std::vector<unsigned int> stokes_sub_blocks(dim + 1, 0);
-      stokes_sub_blocks[dim] = 1;
-      DoFRenumbering::component_wise(stokes_dof_handler, stokes_sub_blocks);
-
-      IndexSet stokes_relevant_set;
-      DoFTools::extract_locally_relevant_dofs(stokes_dof_handler,
-                                              stokes_relevant_set);
-
-      stokes_constraints.clear();
-      stokes_constraints.reinit(stokes_relevant_set);
-
-      DoFTools::make_hanging_node_constraints(stokes_dof_handler,
-                                              stokes_constraints);
-      sim.compute_initial_velocity_boundary_constraints(stokes_constraints);
-      sim.compute_current_velocity_boundary_constraints(stokes_constraints);
-      stokes_constraints.close();
-    }
-
-    {
       dof_handler_v.distribute_dofs(fe_v);
-      dof_handler_v.distribute_mg_dofs(fe_v);
+      dof_handler_v.distribute_mg_dofs();
+
+      DoFRenumbering::hierarchical(dof_handler_v);
 
       IndexSet locally_relevant_dofs;
       DoFTools::extract_locally_relevant_dofs (dof_handler_v,
@@ -1052,7 +1039,7 @@ namespace aspect
     // Coefficient transfer objects
     {
       dof_handler_projection.distribute_dofs(fe_projection);
-      dof_handler_projection.distribute_mg_dofs(fe_projection);
+      dof_handler_projection.distribute_mg_dofs();
 
 
       IndexSet locally_relevant_dofs;
@@ -1163,10 +1150,10 @@ namespace aspect
 
 
 // explicit instantiation of the functions we implement in this file
-  namespace aspect
-  {
+namespace aspect
+{
 #define INSTANTIATE(dim) \
   template class StokesMatrixFreeHandler<dim>;
 
-    ASPECT_INSTANTIATE(INSTANTIATE)
-  }
+  ASPECT_INSTANTIATE(INSTANTIATE)
+}

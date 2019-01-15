@@ -57,7 +57,8 @@ namespace aspect
       public:
         StokesOperator ();
         void clear ();
-        void fill_viscosities(const Table<2, VectorizedArray<number> > &visc_table);
+        void fill_viscosities_and_pressure_scaling(const Table<2, VectorizedArray<number> > &visc_table,
+                                                   const double scaling);
         Table<2, VectorizedArray<number> > get_visc_table();
         virtual void compute_diagonal ();
 
@@ -71,6 +72,7 @@ namespace aspect
                           const std::pair<unsigned int, unsigned int> &cell_range) const;
 
         Table<2, VectorizedArray<number> > viscosity_x_2;
+        double pressure_scaling;
     };
     template <int dim, int degree, typename number>
     StokesOperator<dim,degree,number>::StokesOperator ()
@@ -87,12 +89,14 @@ namespace aspect
     template <int dim, int degree, typename number>
     void
     StokesOperator<dim,degree,number>::
-    fill_viscosities (const Table<2, VectorizedArray<number> > &visc_table)
+    fill_viscosities_and_pressure_scaling (const Table<2, VectorizedArray<number> > &visc_table,
+                                           const double scaling)
     {
       FEEvaluation<dim,degree,degree+1,dim,number> velocity (*this->data, 0);
       Assert(visc_table.n_elements() == this->data->n_macro_cells()*velocity.n_q_points, ExcMessage("Tables are not the right size!"));
 
       viscosity_x_2 = visc_table;
+      pressure_scaling = scaling;
     }
     template <int dim, int degree, typename number>
     Table<2, VectorizedArray<number> >
@@ -128,12 +132,12 @@ namespace aspect
                 velocity.get_symmetric_gradient (q);
               vector_t pres = pressure.get_value(q);
               vector_t div = -trace(sym_grad_u);
-              pressure.submit_value   (div, q);
+              pressure.submit_value   (pressure_scaling*div, q);
 
               sym_grad_u *= viscosity_x_2(cell,q);
               // subtract p * I
               for (unsigned int d=0; d<dim; ++d)
-                sym_grad_u[d][d] -= pres;
+                sym_grad_u[d][d] -= pressure_scaling*pres;
 
               velocity.submit_symmetric_gradient(sym_grad_u, q);
             }
@@ -610,7 +614,6 @@ namespace aspect
       FESystem<dim> fe_v;
       FESystem<dim> fe_p;
 
-      DoFHandler<dim> stokes_dof_handler;
       DoFHandler<dim> dof_handler_v;
       DoFHandler<dim> dof_handler_p;
 
