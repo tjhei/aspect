@@ -607,8 +607,6 @@ namespace aspect
       typedef MatrixFreeStokesOperators::MassMatrixOperator<dim,1,double> MassMatrixType;
       typedef MatrixFreeStokesOperators::ABlockOperator<dim,2,double> ABlockMatrixType;
 
-      StokesMatrixType stokes_matrix;
-      MassMatrixType mass_matrix;
 
       FESystem<dim> stokes_fe;
       FESystem<dim> fe_v;
@@ -616,6 +614,9 @@ namespace aspect
 
       DoFHandler<dim> dof_handler_v;
       DoFHandler<dim> dof_handler_p;
+
+      StokesMatrixType stokes_matrix;
+      MassMatrixType mass_matrix;
 
       ConstraintMatrix stokes_constraints;
       ConstraintMatrix constraints_v;
