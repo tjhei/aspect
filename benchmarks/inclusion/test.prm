@@ -8,6 +8,10 @@ subsection Solver parameters
   end
 end
 
+subsection Material model
+  set Material averaging = harmonic average
+end
+
 set Dimension                              = 2
 
 set Start time                             = 0
