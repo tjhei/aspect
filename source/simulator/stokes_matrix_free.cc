@@ -348,6 +348,14 @@ namespace aspect
     // are set correctly, that the preconditioner converges, and requires
     // testing.
     Assert(sim.geometry_model->get_periodic_boundary_pairs().size()==0, ExcNotImplemented());
+
+    // We currently only support averaging that gives a constant value:
+    using avg = MaterialModel::MaterialAveraging::AveragingOperation;
+    Assert((sim.parameters.material_averaging &
+            (avg::arithmetic_average | avg::harmonic_average | avg::geometric_average
+             | avg::pick_largest | avg::log_average))!=0
+           ,
+           ExcNotImplemented());
   }
 
   template <int dim>
@@ -386,8 +394,13 @@ namespace aspect
             sim.material_model->fill_additional_material_model_inputs(in, sim.current_linearization_point, fe_values, sim.introspection);
             sim.material_model->evaluate(in, out);
 
-            // TODO: averaging
+            MaterialModel::MaterialAveraging::average (sim.parameters.material_averaging,
+                                                       cell,
+                                                       quadrature_formula,
+                                                       *sim.mapping,
+                                                       out);
 
+            // we grab the first value, but all of them should be averaged to the same value:
             const double viscosity = out.viscosities[0];
 
             typename DoFHandler<dim>::active_cell_iterator dg_cell(&sim.triangulation,
