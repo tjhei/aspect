@@ -2,6 +2,11 @@
 # analytical solution is available. 
 # 
 # See the manual for more information.
+subsection Solver parameters
+  subsection Stokes solver parameters
+    set Stokes solver type = block geometric multigrid
+  end
+end
 
 subsection Material model
   set Material averaging = harmonic average
