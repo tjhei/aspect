@@ -361,7 +361,6 @@ namespace aspect
   template <int dim>
   StokesMatrixFreeHandler<dim>::~StokesMatrixFreeHandler ()
   {
-    sim.mapping.reset();
   }
 
   template <int dim>
