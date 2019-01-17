@@ -474,7 +474,7 @@ namespace aspect
 
 // Class for computing the coefficient table. It's necessary since the parallel ordering
 // of cells in matrix-free is different between DG and Continuous elements.
-    template <int dim, int degree_q, typename number>
+    template <int dim, int degree_q, int proj_comp, typename number>
     class ComputeCoefficientProjection
       : public MatrixFreeOperators::Base<dim, dealii::LinearAlgebra::distributed::BlockVector<number>>
     {
@@ -491,31 +491,31 @@ namespace aspect
         virtual void apply_add (dealii::LinearAlgebra::distributed::BlockVector<number> &dst,
                                 const dealii::LinearAlgebra::distributed::BlockVector<number> &src) const;
     };
-    template <int dim, int degree_q, typename number>
-    ComputeCoefficientProjection<dim,degree_q,number>::ComputeCoefficientProjection ()
+    template <int dim, int degree_q, int proj_comp, typename number>
+    ComputeCoefficientProjection<dim,degree_q,proj_comp,number>::ComputeCoefficientProjection ()
       :
       MatrixFreeOperators::Base<dim, dealii::LinearAlgebra::distributed::BlockVector<number> >()
     {}
-    template <int dim, int degree_q, typename number>
+    template <int dim, int degree_q, int proj_comp, typename number>
     void
-    ComputeCoefficientProjection<dim,degree_q,number>::clear ()
+    ComputeCoefficientProjection<dim,degree_q,proj_comp,number>::clear ()
     {
       MatrixFreeOperators::Base<dim,dealii::LinearAlgebra::distributed::BlockVector<number> >::clear();
     }
 
-    template <int dim, int degree_q, typename number>
+    template <int dim, int degree_q, int proj_comp, typename number>
     Table<2, VectorizedArray<number> >
-    ComputeCoefficientProjection<dim,degree_q,number>::
+    ComputeCoefficientProjection<dim,degree_q,proj_comp,number>::
     return_viscosity_table (const dealii::LinearAlgebra::distributed::Vector<number> &dof_vals_dg)
     {
       const unsigned int n_cells = this->data->n_macro_cells();
-      FEEvaluation<dim,0,  degree_q, 1,  number> projection (*this->data, 1);
+      FEEvaluation<dim,0,  degree_q, 1,  number> projection (*this->data, proj_comp);
 
       Table<2, VectorizedArray<number> > viscosity_table(n_cells, projection.n_q_points);
       for (unsigned int cell=0; cell<n_cells; ++cell)
         {
           projection.reinit (cell);
-          projection.read_dof_values(dof_vals_dg);
+          projection.read_dof_values_plain(dof_vals_dg);
           projection.evaluate(true,false,false);
 
           for (unsigned int q=0; q<projection.n_q_points; ++q)
@@ -524,9 +524,9 @@ namespace aspect
 
       return viscosity_table;
     }
-    template <int dim, int degree_q, typename number>
+    template <int dim, int degree_q, int proj_comp, typename number>
     void
-    ComputeCoefficientProjection<dim,degree_q,number>
+    ComputeCoefficientProjection<dim,degree_q,proj_comp,number>
     ::apply_add (dealii::LinearAlgebra::distributed::BlockVector<number> &dst,
                  const dealii::LinearAlgebra::distributed::BlockVector<number> &src) const
     {
@@ -535,9 +535,9 @@ namespace aspect
       (void)src;
       Assert(false, ExcNotImplemented());
     }
-    template <int dim, int degree_q, typename number>
+    template <int dim, int degree_q, int proj_comp, typename number>
     void
-    ComputeCoefficientProjection<dim,degree_q,number>
+    ComputeCoefficientProjection<dim,degree_q,proj_comp,number>
     ::compute_diagonal ()
     {
       // Function not needed, but must be defined
