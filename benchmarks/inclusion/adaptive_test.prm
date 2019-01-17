@@ -4,7 +4,7 @@ set Additional shared libraries            = ./libinclusion.so
 
 subsection Solver parameters
   subsection Stokes solver parameters
-    set Stokes solver type = block AMG 
+	set Stokes solver type = block geometric multigrid
   end
 end
 
@@ -17,6 +17,10 @@ set Pressure normalization                 = volume
 set Nonlinear solver scheme                = no Advection, iterated Stokes
 
 set Use years in output instead of seconds = false
+
+subsection Material model
+  set Material averaging =  harmonic average
+end
 
 ############### Parameters describing the model
 
@@ -90,7 +94,7 @@ end
 ############### Parameters describing what to do with the solution
 
 subsection Postprocess
-  set List of postprocessors = InclusionPostprocessor, visualization
+  set List of postprocessors = InclusionPostprocessor, visualization, matrix statistics
 
 
 

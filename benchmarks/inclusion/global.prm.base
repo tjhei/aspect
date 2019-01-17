@@ -24,6 +24,12 @@ subsection Geometry model
   end
 end
 
+subsection Solver parameters
+  subsection Stokes solver parameters
+    set Stokes solver type = block AMG 
+  end
+end
+
 
 
 subsection Boundary velocity model
