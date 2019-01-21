@@ -467,6 +467,14 @@ namespace aspect
       mass_matrix.fill_viscosities_and_pressure_scaling(coeff_operator.return_viscosity_table(block_viscosity_values_mass.block(2)),
                                                         sim.pressure_scaling);
 
+//      if (sim.dof_handler.n_dofs() > 10000)
+//      {
+//          mass_matrix.output_visc(Utilities::MPI::this_mpi_process(sim.triangulation.get_communicator()));
+//          Assert(false,ExcInternalError());
+//      }
+
+
+
       mass_matrix.compute_diagonal();
     }
 
@@ -480,6 +488,7 @@ namespace aspect
       transfer.build(dof_handler_projection);
       transfer.interpolate_to_mg(dof_handler_projection,level_coef_dof_vec,active_coef_dof_vec);
 
+      //bool should_i_break = false;
       for (unsigned int level=0; level<n_levels; ++level)
         {
           ConstraintMatrix level_constraints;
@@ -542,8 +551,15 @@ namespace aspect
           block_viscosity_values_level.compress(VectorOperation::insert);
 
           mg_matrices[level].fill_viscosities(coeff_operator.return_viscosity_table(block_viscosity_values_level.block(1)));
+//          if (sim.dof_handler.n_dofs() > 10000)
+//          {
+//              mg_matrices[level].output_visc(level,Utilities::MPI::this_mpi_process(sim.triangulation.get_communicator()));
+//              should_i_break = true;
+//          }
           mg_matrices[level].compute_diagonal();
         }
+//      if (should_i_break)
+//        Assert(false,ExcNotImplemented());
     }
   }
 
