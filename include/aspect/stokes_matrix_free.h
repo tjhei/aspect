@@ -50,7 +50,7 @@ namespace aspect
   namespace MatrixFreeStokesOperators
   {
 
-    template <int dim, int degree, typename number>
+    template <int dim, int degree_v, typename number>
     class StokesOperator
       : public MatrixFreeOperators::Base<dim, dealii::LinearAlgebra::distributed::BlockVector<number> >
     {
@@ -59,6 +59,8 @@ namespace aspect
         void clear ();
         void fill_viscosities_and_pressure_scaling(const Table<2, VectorizedArray<number> > &visc_table,
                                                    const double scaling);
+        void output_visc (const unsigned int proc);
+
         Table<2, VectorizedArray<number> > get_visc_table();
         virtual void compute_diagonal ();
 
@@ -74,48 +76,69 @@ namespace aspect
         Table<2, VectorizedArray<number> > viscosity_x_2;
         double pressure_scaling;
     };
-    template <int dim, int degree, typename number>
-    StokesOperator<dim,degree,number>::StokesOperator ()
+    template <int dim, int degree_v, typename number>
+    StokesOperator<dim,degree_v,number>::StokesOperator ()
       :
       MatrixFreeOperators::Base<dim, dealii::LinearAlgebra::distributed::BlockVector<number> >()
     {}
-    template <int dim, int degree, typename number>
+    template <int dim, int degree_v, typename number>
     void
-    StokesOperator<dim,degree,number>::clear ()
+    StokesOperator<dim,degree_v,number>::clear ()
     {
       viscosity_x_2.reinit(0, 0);
       MatrixFreeOperators::Base<dim,dealii::LinearAlgebra::distributed::BlockVector<number> >::clear();
     }
-    template <int dim, int degree, typename number>
+    template <int dim, int degree_v, typename number>
     void
-    StokesOperator<dim,degree,number>::
+    StokesOperator<dim,degree_v,number>::
     fill_viscosities_and_pressure_scaling (const Table<2, VectorizedArray<number> > &visc_table,
                                            const double scaling)
     {
-      FEEvaluation<dim,degree,degree+1,dim,number> velocity (*this->data, 0);
+      FEEvaluation<dim,degree_v,degree_v+1,dim,number> velocity (*this->data, 0);
       Assert(visc_table.n_elements() == this->data->n_macro_cells()*velocity.n_q_points, ExcMessage("Tables are not the right size!"));
 
       viscosity_x_2 = visc_table;
       pressure_scaling = scaling;
     }
-    template <int dim, int degree, typename number>
+    template <int dim, int degree_v, typename number>
+    void
+    StokesOperator<dim,degree_v,number>::
+    output_visc (const unsigned int proc)
+    {
+        FEEvaluation<dim,degree_v,degree_v+1,dim,number> velocity (*this->data, 0);
+
+        std::ofstream output("/hdscratch/tcleven/aspect-git/aspect/benchmarks/inclusion/visc_active-"
+                             + Utilities::int_to_string(proc) + ".txt");
+        for (unsigned int cell=0; cell<this->data->n_macro_cells(); ++cell)
+          {
+            velocity.reinit (cell);
+            for (unsigned int q=0; q<velocity.n_q_points; ++q)
+                for (unsigned int i=0; i<VectorizedArray<double>::n_array_elements; ++i)
+                  output << velocity.quadrature_point(q)(0)[i] << " "
+                         << velocity.quadrature_point(q)(1)[i] << " "
+                         << viscosity_x_2(cell,q)[i] << std::endl;
+          }
+        output << std::endl;
+        output.close();
+    }
+    template <int dim, int degree_v, typename number>
     Table<2, VectorizedArray<number> >
-    StokesOperator<dim,degree,number>::get_visc_table()
+    StokesOperator<dim,degree_v,number>::get_visc_table()
     {
       return viscosity_x_2;
     }
 
-    template <int dim, int degree, typename number>
+    template <int dim, int degree_v, typename number>
     void
-    StokesOperator<dim,degree,number>
+    StokesOperator<dim,degree_v,number>
     ::local_apply (const dealii::MatrixFree<dim, number>                 &data,
                    dealii::LinearAlgebra::distributed::BlockVector<number>       &dst,
                    const dealii::LinearAlgebra::distributed::BlockVector<number> &src,
                    const std::pair<unsigned int, unsigned int>           &cell_range) const
     {
       typedef VectorizedArray<number> vector_t;
-      FEEvaluation<dim,degree,degree+1,dim,number> velocity (data, 0);
-      FEEvaluation<dim,degree-1,  degree+1,1,  number> pressure (data, 1);
+      FEEvaluation<dim,degree_v,degree_v+1,dim,number> velocity (data, 0);
+      FEEvaluation<dim,degree_v-1,  degree_v+1,1,  number> pressure (data, 1);
 
       for (unsigned int cell=cell_range.first; cell<cell_range.second; ++cell)
         {
@@ -148,18 +171,18 @@ namespace aspect
           pressure.distribute_local_to_global (dst.block(1));
         }
     }
-    template <int dim, int degree, typename number>
+    template <int dim, int degree_v, typename number>
     void
-    StokesOperator<dim,degree,number>
+    StokesOperator<dim,degree_v,number>
     ::apply_add (dealii::LinearAlgebra::distributed::BlockVector<number> &dst,
                  const dealii::LinearAlgebra::distributed::BlockVector<number> &src) const
     {
       MatrixFreeOperators::Base<dim, dealii::LinearAlgebra::distributed::BlockVector<number> >::
       data->cell_loop(&StokesOperator::local_apply, this, dst, src);
     }
-    template <int dim, int degree, typename number>
+    template <int dim, int degree_v, typename number>
     void
-    StokesOperator<dim,degree,number>
+    StokesOperator<dim,degree_v,number>
     ::compute_diagonal ()
     {
       Assert(false, ExcNotImplemented());
@@ -175,6 +198,9 @@ namespace aspect
         void clear ();
         void fill_viscosities_and_pressure_scaling(const Table<2, VectorizedArray<number> > &visc_table,
                                                    const double scaling);
+        void output_visc (const unsigned int proc);
+
+
         virtual void compute_diagonal ();
 
       private:
@@ -214,10 +240,31 @@ namespace aspect
     {
       pressure_scaling = scaling;
 
-      FEEvaluation<dim,degree_p,degree_p+2,dim,number> velocity (*this->data, 0);
-      Assert(visc_table.n_elements() == this->data->n_macro_cells()*velocity.n_q_points, ExcMessage("Tables are not the right size!"));
+      FEEvaluation<dim,degree_p,degree_p+2,dim,number> pressure (*this->data, 0);
+      Assert(visc_table.n_elements() == this->data->n_macro_cells()*pressure.n_q_points, ExcMessage("Tables are not the right size!"));
 
       one_over_viscosity = visc_table;
+    }
+    template <int dim, int degree_p, typename number>
+    void
+    MassMatrixOperator<dim,degree_p,number>::
+    output_visc (const unsigned int proc)
+    {
+        FEEvaluation<dim,degree_p,degree_p+2,dim,number> pressure (*this->data, 0);
+
+        std::ofstream output("/hdscratch/tcleven/aspect-git/aspect/benchmarks/inclusion/visc_mass-"
+                             + Utilities::int_to_string(proc) + ".txt");
+        for (unsigned int cell=0; cell<this->data->n_macro_cells(); ++cell)
+          {
+            pressure.reinit (cell);
+            for (unsigned int q=0; q<pressure.n_q_points; ++q)
+                for (unsigned int i=0; i<VectorizedArray<double>::n_array_elements; ++i)
+                  output << pressure.quadrature_point(q)(0)[i] << " "
+                         << pressure.quadrature_point(q)(1)[i] << " "
+                         << one_over_viscosity(cell,q)[i] << std::endl;
+          }
+        output << std::endl;
+        output.close();
     }
     template <int dim, int degree_p, typename number>
     void
@@ -326,7 +373,7 @@ namespace aspect
 
 
 
-    template <int dim, int degree, typename number>
+    template <int dim, int degree_v, typename number>
     class ABlockOperator
       : public MatrixFreeOperators::Base<dim, dealii::LinearAlgebra::distributed::Vector<number>>
     {
@@ -334,6 +381,7 @@ namespace aspect
         ABlockOperator ();
         void clear ();
         void fill_viscosities(const Table<2, VectorizedArray<number> > &visc_table);
+        void output_visc (const unsigned int level, const unsigned int proc);
         virtual void compute_diagonal ();
 
       private:
@@ -352,37 +400,65 @@ namespace aspect
 
         Table<2, VectorizedArray<number> > viscosity_x_2;
     };
-    template <int dim, int degree, typename number>
-    ABlockOperator<dim,degree,number>::ABlockOperator ()
+    template <int dim, int degree_v, typename number>
+    ABlockOperator<dim,degree_v,number>::ABlockOperator ()
       :
       MatrixFreeOperators::Base<dim, dealii::LinearAlgebra::distributed::Vector<number> >()
     {}
-    template <int dim, int degree, typename number>
+    template <int dim, int degree_v, typename number>
     void
-    ABlockOperator<dim,degree,number>::clear ()
+    ABlockOperator<dim,degree_v,number>::clear ()
     {
       viscosity_x_2.reinit(0, 0);
       MatrixFreeOperators::Base<dim,dealii::LinearAlgebra::distributed::Vector<number> >::clear();
     }
-    template <int dim, int degree, typename number>
+    template <int dim, int degree_v, typename number>
     void
-    ABlockOperator<dim,degree,number>::
+    ABlockOperator<dim,degree_v,number>::
     fill_viscosities (const Table<2, VectorizedArray<number> > &visc_table)
     {
-      FEEvaluation<dim,degree,degree+1,dim,number> velocity (*this->data, 0);
+      FEEvaluation<dim,degree_v,degree_v+1,dim,number> velocity (*this->data, 0);
       Assert(visc_table.n_elements() == this->data->n_macro_cells()*velocity.n_q_points, ExcMessage("Tables are not the right size!"));
 
       viscosity_x_2 = visc_table;
     }
-    template <int dim, int degree, typename number>
+
+
+    template <int dim, int degree_v, typename number>
     void
-    ABlockOperator<dim,degree,number>
+    ABlockOperator<dim,degree_v,number>::
+    output_visc (const unsigned int level, const unsigned int proc)
+    {
+        FEEvaluation<dim,degree_v,degree_v+1,dim,number> velocity (*this->data, 0);
+
+        std::ofstream output("/hdscratch/tcleven/aspect-git/aspect/benchmarks/inclusion/visc_mg"
+                             + Utilities::int_to_string(level) +
+                             + "-"
+                             + Utilities::int_to_string(proc) + ".txt");
+        for (unsigned int cell=0; cell<this->data->n_macro_cells(); ++cell)
+          {
+            velocity.reinit (cell);
+            for (unsigned int q=0; q<velocity.n_q_points; ++q)
+                for (unsigned int i=0; i<VectorizedArray<double>::n_array_elements; ++i)
+                  output << velocity.quadrature_point(q)(0)[i] << " "
+                         << velocity.quadrature_point(q)(1)[i] << " "
+                         << viscosity_x_2(cell,q)[i] << std::endl;
+          }
+        output << std::endl;
+        output.close();
+    }
+
+
+
+    template <int dim, int degree_v, typename number>
+    void
+    ABlockOperator<dim,degree_v,number>
     ::local_apply (const dealii::MatrixFree<dim, number>                 &data,
                    dealii::LinearAlgebra::distributed::Vector<number>       &dst,
                    const dealii::LinearAlgebra::distributed::Vector<number> &src,
                    const std::pair<unsigned int, unsigned int>           &cell_range) const
     {
-      FEEvaluation<dim,degree,degree+1,dim,number> velocity (data,0);
+      FEEvaluation<dim,degree_v,degree_v+1,dim,number> velocity (data,0);
 
       for (unsigned int cell=cell_range.first; cell<cell_range.second; ++cell)
         {
@@ -401,18 +477,18 @@ namespace aspect
           velocity.distribute_local_to_global (dst);
         }
     }
-    template <int dim, int degree, typename number>
+    template <int dim, int degree_v, typename number>
     void
-    ABlockOperator<dim,degree,number>
+    ABlockOperator<dim,degree_v,number>
     ::apply_add (dealii::LinearAlgebra::distributed::Vector<number> &dst,
                  const dealii::LinearAlgebra::distributed::Vector<number> &src) const
     {
       MatrixFreeOperators::Base<dim,dealii::LinearAlgebra::distributed::Vector<number> >::
       data->cell_loop(&ABlockOperator::local_apply, this, dst, src);
     }
-    template <int dim, int degree, typename number>
+    template <int dim, int degree_v, typename number>
     void
-    ABlockOperator<dim,degree,number>
+    ABlockOperator<dim,degree_v,number>
     ::compute_diagonal ()
     {
       this->inverse_diagonal_entries.
@@ -435,15 +511,15 @@ namespace aspect
             1./inverse_diagonal.local_element(i);
         }
     }
-    template <int dim, int degree, typename number>
+    template <int dim, int degree_v, typename number>
     void
-    ABlockOperator<dim,degree,number>
+    ABlockOperator<dim,degree_v,number>
     ::local_compute_diagonal (const MatrixFree<dim,number>                     &data,
                               dealii::LinearAlgebra::distributed::Vector<number>  &dst,
                               const unsigned int &,
                               const std::pair<unsigned int,unsigned int>       &cell_range) const
     {
-      FEEvaluation<dim,degree,degree+1,dim,number> velocity (data, 0);
+      FEEvaluation<dim,degree_v,degree_v+1,dim,number> velocity (data, 0);
       for (unsigned int cell=cell_range.first; cell<cell_range.second; ++cell)
         {
           velocity.reinit (cell);
