@@ -196,9 +196,17 @@ namespace aspect
     nonlinear_iteration (numbers::invalid_unsigned_int),
 
     triangulation (mpi_communicator,
-                   typename Triangulation<dim>::MeshSmoothing
-                   (Triangulation<dim>::smoothing_on_refinement |
-                    Triangulation<dim>::smoothing_on_coarsening),
+                   (parameters.stokes_solver_type == Parameters<dim>::StokesSolverType::block_gmg
+                    ?
+                        typename Triangulation<dim>::MeshSmoothing
+                        (Triangulation<dim>::smoothing_on_refinement |
+                         Triangulation<dim>::smoothing_on_coarsening |
+                         Triangulation<dim>::limit_level_difference_at_vertices)
+                    :
+                        typename Triangulation<dim>::MeshSmoothing
+                        (Triangulation<dim>::smoothing_on_refinement |
+                         Triangulation<dim>::smoothing_on_coarsening))
+                   ,
                    (parameters.stokes_solver_type == Parameters<dim>::StokesSolverType::block_gmg
                     ?
                     typename parallel::distributed::Triangulation<dim>::Settings
