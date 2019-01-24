@@ -928,10 +928,10 @@ namespace aspect
                   0)
               << "; ";
         if (solver_control_expensive.last_step() > 0)
-            pcout << (solver_control_expensive.last_step() != numbers::invalid_unsigned_int ?
-                      solver_control_expensive.last_step():
-                      0)
-                  << "; ";
+          pcout << (solver_control_expensive.last_step() != numbers::invalid_unsigned_int ?
+                    solver_control_expensive.last_step():
+                    0)
+                << "; ";
         pcout << std::endl;
 
 

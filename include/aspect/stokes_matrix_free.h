@@ -105,21 +105,21 @@ namespace aspect
     StokesOperator<dim,degree_v,number>::
     output_visc (const unsigned int proc)
     {
-        FEEvaluation<dim,degree_v,degree_v+1,dim,number> velocity (*this->data, 0);
+      FEEvaluation<dim,degree_v,degree_v+1,dim,number> velocity (*this->data, 0);
 
-        std::ofstream output("/hdscratch/tcleven/aspect-git/aspect/benchmarks/inclusion/visc_active-"
-                             + Utilities::int_to_string(proc) + ".txt");
-        for (unsigned int cell=0; cell<this->data->n_macro_cells(); ++cell)
-          {
-            velocity.reinit (cell);
-            for (unsigned int q=0; q<velocity.n_q_points; ++q)
-                for (unsigned int i=0; i<VectorizedArray<double>::n_array_elements; ++i)
-                  output << velocity.quadrature_point(q)(0)[i] << " "
-                         << velocity.quadrature_point(q)(1)[i] << " "
-                         << viscosity_x_2(cell,q)[i] << std::endl;
-          }
-        output << std::endl;
-        output.close();
+      std::ofstream output("/hdscratch/tcleven/aspect-git/aspect/benchmarks/inclusion/visc_active-"
+                           + Utilities::int_to_string(proc) + ".txt");
+      for (unsigned int cell=0; cell<this->data->n_macro_cells(); ++cell)
+        {
+          velocity.reinit (cell);
+          for (unsigned int q=0; q<velocity.n_q_points; ++q)
+            for (unsigned int i=0; i<VectorizedArray<double>::n_array_elements; ++i)
+              output << velocity.quadrature_point(q)(0)[i] << " "
+                     << velocity.quadrature_point(q)(1)[i] << " "
+                     << viscosity_x_2(cell,q)[i] << std::endl;
+        }
+      output << std::endl;
+      output.close();
     }
     template <int dim, int degree_v, typename number>
     Table<2, VectorizedArray<number> >
@@ -250,21 +250,21 @@ namespace aspect
     MassMatrixOperator<dim,degree_p,number>::
     output_visc (const unsigned int proc)
     {
-        FEEvaluation<dim,degree_p,degree_p+2,dim,number> pressure (*this->data, 0);
+      FEEvaluation<dim,degree_p,degree_p+2,dim,number> pressure (*this->data, 0);
 
-        std::ofstream output("/hdscratch/tcleven/aspect-git/aspect/benchmarks/inclusion/visc_mass-"
-                             + Utilities::int_to_string(proc) + ".txt");
-        for (unsigned int cell=0; cell<this->data->n_macro_cells(); ++cell)
-          {
-            pressure.reinit (cell);
-            for (unsigned int q=0; q<pressure.n_q_points; ++q)
-                for (unsigned int i=0; i<VectorizedArray<double>::n_array_elements; ++i)
-                  output << pressure.quadrature_point(q)(0)[i] << " "
-                         << pressure.quadrature_point(q)(1)[i] << " "
-                         << one_over_viscosity(cell,q)[i] << std::endl;
-          }
-        output << std::endl;
-        output.close();
+      std::ofstream output("/hdscratch/tcleven/aspect-git/aspect/benchmarks/inclusion/visc_mass-"
+                           + Utilities::int_to_string(proc) + ".txt");
+      for (unsigned int cell=0; cell<this->data->n_macro_cells(); ++cell)
+        {
+          pressure.reinit (cell);
+          for (unsigned int q=0; q<pressure.n_q_points; ++q)
+            for (unsigned int i=0; i<VectorizedArray<double>::n_array_elements; ++i)
+              output << pressure.quadrature_point(q)(0)[i] << " "
+                     << pressure.quadrature_point(q)(1)[i] << " "
+                     << one_over_viscosity(cell,q)[i] << std::endl;
+        }
+      output << std::endl;
+      output.close();
     }
     template <int dim, int degree_p, typename number>
     void
@@ -429,23 +429,23 @@ namespace aspect
     ABlockOperator<dim,degree_v,number>::
     output_visc (const unsigned int level, const unsigned int proc)
     {
-        FEEvaluation<dim,degree_v,degree_v+1,dim,number> velocity (*this->data, 0);
+      FEEvaluation<dim,degree_v,degree_v+1,dim,number> velocity (*this->data, 0);
 
-        std::ofstream output("/hdscratch/tcleven/aspect-git/aspect/benchmarks/inclusion/visc_mg"
-                             + Utilities::int_to_string(level) +
-                             + "-"
-                             + Utilities::int_to_string(proc) + ".txt");
-        for (unsigned int cell=0; cell<this->data->n_macro_cells(); ++cell)
-          {
-            velocity.reinit (cell);
-            for (unsigned int q=0; q<velocity.n_q_points; ++q)
-                for (unsigned int i=0; i<VectorizedArray<double>::n_array_elements; ++i)
-                  output << velocity.quadrature_point(q)(0)[i] << " "
-                         << velocity.quadrature_point(q)(1)[i] << " "
-                         << viscosity_x_2(cell,q)[i] << std::endl;
-          }
-        output << std::endl;
-        output.close();
+      std::ofstream output("/hdscratch/tcleven/aspect-git/aspect/benchmarks/inclusion/visc_mg"
+                           + Utilities::int_to_string(level) +
+                           + "-"
+                           + Utilities::int_to_string(proc) + ".txt");
+      for (unsigned int cell=0; cell<this->data->n_macro_cells(); ++cell)
+        {
+          velocity.reinit (cell);
+          for (unsigned int q=0; q<velocity.n_q_points; ++q)
+            for (unsigned int i=0; i<VectorizedArray<double>::n_array_elements; ++i)
+              output << velocity.quadrature_point(q)(0)[i] << " "
+                     << velocity.quadrature_point(q)(1)[i] << " "
+                     << viscosity_x_2(cell,q)[i] << std::endl;
+        }
+      output << std::endl;
+      output.close();
     }
 
 
