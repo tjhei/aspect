@@ -1,11 +1,11 @@
 #!/bin/bash
 
 # Number of processors to run on
-NP=4
+NP=1
 
 # global refinement:
 echo "----Global refinement----"
-for r in "4" "5" "6" "7" "8"
+for r in "4" "5" #"6" "7" "8"
 do
   echo "ref $r:"
   cp global_test.prm temp.prm

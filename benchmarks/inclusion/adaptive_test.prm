@@ -3,8 +3,9 @@
 set Additional shared libraries            = ./libinclusion.so
 
 subsection Solver parameters
-  subsection Stokes solver parameters
-	set Stokes solver type = block geometric multigrid
+  subsection Stokes solver parameters 	
+    set Number of cheap Stokes solver steps = 500
+    set Stokes solver type = block geometric multigrid
   end
 end
 
@@ -79,9 +80,11 @@ end
 
 
 subsection Mesh refinement
-  set Initial adaptive refinement              = 13
+  set Initial adaptive refinement              = 10
   set Initial global refinement                = 4
 
+  set Adapt by fraction of cells = false
+  
   set Strategy = velocity#viscosity
   set Run postprocessors on initial refinement = true
   set Coarsening fraction                      = 0.0
