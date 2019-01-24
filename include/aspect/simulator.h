@@ -1818,11 +1818,6 @@ namespace aspect
        */
       std::unique_ptr<StokesMatrixFreeHandler<dim> > stokes_matrix_free;
 
-      /**
-       * Unique pointer for the matrix-free Stokes solver
-       */
-      std::unique_ptr<StokesMatrixFreeHandler<dim> > stokes_matrix_free;
-
       friend class boost::serialization::access;
       friend class SimulatorAccess<dim>;
       friend class FreeSurfaceHandler<dim>;  // FreeSurfaceHandler needs access to the internals of the Simulator
