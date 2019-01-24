@@ -3,19 +3,9 @@
 set Additional shared libraries            = ./libinclusion.so
 
 subsection Solver parameters
-<<<<<<< HEAD
-<<<<<<< HEAD
   subsection Stokes solver parameters
     set Stokes solver type = block AMG 
   end
-=======
-  set Stokes solver type = block geometric multigrid
->>>>>>> 1a452d3c8... switch inclusion benchmark to GMG
-=======
-  subsection Stokes solver parameters
-    set Stokes solver type = block geometric multigrid
-  end
->>>>>>> 7e06b8a29... update and add prm
 end
 
 set Dimension                              = 2
