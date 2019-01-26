@@ -286,8 +286,48 @@ namespace aspect
           }
       }
 
-    assemble_stokes_system ();
-    build_stokes_preconditioner();
+    pcout << std::left
+          << std::setw(8) << "out:"
+          << std::setw(15) << "Assemble System" << std::endl;
+    for (unsigned int i=0; i<5; ++i)
+      {
+        Timer time(triangulation.get_communicator(),true);
+        time.restart();
+
+        if (!stokes_matrix_free)
+            rebuild_stokes_matrix = true;
+        assemble_stokes_system ();
+
+        time.stop();
+        pcout << std::left
+              << std::setw(8) << "out:"
+              << std::setw(15) << time.last_wall_time() << std::endl;
+      }
+    pcout << std::left
+          << std::setw(8) << "out:" << std::endl;
+
+    if (!stokes_matrix_free)
+      {
+        pcout << std::left
+              << std::setw(8) << "out:"
+              << std::setw(15) << "Assemble Prec" << std::endl;
+        for (unsigned int i=0; i<5; ++i)
+          {
+            Timer time(triangulation.get_communicator(),true);
+            time.restart();
+
+            if (!stokes_matrix_free)
+                rebuild_stokes_preconditioner = true;
+            build_stokes_preconditioner();
+
+            time.stop();
+            pcout << std::left
+                  << std::setw(8) << "out:"
+                  << std::setw(15) << time.last_wall_time() << std::endl;
+          }
+        pcout << std::left
+              << std::setw(8) << "out:" << std::endl;
+      }
 
     if (compute_initial_residual)
       {
@@ -295,7 +335,30 @@ namespace aspect
         *initial_nonlinear_residual = compute_initial_stokes_residual();
       }
 
-    const double current_nonlinear_residual = solve_stokes().first;
+
+    double res;
+
+    pcout << std::left
+          << std::setw(8) << "out:"
+          << std::setw(15) << "Solve" << std::endl;
+    for (unsigned int i=0; i<5; ++i)
+      {
+        Timer time(triangulation.get_communicator(),true);
+        time.restart();
+
+        res = solve_stokes(i).first;
+
+        time.stop();
+        pcout << std::left
+              << std::setw(8) << "out:"
+              << std::setw(15) << time.last_wall_time() << std::endl;
+
+      }
+    pcout << std::left
+          << std::setw(8) << "out:" << std::endl;
+
+    const double current_nonlinear_residual = res;
+
 
     current_linearization_point.block(introspection.block_indices.velocities)
       = solution.block(introspection.block_indices.velocities);

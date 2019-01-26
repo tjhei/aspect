@@ -640,7 +640,7 @@ namespace aspect
       /**
                * The main execution step
                */
-      std::pair<double,double> solve();
+      std::pair<double,double> solve(unsigned int i = 0);
 
       /**
                * Allocates and sets up the members of the FreeSurfaceHandler. This

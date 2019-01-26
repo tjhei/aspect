@@ -87,12 +87,12 @@ subsection Mesh refinement
   set Initial adaptive refinement              = 10
   set Initial global refinement                = 4
 
-  set Adapt by fraction of cells = false
+  set Adapt by fraction of cells = true
   
   set Strategy = velocity#viscosity
   set Run postprocessors on initial refinement = true
   set Coarsening fraction                      = 0.0
-  set Refinement fraction                      = 0.5
+  set Refinement fraction                      = 0.3333
 
 
 end

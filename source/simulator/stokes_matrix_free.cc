@@ -133,7 +133,8 @@ namespace aspect
                                   const PreconditionerA                      &Apreconditioner,
                                   const bool                                  do_solve_A,
                                   const double                                A_block_tolerance,
-                                  const double                                S_block_tolerance);
+                                  const double                                S_block_tolerance,
+                                  const MPI_Comm                         mpi_comm);
 
         /**
                    * Matrix vector product with this preconditioner object.
@@ -144,7 +145,7 @@ namespace aspect
         unsigned int n_iterations_A() const;
         unsigned int n_iterations_S() const;
 
-        std::vector<unsigned int> return_times() const;
+        std::vector<double> return_times() const;
 
 
 
@@ -167,9 +168,10 @@ namespace aspect
         const double A_block_tolerance;
         const double S_block_tolerance;
 
-        double a_prec_time;
-        double mass_solve_time;
-        double Bt_time;
+        mutable Timer time;
+        mutable double a_prec_time;
+        mutable double mass_solve_time;
+        mutable double Bt_time;
     };
 
 
@@ -181,7 +183,8 @@ namespace aspect
                               const PreconditionerA                      &Apreconditioner,
                               const bool                                  do_solve_A,
                               const double                                A_block_tolerance,
-                              const double                                S_block_tolerance)
+                              const double                                S_block_tolerance,
+                              const MPI_Comm                              mpi_comm)
       :
       stokes_matrix     (S),
       mass_matrix     (Mass),
@@ -193,7 +196,8 @@ namespace aspect
       A_block_tolerance(A_block_tolerance),
       S_block_tolerance(S_block_tolerance),
 
-      a_prec_time(0), mass_solve_time(0), Bt_time(0)
+      time(mpi_comm,true),
+      a_prec_time(0.0), mass_solve_time(0.0), Bt_time(0.0)
     {}
 
     template <class StokesMatrixType, class MassMatrixType, class PreconditionerMp,class PreconditionerA>
@@ -212,11 +216,14 @@ namespace aspect
       return n_iterations_S_;
     }
 
-//template <class StokesMatrixType, class MassMatrixType, class PreconditionerMp,class PreconditionerA>
-//std::unsigned int
-//BlockSchurPreconditioner<StokesMatrixType, MassMatrixType, PreconditionerMp, PreconditionerA>::
-//n_iterations_A() const
-//{
+    template <class StokesMatrixType, class MassMatrixType, class PreconditionerMp,class PreconditionerA>
+    std::vector<double>
+    BlockSchurPreconditioner<StokesMatrixType, MassMatrixType, PreconditionerMp, PreconditionerA>::
+    return_times() const
+    {
+      std::vector<double> return_vec {a_prec_time, mass_solve_time, Bt_time};
+      return return_vec;
+    }
 
     template <class StokesMatrixType, class MassMatrixType, class PreconditionerMp,class PreconditionerA>
     void
@@ -228,6 +235,7 @@ namespace aspect
 
       // first solve with the bottom left block, which we have built
       // as a mass matrix with the inverse of the viscosity
+      //time.restart();
       {
         SolverControl solver_control(1000, src.block(1).l2_norm() * S_block_tolerance,true);
 
@@ -267,8 +275,11 @@ namespace aspect
           }
         dst.block(1) *= -1.0;
       }
+      //time.stop();
+      //mass_solve_time += time.last_wall_time();
 
       // apply the top right block
+      //time.restart();
       {
         // TODO: figure out how to just multiply the top right block
         dealii::LinearAlgebra::distributed::BlockVector<double>  dst_tmp(dst);
@@ -277,6 +288,8 @@ namespace aspect
         utmp.block(0) *= -1.0;
         utmp.block(0) += src.block(0);
       }
+      //time.stop();
+      //Bt_time += time.last_wall_time();
 
       // now either solve with the top left block (if do_solve_A==true)
       // or just apply one preconditioner sweep (for the first few
@@ -314,9 +327,11 @@ namespace aspect
         }
       else
         {
-
+          //time.restart();
           a_preconditioner.vmult (dst.block(0), utmp.block(0));
           n_iterations_A_ += 1;
+          //time.stop();
+          //a_prec_time += time.last_wall_time();
         }
     }
   }
@@ -684,7 +699,7 @@ namespace aspect
 
 
   template <int dim>
-  std::pair<double,double> StokesMatrixFreeHandler<dim>::solve()
+  std::pair<double,double> StokesMatrixFreeHandler<dim>::solve(unsigned int i)
   {
     sim.pcout << "solve() "
               << std::endl;
@@ -940,7 +955,8 @@ namespace aspect
                           prec_S, prec_A,
                           false,
                           sim.parameters.linear_solver_A_block_tolerance,
-                          sim.parameters.linear_solver_S_block_tolerance);
+                          sim.parameters.linear_solver_S_block_tolerance,
+                          sim.triangulation.get_communicator());
 
     dealii::LinearAlgebra::distributed::BlockVector<double> solution_copy(2);
     dealii::LinearAlgebra::distributed::BlockVector<double> rhs_copy(2);
@@ -961,9 +977,6 @@ namespace aspect
 //    deallog.attach(solve_data);
 
 
-
-    Timer time(sim.triangulation.get_communicator(),true);
-    time.restart();
     try
       {
         SolverFGMRES<dealii::LinearAlgebra::distributed::BlockVector<double> >
@@ -988,7 +1001,6 @@ namespace aspect
 
         //Assert(false,ExcNotImplemented());
       }
-    time.stop();
 
 
 
@@ -1015,13 +1027,24 @@ namespace aspect
     sim.solution.block(block_p) = distributed_stokes_solution.block(block_p);
 
     // print the number of iterations to screen
-    sim.pcout << "DoFs; iterations; " << sim.dof_handler.n_dofs()
-              << "; "
-              << (solver_control_cheap.last_step() != numbers::invalid_unsigned_int ?
-                  solver_control_cheap.last_step():
-                  0)
-              << ";";
-    sim.pcout << std::endl;
+    if (i==0)
+      {
+        sim.pcout << std::left
+                  << std::setw(8) << "out:"
+                  << "GMRES iterations "
+                  << std::endl
+                  << std::setw(8) << "out:"
+                  << (solver_control_cheap.last_step() != numbers::invalid_unsigned_int ?
+                      solver_control_cheap.last_step():
+                      0)
+                  << std::endl;
+        sim.pcout << std::left
+                  << std::setw(8) << "out:" << std::endl;
+
+        sim.pcout << std::left
+                  << std::setw(8) << "out:"
+                  << std::setw(15) << "Solve" << std::endl;
+      }
 
 
     // do some cleanup now that we have the solution
@@ -1042,6 +1065,11 @@ namespace aspect
   template <int dim>
   void StokesMatrixFreeHandler<dim>::setup_dofs()
   {
+
+//    Timer time(sim.triangulation.get_communicator(),true);
+//    double dof_setup = 0.0, mf_setup = 0.0, gmg_transfer = 0.0;
+
+//    time.restart();
     {
       dof_handler_v.clear();
       dof_handler_v.distribute_dofs(fe_v);
@@ -1098,8 +1126,12 @@ namespace aspect
 
       active_coef_dof_vec.reinit(dof_handler_projection.locally_owned_dofs(), sim.triangulation.get_communicator());
     }
+//    time.stop();
+//    dof_setup += time.last_wall_time();
 
 
+
+//    time.restart();
     // Stokes matrix stuff...
     {
       typename MatrixFree<dim,double>::AdditionalData additional_data;
@@ -1190,12 +1222,40 @@ namespace aspect
             //add zero boundary coarsest level
           }
         }
+    }
+//    time.stop();
+//    mf_setup += time.last_wall_time();
 
-      //Setup GMG transfer
+
+
+    //Setup GMG transfer
+//    time.restart();
+    {
       mg_transfer.clear();
       mg_transfer.initialize_constraints(mg_constrained_dofs);
       mg_transfer.build(dof_handler_v);
     }
+//    time.stop();
+//    gmg_transfer += time.last_wall_time();
+
+//    sim.pcout << std::left
+//              << std::setw(8) << "out:"
+//              << std::setw(15) << "MF-setup"
+//              << std::setw(15) << "dofs"
+//              << std::setw(15) << "mf"
+//              << std::setw(15) << "gmg-transfer"
+//              << std::endl;
+//    sim.pcout << std::left
+//              << std::setw(8) << "out:"
+//              << std::setw(15) << dof_setup+mf_setup+gmg_transfer
+//              << std::setw(15) << dof_setup
+//              << std::setw(15) << mf_setup
+//              << std::setw(15) << gmg_transfer
+//              << std::endl
+//              << std::setw(8) << "out:" << std::endl;
+
+
+
   }
 
 }

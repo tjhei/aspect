@@ -1,0 +1,348 @@
+out:
+out:    MPI_Ranks      Cells          DoFs           
+out:    16             4096           148661         
+out:    
+out:    Setup DoFs     
+out:    0.195861       
+out:    0.195491       
+out:    0.197885       
+out:    0.200285       
+out:    0.22734        
+out:    
+out:    Assemble System
+out:    0.0273487      
+out:    0.0235661      
+out:    0.0234329      
+out:    0.0233029      
+out:    0.0234793      
+out:    
+out:    Solve          
+out:    GMRES iterations 
+out:    22
+out:    
+out:    Solve          
+out:    0.22112        
+out:    0.218838       
+out:    0.228883       
+out:    0.222839       
+out:    0.222839       
+out:    
+out:
+out:    MPI_Ranks      Cells          DoFs           
+out:    16             32768          1134437        
+out:    
+out:    Setup DoFs     
+out:    0.880509       
+out:    0.887279       
+out:    0.883353       
+out:    0.860933       
+out:    0.861305       
+out:    
+out:    Assemble System
+out:    0.179611       
+out:    0.166412       
+out:    0.161425       
+out:    0.163387       
+out:    0.163364       
+out:    
+out:    Solve          
+out:    GMRES iterations 
+out:    24
+out:    
+out:    Solve          
+out:    1.60201        
+out:    1.62127        
+out:    1.55039        
+out:    1.5796         
+out:    1.5962         
+out:    
+out:
+out:    MPI_Ranks      Cells          DoFs           
+out:    16             262144         8861381        
+out:    
+out:    Setup DoFs     
+out:    4.76362        
+out:    4.9052         
+out:    4.77244        
+out:    4.80294        
+out:    4.80817        
+out:    
+out:    Assemble System
+out:    1.32191        
+out:    1.26399        
+out:    1.27237        
+out:    1.40239        
+out:    1.26623        
+out:    
+out:    Solve          
+out:    GMRES iterations 
+out:    26
+out:    
+out:    Solve          
+out:    14.1777        
+out:    14.1507        
+out:    14.1624        
+out:    14.0856        
+out:    14.169         
+out:    
+out:
+out:    MPI_Ranks      Cells          DoFs           
+out:    16             2097152        70045061       
+out:    
+out:    Setup DoFs     
+out:    28.0096        
+out:    28.8492        
+out:    28.5614        
+out:    28.5294        
+out:    28.3699        
+out:    
+out:    Assemble System
+out:    10.5928        
+out:    10.4297        
+out:    10.3463        
+out:    10.4303        
+out:    10.3577        
+out:    
+out:    Solve          
+out:    GMRES iterations 
+out:    27
+out:    
+out:    Solve          
+out:    118.531        
+out:    117.235        
+out:    117.281        
+out:    116.728        
+out:    117.164        
+out:    
+out:
+out:    MPI_Ranks      Cells          DoFs           
+out:    32             4096           148661         
+out:    
+out:    Setup DoFs     
+out:    0.19802        
+out:    0.157477       
+out:    0.158725       
+out:    0.158867       
+out:    0.159632       
+out:    
+out:    Assemble System
+out:    0.0178294      
+out:    0.0145847      
+out:    0.0145333      
+out:    0.0148561      
+out:    0.0148892      
+out:    
+out:    Solve          
+out:    GMRES iterations 
+out:    22
+out:    
+out:    Solve          
+out:    0.158744       
+out:    0.143074       
+out:    0.142767       
+out:    0.144305       
+out:    0.156844       
+out:    
+out:
+out:    MPI_Ranks      Cells          DoFs           
+out:    32             32768          1134437        
+out:    
+out:    Setup DoFs     
+out:    0.725436       
+out:    0.604175       
+out:    0.623004       
+out:    0.607848       
+out:    0.626724       
+out:    
+out:    Assemble System
+out:    0.161154       
+out:    0.117093       
+out:    0.115712       
+out:    0.115894       
+out:    0.115914       
+out:    
+out:    Solve          
+out:    GMRES iterations 
+out:    24
+out:    
+out:    Solve          
+out:    0.92539        
+out:    0.874501       
+out:    0.890465       
+out:    0.871868       
+out:    0.882216       
+out:    
+out:
+out:    MPI_Ranks      Cells          DoFs           
+out:    32             262144         8861381        
+out:    
+out:    Setup DoFs     
+out:    3.1024         
+out:    3.04705        
+out:    3.05522        
+out:    3.092          
+out:    3.07201        
+out:    
+out:    Assemble System
+out:    0.699154       
+out:    0.66164        
+out:    0.666347       
+out:    0.664477       
+out:    0.665574       
+out:    
+out:    Solve          
+out:    GMRES iterations 
+out:    26
+out:    
+out:    Solve          
+out:    8.35396        
+out:    8.32125        
+out:    8.33699        
+out:    8.32054        
+out:    8.28924        
+out:    
+out:
+out:    MPI_Ranks      Cells          DoFs           
+out:    32             2097152        70045061       
+out:    
+out:    Setup DoFs     
+out:    17.2717        
+out:    17.678         
+out:    17.6305        
+out:    17.6453        
+out:    18.1358        
+out:    
+out:    Assemble System
+out:    6.1122         
+out:    5.36114        
+out:    5.66894        
+out:    5.39245        
+out:    5.36034        
+out:    
+out:    Solve          
+out:    GMRES iterations 
+out:    27
+out:    
+out:    Solve          
+out:    74.476         
+out:    74.7984        
+out:    74.3862        
+out:    74.3721        
+out:    74.4455        
+out:    
+out:
+out:    MPI_Ranks      Cells          DoFs           
+out:    64             4096           148661         
+out:    
+out:    Setup DoFs     
+out:    0.262077       
+out:    0.264567       
+out:    0.220637       
+out:    0.23042        
+out:    0.230259       
+out:    
+out:    Assemble System
+out:    0.0219698      
+out:    0.0182481      
+out:    0.0184859      
+out:    0.0185311      
+out:    0.0182094      
+out:    
+out:    Solve          
+out:    GMRES iterations 
+out:    22
+out:    
+out:    Solve          
+out:    0.177598       
+out:    0.161306       
+out:    0.160921       
+out:    0.1979         
+out:    0.160907       
+out:    
+out:
+out:    MPI_Ranks      Cells          DoFs           
+out:    64             32768          1134437        
+out:    
+out:    Setup DoFs     
+out:    0.644882       
+out:    0.647069       
+out:    0.673577       
+out:    0.63923        
+out:    0.645498       
+out:    
+out:    Assemble System
+out:    0.100049       
+out:    0.0889825      
+out:    0.0886851      
+out:    0.0881989      
+out:    0.0883019      
+out:    
+out:    Solve          
+out:    GMRES iterations 
+out:    24
+out:    
+out:    Solve          
+out:    0.801606       
+out:    0.836012       
+out:    0.795544       
+out:    0.838175       
+out:    0.795419       
+out:    
+out:
+out:    MPI_Ranks      Cells          DoFs           
+out:    64             262144         8861381        
+out:    
+out:    Setup DoFs     
+out:    2.89586        
+out:    3.00036        
+out:    2.9698         
+out:    2.96229        
+out:    3.00568        
+out:    
+out:    Assemble System
+out:    0.661269       
+out:    0.625813       
+out:    0.636162       
+out:    0.627854       
+out:    0.638427       
+out:    
+out:    Solve          
+out:    GMRES iterations 
+out:    26
+out:    
+out:    Solve          
+out:    7.5209         
+out:    7.4693         
+out:    7.45308        
+out:    7.50407        
+out:    7.51675        
+out:    
+out:
+out:    MPI_Ranks      Cells          DoFs           
+out:    64             2097152        70045061       
+out:    
+out:    Setup DoFs     
+out:    16.8089        
+out:    17.1362        
+out:    17.0531        
+out:    17.0503        
+out:    17.0349        
+out:    
+out:    Assemble System
+out:    4.96444        
+out:    4.77495        
+out:    4.80158        
+out:    4.77978        
+out:    4.78085        
+out:    
+out:    Solve          
+out:    GMRES iterations 
+out:    27
+out:    
+out:    Solve          
+out:    67.53          
+out:    67.3264        
+out:    67.4398        
+out:    67.2262        
+out:    67.2703        
+out:    

@@ -1261,20 +1261,13 @@ namespace aspect
 
 
   template <int dim>
-  void Simulator<dim>::setup_dofs ()
+  void Simulator<dim>::setup_dofs (unsigned int i)
   {
     signals.edit_parameters_pre_setup_dofs(*this, parameters);
 
     TimerOutput::Scope timer (computing_timer, "Setup dof systems");
 
     dof_handler.distribute_dofs(finite_element);
-    if (parameters.stokes_solver_type == Parameters<dim>::StokesSolverType::block_gmg)
-      {
-        // TODO: setup GMG
-      }
-
-    if (stokes_matrix_free)
-      stokes_matrix_free->setup_dofs();
 
     // Renumber the DoFs hierarchical so that we get the
     // same numbering if we resume the computation. This
@@ -1324,6 +1317,29 @@ namespace aspect
       pcout.get_stream().imbue(s);
     }
 
+    if (i==0)
+      {
+        pcout << std::left
+              << "out:" << std::endl
+              << std::setw(8) << "out:"
+              << std::setw(15) << "MPI_Ranks"
+              << std::setw(15) << "Cells"
+              << std::setw(15) << "DoFs"
+              << std::endl;
+        pcout << std::left
+              << std::setw(8) << "out:"
+              << std::setw(15) << Utilities::MPI::n_mpi_processes(triangulation.get_communicator())
+              << std::setw(15) << triangulation.n_global_active_cells()
+              << std::setw(15) << dof_handler.n_dofs()
+              << std::endl
+              << std::setw(8) << "out:" << std::endl;
+
+        pcout << std::left
+              << std::setw(8) << "out:"
+              << std::setw(15) << "Setup DoFs" << std::endl;
+      }
+
+
     // We need to setup the free surface degrees of freedom first if there is a free
     // surface active, since the mapping must be in place before applying boundary
     // conditions that rely on it (such as no flux BCs).
@@ -1359,9 +1375,6 @@ namespace aspect
     compute_initial_velocity_boundary_constraints(constraints);
     constraints.close();
 
-    if (stokes_matrix_free)
-      stokes_matrix_free->setup_dofs();
-
     signals.post_compute_no_normal_flux_constraints(triangulation);
 
     // Finally initialize vectors. We delay construction of the sparsity
@@ -1382,6 +1395,11 @@ namespace aspect
 
     rebuild_stokes_matrix         = true;
     rebuild_stokes_preconditioner = true;
+
+
+    if (stokes_matrix_free)
+      stokes_matrix_free->setup_dofs();
+
   }
 
 
@@ -1796,7 +1814,20 @@ namespace aspect
             triangulation.execute_coarsening_and_refinement();
           }
 
-        setup_dofs();
+        for (unsigned int i=0; i<5; ++i)
+          {
+            Timer time(triangulation.get_communicator(),true);
+            time.restart();
+
+            setup_dofs(i);
+
+            time.stop();
+            pcout << std::left
+                  << std::setw(8) << "out:"
+                  << std::setw(15) << time.last_wall_time() << std::endl;
+          }
+        pcout << std::left
+              << std::setw(8) << "out:" << std::endl;
 
         global_volume = GridTools::volume (triangulation, *mapping);
       }

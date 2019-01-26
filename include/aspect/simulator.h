@@ -370,7 +370,7 @@ namespace aspect
        * This function is implemented in
        * <code>source/simulator/core.cc</code>.
        */
-      void setup_dofs ();
+      void setup_dofs (unsigned int i = 0);
 
       /**
        * This function initializes the variables of the introspection object.
@@ -731,7 +731,7 @@ namespace aspect
        * <code>source/simulator/solver.cc</code>.
        */
       std::pair<double,double>
-      solve_stokes ();
+      solve_stokes (unsigned int i = 0);
 
       /**
        * Solve the Stokes system using a block preconditioner and GMG.

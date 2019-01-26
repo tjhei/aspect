@@ -440,6 +440,7 @@ namespace aspect
       AssertThrow(false, ExcNotImplemented());
 
     TimerOutput::Scope timer (computing_timer, "Build Stokes preconditioner");
+
     pcout << "   Rebuilding Stokes preconditioner..." << std::flush;
 
     // first assemble the raw matrices necessary for the preconditioner
@@ -692,14 +693,17 @@ namespace aspect
         rebuild_stokes_matrix = false;
       }
     TimerOutput::Scope timer (computing_timer,
-                              (!assemble_newton_stokes_system ?
-                               "Assemble Stokes system" :
-                               (assemble_newton_stokes_matrix ?
-                                (newton_handler->parameters.newton_derivative_scaling_factor == 0 ?
-                                 "Assemble Stokes system Picard" :
-                                 "Assemble Stokes system Newton")
-                                :
-                                "Assemble Stokes system rhs")));
+                              (stokes_matrix_free ?
+                               "Assemble Stokes system rhs" :
+                               (!assemble_newton_stokes_system ?
+                                "Assemble Stokes system" :
+                                (assemble_newton_stokes_matrix ?
+                                 (newton_handler->parameters.newton_derivative_scaling_factor == 0 ?
+                                  "Assemble Stokes system Picard" :
+                                  "Assemble Stokes system Newton")
+                                 :
+                                 "Assemble Stokes system rhs"))));
+
 
     if (rebuild_stokes_matrix == true)
       system_matrix = 0;

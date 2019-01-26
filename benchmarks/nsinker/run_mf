@@ -1,0 +1,38 @@
+#!/bin/bash
+
+for averaging in "harmonic average"; do # arithmetic/geometric/harmonic average
+  for nsinkers in 4; do #1 4 8 12 16 20 24 28; do
+    for viscosity in 1e4; do #1e4 1e6 1e8 1e10; do
+      for proc in 16 32 64; do
+        for refinement in 4 5 6; do # 4 5 6 7
+	  cp nsinker_mf.prm temp.prm
+          echo "subsection Material model" >> temp.prm
+          echo "  set Material averaging = $averaging" >> temp.prm
+          echo "  subsection NSinker" >> temp.prm
+          echo "    set Number of sinkers = $nsinkers" >> temp.prm
+          echo "    set Dynamic viscosity ratio = $viscosity" >> temp.prm
+          echo "  end" >> temp.prm
+          echo "end" >> temp.prm
+
+          echo "subsection Mesh refinement" >> temp.prm
+          echo "  set Initial global refinement = $refinement" >> temp.prm
+          echo "end" >> temp.prm
+        
+	  echo "subsection Postprocess" >> temp.prm
+          echo "  subsection Visualization" >> temp.prm
+          echo "    set Time between graphical output = 2147483647" >> temp.prm
+          echo "  end" >> temp.prm
+	  echo "end" >> temp.prm
+
+	  #current_model="mb/harmonic/nsinkers${nsinkers}_viscosity${viscosity}_refinement${refinement}"
+          current_model="no_output"
+	  echo "set Output directory = output/${current_model}" >> temp.prm
+          #echo "Starting ${current_model}"
+          mpirun -np $proc ./aspect temp.prm | grep "out:"
+	  rm temp.prm
+	done
+      done
+    done
+  done
+done
+
