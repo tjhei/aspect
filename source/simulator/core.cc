@@ -1813,7 +1813,7 @@ namespace aspect
             mesh_refinement_manager.tag_additional_cells ();
             triangulation.execute_coarsening_and_refinement();
           }
-
+        double t=0;
         for (unsigned int i=0; i<5; ++i)
           {
             Timer time(triangulation.get_communicator(),true);
@@ -1822,11 +1822,15 @@ namespace aspect
             setup_dofs(i);
 
             time.stop();
-            pcout << std::left
-                  << std::setw(8) << "out:"
-                  << std::setw(15) << time.last_wall_time() << std::endl;
+            if (i!=0)
+              t += time.last_wall_time();
+//            pcout << std::left
+//                  << std::setw(8) << "out:"
+//                  << std::setw(15) << time.last_wall_time() << std::endl;
           }
         pcout << std::left
+              << std::setw(8) << "out:"
+              << std::setw(15) << t/4.0 << std::endl
               << std::setw(8) << "out:" << std::endl;
 
         global_volume = GridTools::volume (triangulation, *mapping);

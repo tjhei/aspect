@@ -289,6 +289,7 @@ namespace aspect
     pcout << std::left
           << std::setw(8) << "out:"
           << std::setw(15) << "Assemble System" << std::endl;
+    double t = 0;
     for (unsigned int i=0; i<5; ++i)
       {
         Timer time(triangulation.get_communicator(),true);
@@ -299,11 +300,15 @@ namespace aspect
         assemble_stokes_system ();
 
         time.stop();
-        pcout << std::left
-              << std::setw(8) << "out:"
-              << std::setw(15) << time.last_wall_time() << std::endl;
+        if (i!=0)
+          t += time.last_wall_time();
+//        pcout << std::left
+//              << std::setw(8) << "out:"
+//              << std::setw(15) << time.last_wall_time() << std::endl;
       }
     pcout << std::left
+          << std::setw(8) << "out:"
+          << std::setw(15) << t/4.0 << std::endl
           << std::setw(8) << "out:" << std::endl;
 
     if (!stokes_matrix_free)
@@ -311,6 +316,7 @@ namespace aspect
         pcout << std::left
               << std::setw(8) << "out:"
               << std::setw(15) << "Assemble Prec" << std::endl;
+        t = 0;
         for (unsigned int i=0; i<5; ++i)
           {
             Timer time(triangulation.get_communicator(),true);
@@ -321,11 +327,15 @@ namespace aspect
             build_stokes_preconditioner();
 
             time.stop();
-            pcout << std::left
-                  << std::setw(8) << "out:"
-                  << std::setw(15) << time.last_wall_time() << std::endl;
+            if (i!=0)
+              t += time.last_wall_time();
+//            pcout << std::left
+//                  << std::setw(8) << "out:"
+//                  << std::setw(15) << time.last_wall_time() << std::endl;
           }
         pcout << std::left
+              << std::setw(8) << "out:"
+              << std::setw(15) << t/4.0 << std::endl
               << std::setw(8) << "out:" << std::endl;
       }
 
@@ -341,6 +351,7 @@ namespace aspect
     pcout << std::left
           << std::setw(8) << "out:"
           << std::setw(15) << "Solve" << std::endl;
+    t = 0;
     for (unsigned int i=0; i<5; ++i)
       {
         Timer time(triangulation.get_communicator(),true);
@@ -349,12 +360,16 @@ namespace aspect
         res = solve_stokes(i).first;
 
         time.stop();
-        pcout << std::left
-              << std::setw(8) << "out:"
-              << std::setw(15) << time.last_wall_time() << std::endl;
+        if (i!=0)
+          t += time.last_wall_time();
+//            pcout << std::left
+//                  << std::setw(8) << "out:"
+//                  << std::setw(15) << time.last_wall_time() << std::endl;
 
       }
     pcout << std::left
+          << std::setw(8) << "out:"
+          << std::setw(15) << t/4.0 << std::endl
           << std::setw(8) << "out:" << std::endl;
 
     const double current_nonlinear_residual = res;
