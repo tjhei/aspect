@@ -1,0 +1,44 @@
+#!/bin/bash
+
+for refinement in 5 6 7 8; do # 4 5 6 7
+  cp nsinker_mf.prm temp.prm
+  echo "subsection Mesh refinement" >> temp.prm
+  echo "  set Initial global refinement = $refinement" >> temp.prm
+  echo "end" >> temp.prm
+        
+  echo "subsection Postprocess" >> temp.prm
+  echo "  subsection Visualization" >> temp.prm
+  echo "    set Time between graphical output = 2147483647" >> temp.prm
+  echo "  end" >> temp.prm
+  echo "end" >> temp.prm
+
+  #current_model="mb/harmonic/nsinkers${nsinkers}_viscosity${viscosity}_refinement${refinement}"
+  current_model="no_output"
+  echo "set Output directory = output/${current_model}" >> temp.prm
+  #echo "Starting ${current_model}"
+  mpirun -np $proc ./aspect temp.prm | grep "out:"
+  rm temp.prm
+done
+
+
+for refinement in 5 6 7 8; do # 4 5 6 7
+  cp nsinker_mb.prm temp.prm
+
+  echo "subsection Mesh refinement" >> temp.prm
+  echo "  set Initial global refinement = $refinement" >> temp.prm
+  echo "end" >> temp.prm
+        
+  echo "subsection Postprocess" >> temp.prm
+  echo "  subsection Visualization" >> temp.prm
+  echo "    set Time between graphical output = 2147483647" >> temp.prm
+  echo "  end" >> temp.prm
+  echo "end" >> temp.prm
+
+  #current_model="mb/harmonic/nsinkers${nsinkers}_viscosity${viscosity}_refinement${refinement}"
+  current_model="no_output"
+  echo "set Output directory = output/${current_model}" >> temp.prm
+  #echo "Starting ${current_model}"
+  mpirun -np $proc ./aspect temp.prm | grep "out:"
+  rm temp.prm
+done
+
