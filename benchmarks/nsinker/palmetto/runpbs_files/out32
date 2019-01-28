@@ -1,0 +1,124 @@
+Job 4969468.pbs02 started at Sun Jan 27 20:13:07 EST 2019 on node1949.palmetto.clemson.edu using 32 processors
+
+
+out:
+out:    MPI_Ranks      Cells          DoFs           
+out:    32             4096           148661         
+out:    
+out:    Setup DoFs     
+out:    0.291579       
+out:    
+out:    Assemble System
+out:    0.0241389      
+out:    
+out:    Solve          
+out:    GMRES iterations 
+out:    22
+out:    
+out:    Solve          
+out:    0.421253       
+out:    
+out:
+out:    MPI_Ranks      Cells          DoFs           
+out:    32             32768          1134437        
+out:    
+out:    Setup DoFs     
+out:    1.11681        
+out:    
+out:    Assemble System
+out:    0.119469       
+out:    
+out:    Solve          
+out:    GMRES iterations 
+out:    24
+out:    
+out:    Solve          
+out:    1.29975        
+out:    
+out:
+out:    MPI_Ranks      Cells          DoFs           
+out:    32             262144         8861381        
+out:    
+out:    Setup DoFs     
+out:    5.68086        
+out:    
+out:    Assemble System
+out:    0.871554       
+out:    
+out:    Solve          
+out:    GMRES iterations 
+out:    26
+out:    
+out:    Solve          
+out:    9.41845        
+out:    
+out:
+
+
+
+
+
+
+
+
+
+
+
+
+
+out:
+out:    MPI_Ranks      Cells          DoFs           
+out:    32             32768          1134437        
+out:    
+out:    Setup DoFs     
+out:    0.588731       
+out:    
+out:    Assemble System
+out:    1.63182        
+out:    
+out:    Assemble Prec  
+out:    1.05461        
+out:    
+out:    Solve          
+out:    GMRES iterations
+out:    53
+out:    
+out:    Solve          
+out:    5.47889        
+out:    
+out:
+out:    MPI_Ranks      Cells          DoFs           
+out:    32             262144         8861381        
+out:    
+out:    Setup DoFs     
+out:    3.07811        
+out:    
+out:    Assemble System
+out:    12.4809        
+out:    
+out:    Assemble Prec  
+out:    8.84312        
+out:    
+out:    Solve          
+out:    GMRES iterations
+out:    58
+out:    
+out:    Solve          
+out:    49.0115        
+out:    
+ 
+ 
++------------------------------------------+ 
+| PALMETTO CLUSTER PBS RESOURCES REQUESTED | 
++------------------------------------------+ 
+ 
+mem=122gb,ncpus=32,walltime=01:00:00
+ 
+ 
++-------------------------------------+ 
+| PALMETTO CLUSTER PBS RESOURCES USED | 
++-------------------------------------+ 
+ 
+cpupercent=1616,cput=04:05:53,mem=29056232kb,ncpus=32,vmem=45109856kb,walltime=00:15:28
+ 
+ 

@@ -1,5 +1,25 @@
-#!/bin/bash
+#!/bin/bash                                                                                                      
+#PBS -l select=16:ncpus=16:mpiprocs=16:chip_type=e5-2665:interconnect=fdr:mem=61gb                                   
+#PBS -l walltime=1:00:00                                                                                            
+#PBS -j oe                                                                                                          
+#PBS -N test                                                                                                        
+##PBS -q compmath                                                                                                   
 
+# load profile and modules:                                                                                         
+source /etc/profile.d/modules.sh
+source ~/.bash_profile
+source /home/heister/shared-dealii/modules_9.0.0pre1
+
+# compute processor count and print it:                                                                             
+Nproc=`qstat -xf $PBS_JOBID | grep List.ncpus | sed 's/^.\{26\}//'`
+cd $PBS_O_WORKDIR
+echo "Job $PBS_JOBID started at `date` on `hostname` using $Nproc processors"
+echo
+echo
+
+cd ../../
+
+echo "MarixFree"
 for refinement in 5 6 7; do # 4 5 6 7
   cp nsinker_mf.prm temp.prm
   echo "subsection Mesh refinement" >> temp.prm
@@ -16,11 +36,11 @@ for refinement in 5 6 7; do # 4 5 6 7
   current_model="no_output"
   echo "set Output directory = output/${current_model}" >> temp.prm
   #echo "Starting ${current_model}"
-  mpirun -np $proc ./aspect temp.prm | grep "out:"
+  mpirun -np $Nproc ./aspect temp.prm | grep "out:"
   rm temp.prm
 done
 
-
+echo "MatrixBased"
 for refinement in 5 6 7; do # 4 5 6 7
   cp nsinker_mb.prm temp.prm
 
@@ -38,7 +58,7 @@ for refinement in 5 6 7; do # 4 5 6 7
   current_model="no_output"
   echo "set Output directory = output/${current_model}" >> temp.prm
   #echo "Starting ${current_model}"
-  mpirun -np $proc ./aspect temp.prm | grep "out:"
+  mpirun -np $Nproc ./aspect temp.prm | grep "out:"
   rm temp.prm
 done
 

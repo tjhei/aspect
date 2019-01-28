@@ -1,0 +1,167 @@
+Job 4969473.pbs02 started at Sun Jan 27 21:49:48 EST 2019 on node1625.palmetto.clemson.edu using 1024 processors
+
+
+out:
+out:    MPI_Ranks      Cells          DoFs           
+out:    1024           32768          1134437        
+out:    
+out:    Setup DoFs     
+out:    0.637334       
+out:    
+out:    Assemble System
+out:    0.0266338      
+out:    
+out:    Solve          
+out:    GMRES iterations 
+out:    24
+out:    
+out:    Solve          
+out:    1.00773        
+out:    
+out:
+out:    MPI_Ranks      Cells          DoFs           
+out:    1024           262144         8861381        
+out:    
+out:    Setup DoFs     
+out:    0.994231       
+out:    
+out:    Assemble System
+out:    0.0625692      
+out:    
+out:    Solve          
+out:    GMRES iterations 
+out:    26
+out:    
+out:    Solve          
+out:    1.26195        
+out:    
+out:
+out:    MPI_Ranks      Cells          DoFs           
+out:    1024           2097152        70045061       
+out:    
+out:    Setup DoFs     
+out:    3.82346        
+out:    
+out:    Assemble System
+out:    0.257195       
+out:    
+out:    Solve          
+out:    GMRES iterations 
+out:    27
+out:    
+out:    Solve          
+out:    4.09168        
+out:    
+out:
+out:    MPI_Ranks      Cells          DoFs           
+out:    1024           16777216       556997381      
+out:    
+out:    Setup DoFs     
+out:    12.8431        
+out:    
+out:    Assemble System
+out:    1.73949        
+out:    
+out:    Solve          
+out:    GMRES iterations 
+out:    27
+out:    
+out:    Solve          
+out:    23.5442        
+out:    
+out:
+out:    MPI_Ranks      Cells          DoFs           
+out:    1024           32768          1134437        
+out:    
+out:    Setup DoFs     
+out:    0.258386       
+out:    
+out:    Assemble System
+out:    0.107232       
+out:    
+out:    Assemble Prec  
+out:    6.29006        
+out:    
+out:    Solve          
+out:    GMRES iterations
+out:    46
+out:    
+out:    Solve          
+out:    3.01169        
+out:    
+out:
+out:    MPI_Ranks      Cells          DoFs           
+out:    1024           262144         8861381        
+out:    
+out:    Setup DoFs     
+out:    0.471931       
+out:    
+out:    Assemble System
+out:    0.494018       
+out:    
+out:    Assemble Prec  
+out:    12.8568        
+out:    
+out:    Solve          
+out:    GMRES iterations
+out:    56
+out:    
+out:    Solve          
+out:    6.72226        
+out:    
+out:
+out:    MPI_Ranks      Cells          DoFs           
+out:    1024           2097152        70045061       
+out:    
+out:    Setup DoFs     
+out:    1.55395        
+out:    
+out:    Assemble System
+out:    3.37838        
+out:    
+out:    Assemble Prec  
+out:    9.29702        
+out:    
+out:    Solve          
+out:    GMRES iterations
+out:    59
+out:    
+out:    Solve          
+out:    14.6502        
+out:    
+rm: cannot remove ‘temp.prm’: No such file or directory
+[node1625.palmetto.clemson.edu:21353] 10 more processes have sent help message help-orte-odls-base.txt / orte-odls-base:could-not-kill
+[node1625.palmetto.clemson.edu:21353] Set MCA parameter "orte_base_help_aggregate" to 0 to see all help / error messages
+[node1625.palmetto.clemson.edu:21353] 8 more processes have sent help message help-orte-odls-base.txt / orte-odls-base:could-not-kill
+[node1625.palmetto.clemson.edu:21353] 13 more processes have sent help message help-orte-odls-base.txt / orte-odls-base:could-not-kill
+[node1625.palmetto.clemson.edu:21353] 8 more processes have sent help message help-orte-odls-base.txt / orte-odls-base:could-not-kill
+[node1625.palmetto.clemson.edu:21353] 12 more processes have sent help message help-orte-odls-base.txt / orte-odls-base:could-not-kill
+[node1625.palmetto.clemson.edu:21353] 5 more processes have sent help message help-orte-odls-base.txt / orte-odls-base:could-not-kill
+[node1625.palmetto.clemson.edu:21353] 3 more processes have sent help message help-orte-odls-base.txt / orte-odls-base:could-not-kill
+out:
+out:    MPI_Ranks      Cells          DoFs           
+out:    1024           16777216       556997381      
+out:    
+out:    Setup DoFs     
+out:    7.01356        
+out:    
+out:    Assemble System
+out:    25.514         
+out:    
+out:    Assemble Prec  
+ 
+ 
++------------------------------------------+ 
+| PALMETTO CLUSTER PBS RESOURCES REQUESTED | 
++------------------------------------------+ 
+ 
+mem=3904gb,ncpus=1024,walltime=01:00:00
+ 
+ 
++-------------------------------------+ 
+| PALMETTO CLUSTER PBS RESOURCES USED | 
++-------------------------------------+ 
+ 
+cpupercent=1611,cput=04:13:56,mem=50423460kb,ncpus=1024,vmem=60349400kb,walltime=00:20:33
+ 
+ 

@@ -1,0 +1,4 @@
+Procs; Cells; DoFs; scale; 128; 2097152; 70045061; 1.69578;
+Procs; Cells; DoFs; scale; 256; 2097152; 70045061; 0.84789;
+Procs; Cells; DoFs; scale; 512; 2097152; 70045061; 0.423945;
+Procs; Cells; DoFs; scale; 1024; 2097152; 70045061; 0.2119725;

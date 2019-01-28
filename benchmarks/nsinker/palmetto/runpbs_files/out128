@@ -1,0 +1,131 @@
+Job 4969470.pbs02 started at Sun Jan 27 20:28:38 EST 2019 on node1949.palmetto.clemson.edu using 128 processors
+
+
+out:
+out:    MPI_Ranks      Cells          DoFs           
+out:    128            32768          1134437        
+out:    
+out:    Setup DoFs     
+out:    0.548859       
+out:    
+out:    Assemble System
+out:    0.0421151      
+out:    
+out:    Solve          
+out:    GMRES iterations 
+out:    24
+out:    
+out:    Solve          
+out:    0.678539       
+out:    
+out:
+out:    MPI_Ranks      Cells          DoFs           
+out:    128            262144         8861381        
+out:    
+out:    Setup DoFs     
+out:    3.1028         
+out:    
+out:    Assemble System
+out:    0.396626       
+out:    
+out:    Solve          
+out:    GMRES iterations 
+out:    26
+out:    
+out:    Solve          
+out:    2.69135        
+out:    
+out:
+out:    MPI_Ranks      Cells          DoFs           
+out:    128            2097152        70045061       
+out:    
+out:    Setup DoFs     
+out:    11.9723        
+out:    
+out:    Assemble System
+out:    1.69578        
+out:    
+out:    Solve          
+out:    GMRES iterations 
+out:    27
+out:    
+out:    Solve          
+out:    19.9076        
+out:    
+rm: cannot remove ‘temp.prm’: No such file or directory
+out:
+out:    MPI_Ranks      Cells          DoFs           
+out:    128            32768          1134437        
+out:    
+out:    Setup DoFs     
+out:    0.26943        
+out:    
+out:    Assemble System
+out:    0.454203       
+out:    
+out:    Assemble Prec  
+out:    0.524375       
+out:    
+out:    Solve          
+out:    GMRES iterations
+out:    52
+out:    
+out:    Solve          
+out:    2.20405        
+out:    
+out:
+out:    MPI_Ranks      Cells          DoFs           
+out:    128            262144         8861381        
+out:    
+out:    Setup DoFs     
+out:    1.17885        
+out:    
+out:    Assemble System
+out:    3.25229        
+out:    
+out:    Assemble Prec  
+out:    2.23476        
+out:    
+out:    Solve          
+out:    GMRES iterations
+out:    57
+out:    
+out:    Solve          
+out:    12.3771        
+out:    
+out:
+out:    MPI_Ranks      Cells          DoFs           
+out:    128            2097152        70045061       
+out:    
+out:    Setup DoFs     
+out:    5.99426        
+out:    
+out:    Assemble System
+out:    24.8986        
+out:    
+out:    Assemble Prec  
+out:    24.9757        
+out:    
+out:    Solve          
+out:    GMRES iterations
+out:    60
+out:    
+out:    Solve          
+out:    109.102        
+out:    
+ 
+ 
++------------------------------------------+ 
+| PALMETTO CLUSTER PBS RESOURCES REQUESTED | 
++------------------------------------------+ 
+ 
+mem=488gb,ncpus=128,walltime=01:00:00
+ 
+ 
++-------------------------------------+ 
+| PALMETTO CLUSTER PBS RESOURCES USED | 
++-------------------------------------+ 
+ 
+cpupercent=1628,cput=05:26:14,mem=53751512kb,ncpus=128,vmem=63643780kb,walltime=00:20:37
+ 
+ 
