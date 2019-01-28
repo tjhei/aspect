@@ -1877,7 +1877,7 @@ namespace aspect
               << std::setw(8) << "out:"
               << "Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; "
               << Utilities::MPI::n_mpi_processes(mpi_communicator) << "; "
-              << triangulation.n_active_cells() << "; "
+              << triangulation.n_global_active_cells() << "; "
               << dof_handler.n_dofs() << "; "
               << setup_time << "; "
               << assemble_time << "; "
