@@ -286,58 +286,30 @@ namespace aspect
           }
       }
 
-    pcout << std::left
-          << std::setw(8) << "out:"
-          << std::setw(15) << "Assemble System" << std::endl;
-    double t = 0;
-    for (unsigned int i=0; i<5; ++i)
-      {
-        Timer time(triangulation.get_communicator(),true);
-        time.restart();
 
-        if (!stokes_matrix_free)
+    assemble_time = 0;
+    {
+      Timer time(triangulation.get_communicator(),true);
+      for (unsigned int i=0; i<5; ++i)
+        {
+          time.restart();
+
+          if (!stokes_matrix_free)
             rebuild_stokes_matrix = true;
-        assemble_stokes_system ();
+          assemble_stokes_system ();
 
-        time.stop();
-        if (i!=0)
-          t += time.last_wall_time();
-//        pcout << std::left
-//              << std::setw(8) << "out:"
-//              << std::setw(15) << time.last_wall_time() << std::endl;
-      }
-    pcout << std::left
-          << std::setw(8) << "out:"
-          << std::setw(15) << t/4.0 << std::endl
-          << std::setw(8) << "out:" << std::endl;
 
-    if (!stokes_matrix_free)
-      {
-        pcout << std::left
-              << std::setw(8) << "out:"
-              << std::setw(15) << "Assemble Prec" << std::endl;
-        t = 0;
-        for (unsigned int i=0; i<5; ++i)
-          {
-            Timer time(triangulation.get_communicator(),true);
-            time.restart();
+          if (!stokes_matrix_free)
+            rebuild_stokes_preconditioner = true;
+          build_stokes_preconditioner();
 
-            if (!stokes_matrix_free)
-                rebuild_stokes_preconditioner = true;
-            build_stokes_preconditioner();
+          time.stop();
+          if (i!=0)
+            assemble_time += time.last_wall_time();
+        }
+      assemble_time /= 4.0;
+    }
 
-            time.stop();
-            if (i!=0)
-              t += time.last_wall_time();
-//            pcout << std::left
-//                  << std::setw(8) << "out:"
-//                  << std::setw(15) << time.last_wall_time() << std::endl;
-          }
-        pcout << std::left
-              << std::setw(8) << "out:"
-              << std::setw(15) << t/4.0 << std::endl
-              << std::setw(8) << "out:" << std::endl;
-      }
 
     if (compute_initial_residual)
       {
@@ -347,30 +319,21 @@ namespace aspect
 
 
     double res;
+    solve_time = 0;
+    {
+      Timer time(triangulation.get_communicator(),true);
+      for (unsigned int i=0; i<5; ++i)
+        {
+          time.restart();
 
-    pcout << std::left
-          << std::setw(8) << "out:"
-          << std::setw(15) << "Solve" << std::endl;
-    t = 0;
-    for (unsigned int i=0; i<5; ++i)
-      {
-        Timer time(triangulation.get_communicator(),true);
-        time.restart();
+          res = solve_stokes(i).first;
 
-        res = solve_stokes(i).first;
-
-        time.stop();
-        if (i!=0)
-          t += time.last_wall_time();
-//            pcout << std::left
-//                  << std::setw(8) << "out:"
-//                  << std::setw(15) << time.last_wall_time() << std::endl;
-
-      }
-    pcout << std::left
-          << std::setw(8) << "out:"
-          << std::setw(15) << t/4.0 << std::endl
-          << std::setw(8) << "out:" << std::endl;
+          time.stop();
+          if (i!=0)
+            solve_time += time.last_wall_time();
+        }
+      solve_time /= 4.0;
+    }
 
     const double current_nonlinear_residual = res;
 

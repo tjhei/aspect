@@ -1334,9 +1334,6 @@ namespace aspect
               << std::endl
               << std::setw(8) << "out:" << std::endl;
 
-        pcout << std::left
-              << std::setw(8) << "out:"
-              << std::setw(15) << "Setup DoFs" << std::endl;
       }
 
 
@@ -1813,25 +1810,22 @@ namespace aspect
             mesh_refinement_manager.tag_additional_cells ();
             triangulation.execute_coarsening_and_refinement();
           }
-        double t=0;
-        for (unsigned int i=0; i<5; ++i)
-          {
-            Timer time(triangulation.get_communicator(),true);
-            time.restart();
 
-            setup_dofs(i);
+        setup_time = 0;
+        {
+          Timer time(triangulation.get_communicator(),true);
+          for (unsigned int i=0; i<5; ++i)
+            {
+              time.restart();
 
-            time.stop();
-            if (i!=0)
-              t += time.last_wall_time();
-//            pcout << std::left
-//                  << std::setw(8) << "out:"
-//                  << std::setw(15) << time.last_wall_time() << std::endl;
-          }
-        pcout << std::left
-              << std::setw(8) << "out:"
-              << std::setw(15) << t/4.0 << std::endl
-              << std::setw(8) << "out:" << std::endl;
+              setup_dofs(i);
+
+              time.stop();
+              if (i!=0)
+                setup_time += time.last_wall_time();
+            }
+          setup_time /= 4.0;
+        }
 
         global_volume = GridTools::volume (triangulation, *mapping);
       }
@@ -1877,6 +1871,21 @@ namespace aspect
             // then do the core work: assemble systems and solve
             solve_timestep ();
           }
+        pcout << std::left
+              << std::setw(8) << "out:"
+              << "Average of 5 function calls: " << std::endl
+              << std::setw(8) << "out:"
+              << "Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; "
+              << Utilities::MPI::n_mpi_processes(mpi_communicator) << "; "
+              << triangulation.n_active_cells() << "; "
+              << dof_handler.n_dofs() << "; "
+              << setup_time << "; "
+              << assemble_time << "; "
+              << solve_time << "; "
+              << gmres_iterations << "; "
+              << std::endl
+              << std::setw(8) << "out:" << std::endl;
+
 
         // see if we have to start over with a new adaptive refinement cycle
         // at the beginning of the simulation.

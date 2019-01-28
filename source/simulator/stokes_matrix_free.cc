@@ -977,6 +977,7 @@ namespace aspect
 //    deallog.attach(solve_data);
 
 
+    sim.gmres_iterations = 0;
     try
       {
         SolverFGMRES<dealii::LinearAlgebra::distributed::BlockVector<double> >
@@ -1001,6 +1002,7 @@ namespace aspect
 
         //Assert(false,ExcNotImplemented());
       }
+    sim.gmres_iterations = solver_control_cheap.last_step();
 
 
 
@@ -1040,10 +1042,6 @@ namespace aspect
                   << std::endl;
         sim.pcout << std::left
                   << std::setw(8) << "out:" << std::endl;
-
-        sim.pcout << std::left
-                  << std::setw(8) << "out:"
-                  << std::setw(15) << "Solve" << std::endl;
       }
 
 

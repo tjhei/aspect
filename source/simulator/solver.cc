@@ -821,6 +821,7 @@ namespace aspect
 
         // step 1a: try if the simple and fast solver
         // succeeds in n_cheap_stokes_solver_steps steps or less.
+        gmres_iterations = 0;
         try
           {
             // if this cheaper solver is not desired, then simply short-cut
@@ -928,6 +929,7 @@ namespace aspect
                   }
               }
           }
+        gmres_iterations = solver_control_cheap.last_step() + solver_control_expensive.last_step();
 
 
         // signal successful solver
@@ -972,9 +974,6 @@ namespace aspect
                   << std::endl
                   << std::setw(8) << "out:" << std::endl;
 
-            pcout << std::left
-                  << std::setw(8) << "out:"
-                  << std::setw(15) << "Solve" << std::endl;
           }
 
 

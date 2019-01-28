@@ -1800,6 +1800,11 @@ namespace aspect
       bool                                                      assemble_newton_stokes_system;
       bool                                                      rebuild_stokes_preconditioner;
 
+
+
+      mutable double setup_time, assemble_time, solve_time, vcycle_time;
+      mutable unsigned int gmres_iterations;
+
       /**
        * @}
        */
