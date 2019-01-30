@@ -76,7 +76,7 @@ end
 
 subsection Mesh refinement
   set Initial global refinement                = 2
-  set Initial adaptive refinement              = 10 
+  set Initial adaptive refinement              = 0 
 
 
   set Adapt by fraction of cells = false

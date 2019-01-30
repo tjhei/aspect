@@ -7,7 +7,7 @@
 
 set Additional shared libraries            = ./libnsinker.so
 
-set Number of timings = 0
+set Number of timings = 4
 
 set Dimension                              = 3 
 set End time                               = 0
@@ -76,7 +76,7 @@ end
 
 subsection Mesh refinement
   set Initial global refinement                = 2 
-  set Initial adaptive refinement              = 20 
+  set Initial adaptive refinement              = 0 
 
 
   set Adapt by fraction of cells = false
