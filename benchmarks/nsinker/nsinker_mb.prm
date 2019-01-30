@@ -7,6 +7,8 @@
 
 set Additional shared libraries            = ./libnsinker.so
 
+set Number of timings = 4
+
 set Dimension                              = 3
 set End time                               = 0
 set Pressure normalization                 = volume

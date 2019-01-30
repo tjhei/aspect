@@ -1046,7 +1046,9 @@ namespace aspect
     solution_copy.update_ghost_values();
 
 
-    if (i==0 && sim.parameters.n_timings!=0)
+    if (sim.parameters.n_timings==0)
+      sim.vcycle_time =0;
+    else if (i==0)
       {
         sim.vcycle_time = 0;
         dealii::LinearAlgebra::distributed::BlockVector<double> tmp_dst = solution_copy;

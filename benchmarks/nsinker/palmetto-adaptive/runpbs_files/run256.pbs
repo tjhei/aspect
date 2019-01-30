@@ -1,0 +1,65 @@
+#!/bin/bash                                                                                                      
+#PBS -l select=16:ncpus=16:mpiprocs=16:chip_type=e5-2665:interconnect=fdr:mem=61gb                                   
+#PBS -l walltime=1:00:00                                                                                            
+#PBS -j oe                                                                                                          
+#PBS -N test                                                                                                        
+##PBS -q compmath                                                                                                   
+
+# load profile and modules:                                                                                         
+source /etc/profile.d/modules.sh
+source ~/.bash_profile
+source /home/heister/shared-dealii/modules_9.0.0pre1
+
+ulimit -c 0
+
+# compute processor count and print it:                                                                             
+Nproc=`qstat -xf $PBS_JOBID | grep List.ncpus | sed 's/^.\{26\}//'`
+cd $PBS_O_WORKDIR
+echo "Job $PBS_JOBID started at `date` on `hostname` using $Nproc processors"
+echo
+echo
+
+cd ../../
+
+echo "MatrixFree, 4 sinkers, 1e4 visc jump"
+cp adaptive_mf.prm temp256.prm
+
+echo "subsection Mesh refinement" >> temp256.prm
+echo "  set Initial global refinement = 2" >> temp256.prm
+echo "  set Initial adaptive refinement = 12" >> temp256.prm 
+echo "end" >> temp256.prm
+        
+echo "subsection Postprocess" >> temp256.prm
+echo "  subsection Visualization" >> temp256.prm
+echo "    set Time between graphical output = 2147483647" >> temp256.prm
+echo "  end" >> temp256.prm
+echo "end" >> temp256.prm
+
+current_model="no_output"
+echo "set Output directory = output/${current_model}" >> temp256.prm
+#echo "Starting ${current_model}"
+mpirun -np $Nproc ./aspect temp256.prm | grep "out:"
+rm temp256.prm
+
+
+
+echo "MatrixBased, 4 sinkers, 1e4 visc jump"
+cp adaptive_mb.prm temp256.prm
+
+echo "subsection Mesh refinement" >> temp256.prm
+echo "  set Initial global refinement = 2" >> temp256.prm
+echo "  set Initial adaptive refinement = 12" >> temp256.prm  
+echo "end" >> temp256.prm
+        
+echo "subsection Postprocess" >> temp256.prm
+echo "  subsection Visualization" >> temp256.prm
+echo "    set Time between graphical output = 2147483647" >> temp256.prm
+echo "  end" >> temp256.prm
+echo "end" >> temp256.prm
+
+current_model="no_output"
+echo "set Output directory = output/${current_model}" >> temp256.prm
+#echo "Starting ${current_model}"
+mpirun -np $Nproc ./aspect temp256.prm | grep "out:"
+rm temp256.prm
+

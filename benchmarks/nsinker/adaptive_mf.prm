@@ -7,6 +7,8 @@
 
 set Additional shared libraries            = ./libnsinker.so
 
+set Number of timings = 4 
+
 set Dimension                              = 3 
 set End time                               = 0
 set Pressure normalization                 = volume
@@ -74,7 +76,7 @@ end
 
 subsection Mesh refinement
   set Initial global refinement                = 2 
-  set Initial adaptive refinement              = 10 
+  set Initial adaptive refinement              = 1 
 
 
   set Adapt by fraction of cells = false
@@ -90,6 +92,7 @@ subsection Postprocess
   set List of postprocessors = visualization
 
   subsection Visualization
+    set Time between graphical output = 2147483647
     set List of output variables = material properties
   end
 end

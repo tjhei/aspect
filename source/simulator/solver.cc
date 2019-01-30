@@ -810,7 +810,9 @@ namespace aspect
                                     triangulation.get_communicator());
 
 
-        if (i==0 && parameters.n_timings!=0)
+        if (parameters.n_timings==0)
+          vcycle_time =0;
+        else if (i==0)
           {
             vcycle_time = 0;
             LinearAlgebra::BlockVector tmp_dst = distributed_stokes_solution;
