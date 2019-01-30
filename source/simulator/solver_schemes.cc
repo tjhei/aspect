@@ -294,13 +294,10 @@ namespace aspect
         {
           time.restart();
 
-          if (!stokes_matrix_free)
-            rebuild_stokes_matrix = true;
+          rebuild_stokes_matrix = true;
           assemble_stokes_system ();
 
-
-          if (!stokes_matrix_free)
-            rebuild_stokes_preconditioner = true;
+          rebuild_stokes_preconditioner = true;
           build_stokes_preconditioner();
 
           time.stop();
@@ -318,7 +315,7 @@ namespace aspect
       }
 
 
-    double res;
+    double res = 0;
     solve_time = 0;
     {
       Timer time(triangulation.get_communicator(),true);
@@ -381,15 +378,16 @@ namespace aspect
   template <int dim>
   void Simulator<dim>::solve_no_advection_iterated_stokes ()
   {
+
     double initial_stokes_residual = 0.0;
 
-    const unsigned int max_nonlinear_iterations =
-      (pre_refinement_step < parameters.initial_adaptive_refinement)
-      ?
-      std::min(parameters.max_nonlinear_iterations,
-               parameters.max_nonlinear_iterations_in_prerefinement)
-      :
-      parameters.max_nonlinear_iterations;
+    const unsigned int max_nonlinear_iterations = 1;
+    /*(pre_refinement_step < parameters.initial_adaptive_refinement)
+    ?
+    std::min(parameters.max_nonlinear_iterations,
+             parameters.max_nonlinear_iterations_in_prerefinement)
+    :
+    parameters.max_nonlinear_iterations;*/
     do
       {
         const double relative_nonlinear_stokes_residual =

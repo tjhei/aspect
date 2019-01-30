@@ -84,7 +84,7 @@ end
 
 
 subsection Mesh refinement
-  set Initial adaptive refinement              = 10
+  set Initial adaptive refinement              = 13
   set Initial global refinement                = 4
 
   set Adapt by fraction of cells = true
@@ -92,8 +92,7 @@ subsection Mesh refinement
   set Strategy = velocity#viscosity
   set Run postprocessors on initial refinement = true
   set Coarsening fraction                      = 0.0
-  set Refinement fraction                      = 0.3333
-
+  set Refinement fraction                      = 0.333
 
 end
 
@@ -111,3 +110,10 @@ subsection Postprocess
   end
 
 end
+
+set Output directory = output/mf/adaptive
+
+
+
+
+

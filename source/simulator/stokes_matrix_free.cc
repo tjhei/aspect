@@ -454,154 +454,227 @@ namespace aspect
     }
 
     // Fill viscosities table for active mesh
-    {
-      typename MatrixFree<dim,double>::AdditionalData additional_data;
-      additional_data.tasks_parallel_scheme =
-        MatrixFree<dim,double>::AdditionalData::none;
-      additional_data.mapping_update_flags = (update_values | update_quadrature_points);
+//      {
+//        time.restart();
 
-      std::vector<const DoFHandler<dim>*> dof_handlers;
-      dof_handlers.push_back(&dof_handler_v);
-      dof_handlers.push_back(&dof_handler_p);
-      dof_handlers.push_back(&dof_handler_projection);
-      std::vector<const ConstraintMatrix *> projection_constraints;
-      projection_constraints.push_back(&constraints_v);
-      projection_constraints.push_back(&constraints_p);
-      projection_constraints.push_back(&constraints_projection);
+//        typename MatrixFree<dim,double>::AdditionalData additional_data;
+//        additional_data.tasks_parallel_scheme =
+//          MatrixFree<dim,double>::AdditionalData::none;
+//        additional_data.mapping_update_flags = (update_values | update_quadrature_points);
 
-      std::shared_ptr<MatrixFree<dim,double> >
-      mg_mf_storage(new MatrixFree<dim,double>());
-      mg_mf_storage->reinit(dof_handlers, projection_constraints,
-                            QGauss<1>(sim.parameters.stokes_velocity_degree+1), additional_data);
+//        std::vector<const DoFHandler<dim>*> dof_handlers;
+//        dof_handlers.push_back(&dof_handler_v);
+//        dof_handlers.push_back(&dof_handler_p);
+//        dof_handlers.push_back(&dof_handler_projection);
+//        std::vector<const ConstraintMatrix *> projection_constraints;
+//        projection_constraints.push_back(&constraints_v);
+//        projection_constraints.push_back(&constraints_p);
+//        projection_constraints.push_back(&constraints_projection);
 
-      MatrixFreeStokesOperators::ComputeCoefficientProjection<dim,3,2,double> coeff_operator;
-      coeff_operator.initialize(mg_mf_storage);
+//        std::shared_ptr<MatrixFree<dim,double> >
+//        mg_mf_storage(new MatrixFree<dim,double>());
+//        mg_mf_storage->reinit(dof_handlers, projection_constraints,
+//                              QGauss<1>(sim.parameters.stokes_velocity_degree+1), additional_data);
 
-      dealii::LinearAlgebra::distributed::BlockVector<double> block_viscosity_values_stokes(3);
-      block_viscosity_values_stokes.collect_sizes();
-      coeff_operator.initialize_dof_vector(block_viscosity_values_stokes);
+//        MatrixFreeStokesOperators::ComputeCoefficientProjection<dim,3,2,double> coeff_operator;
+//        coeff_operator.initialize(mg_mf_storage);
 
-      dealii::LinearAlgebra::distributed::BlockVector<double> block_viscosity_values_mass(3);
-      block_viscosity_values_mass.collect_sizes();
-      coeff_operator.initialize_dof_vector(block_viscosity_values_mass);
+//        dealii::LinearAlgebra::distributed::BlockVector<double> block_viscosity_values_stokes(3);
+//        block_viscosity_values_stokes.collect_sizes();
+//        coeff_operator.initialize_dof_vector(block_viscosity_values_stokes);
 
-      std::vector<types::global_dof_index> local_dof_indices(fe_projection.dofs_per_cell);
+//        std::vector<types::global_dof_index> local_dof_indices(fe_projection.dofs_per_cell);
 
-      typename DoFHandler<dim>::active_cell_iterator cell = dof_handler_projection.begin_active(),
-                                                     endc = dof_handler_projection.end();
-      for (; cell != endc; ++cell)
-        if (cell->is_locally_owned())
-          {
-            cell->get_dof_indices(local_dof_indices);
-            for (unsigned int i=0; i<fe_projection.dofs_per_cell; ++i )
-              {
-                block_viscosity_values_stokes.block(2)(local_dof_indices[i]) = 2.0*active_coef_dof_vec(local_dof_indices[i]);
-                block_viscosity_values_mass.block(2)(local_dof_indices[i]) = 1.0/active_coef_dof_vec(local_dof_indices[i]);
-              }
-          }
-      block_viscosity_values_stokes.compress(VectorOperation::insert);
-      block_viscosity_values_mass.compress(VectorOperation::insert);
+//        typename DoFHandler<dim>::active_cell_iterator cell = dof_handler_projection.begin_active(),
+//                                                       endc = dof_handler_projection.end();
+//        for (; cell != endc; ++cell)
+//          if (cell->is_locally_owned())
+//            {
+//              cell->get_dof_indices(local_dof_indices);
+//              for (unsigned int i=0; i<fe_projection.dofs_per_cell; ++i )
+//                block_viscosity_values_stokes.block(2)(local_dof_indices[i]) = 2.0*active_coef_dof_vec(local_dof_indices[i]);
+//            }
+//        block_viscosity_values_stokes.compress(VectorOperation::insert);
 
-      stokes_matrix.fill_viscosities_and_pressure_scaling(coeff_operator.return_viscosity_table(block_viscosity_values_stokes.block(2)),
-                                                          sim.pressure_scaling);
-      mass_matrix.fill_viscosities_and_pressure_scaling(coeff_operator.return_viscosity_table(block_viscosity_values_mass.block(2)),
-                                                        sim.pressure_scaling);
-
-      //      if (sim.dof_handler.n_dofs() > 5000)
-      //      {
-      //          stokes_matrix.output_visc(Utilities::MPI::this_mpi_process(sim.triangulation.get_communicator()));
-      //          mass_matrix.output_visc(Utilities::MPI::this_mpi_process(sim.triangulation.get_communicator()));
-      //          //Assert(false,ExcInternalError());
-      //      }
+//        stokes_matrix.fill_viscosities_and_pressure_scaling(coeff_operator.return_viscosity_table(block_viscosity_values_stokes.block(2)),
+//                                                            sim.pressure_scaling);
+//      }
 
 
+    stokes_matrix.fill_viscosities_and_pressure_scaling(active_coef_dof_vec,
+                                                        sim.pressure_scaling,
+                                                        sim.triangulation,
+                                                        dof_handler_projection);
 
-      mass_matrix.compute_diagonal();
-    }
+//    if (sim.dof_handler.n_dofs() > 5000)
+//      {
+//        stokes_matrix.output_visc(Utilities::MPI::this_mpi_process(sim.triangulation.get_communicator()));
+//        Assert(false,ExcInternalError());
+//      }
+
+//    {
+//      typename MatrixFree<dim,double>::AdditionalData additional_data;
+//      additional_data.tasks_parallel_scheme =
+//        MatrixFree<dim,double>::AdditionalData::none;
+//      additional_data.mapping_update_flags = (update_values | update_quadrature_points);
+
+//      std::vector<const DoFHandler<dim>*> dof_handlers;
+//      dof_handlers.push_back(&dof_handler_p);
+//      dof_handlers.push_back(&dof_handler_projection);
+//      std::vector<const ConstraintMatrix *> projection_constraints;
+//      projection_constraints.push_back(&constraints_p);
+//      projection_constraints.push_back(&constraints_projection);
+
+//      std::shared_ptr<MatrixFree<dim,double> >
+//      mg_mf_storage(new MatrixFree<dim,double>());
+//      mg_mf_storage->reinit(dof_handlers, projection_constraints,
+//                            QGauss<1>(sim.parameters.stokes_velocity_degree+1), additional_data);
+
+//      MatrixFreeStokesOperators::ComputeCoefficientProjection<dim,3,1,double> coeff_operator;
+//      coeff_operator.initialize(mg_mf_storage);
+
+//      dealii::LinearAlgebra::distributed::BlockVector<double> block_viscosity_values_mass(2);
+//      block_viscosity_values_mass.collect_sizes();
+//      coeff_operator.initialize_dof_vector(block_viscosity_values_mass);
+
+//      std::vector<types::global_dof_index> local_dof_indices(fe_projection.dofs_per_cell);
+
+//      typename DoFHandler<dim>::active_cell_iterator cell = dof_handler_projection.begin_active(),
+//                                                     endc = dof_handler_projection.end();
+//      for (; cell != endc; ++cell)
+//        if (cell->is_locally_owned())
+//          {
+//            cell->get_dof_indices(local_dof_indices);
+//            for (unsigned int i=0; i<fe_projection.dofs_per_cell; ++i )
+//              {
+//                block_viscosity_values_mass.block(1)(local_dof_indices[i]) = 1.0/active_coef_dof_vec(local_dof_indices[i]);
+//              }
+//          }
+//      block_viscosity_values_mass.compress(VectorOperation::insert);
+
+//      mass_matrix.fill_viscosities_and_pressure_scaling(coeff_operator.return_viscosity_table(block_viscosity_values_mass.block(1)),
+//                                                        sim.pressure_scaling);
+
+//      //      if (sim.dof_handler.n_dofs() > 5000)
+//      //      {
+//      //          stokes_matrix.output_visc(Utilities::MPI::this_mpi_process(sim.triangulation.get_communicator()));
+//      //          mass_matrix.output_visc(Utilities::MPI::this_mpi_process(sim.triangulation.get_communicator()));
+//      //          //Assert(false,ExcInternalError());
+//      //      }
+
+//      mass_matrix.compute_diagonal();
+//    }
+
+    mass_matrix.fill_viscosities_and_pressure_scaling(active_coef_dof_vec,
+                                                      sim.pressure_scaling,
+                                                      sim.triangulation,
+                                                      dof_handler_projection);
+    mass_matrix.compute_diagonal();
+
 
     // Fill viscosities for the level operators
-    {
-      unsigned int n_levels = sim.triangulation.n_global_levels();
-      level_coef_dof_vec = 0.;
-      level_coef_dof_vec.resize(0,n_levels-1);
+//    {
+//      unsigned int n_levels = sim.triangulation.n_global_levels();
+//      level_coef_dof_vec = 0.;
+//      level_coef_dof_vec.resize(0,n_levels-1);
 
-      MGTransferMatrixFree<dim,double> transfer(mg_constrained_dofs);
-      transfer.build(dof_handler_projection);
-      transfer.interpolate_to_mg(dof_handler_projection,level_coef_dof_vec,active_coef_dof_vec);
+//      MGTransferMatrixFree<dim,double> transfer(mg_constrained_dofs);
+//      transfer.build(dof_handler_projection);
+//      transfer.interpolate_to_mg(dof_handler_projection,level_coef_dof_vec,active_coef_dof_vec);
 
-      bool should_i_break = false;
-      for (unsigned int level=0; level<n_levels; ++level)
-        {
-          ConstraintMatrix level_constraints;
-          {
-            IndexSet relevant_dofs;
-            DoFTools::extract_locally_relevant_level_dofs(dof_handler_v, level, relevant_dofs);
-            level_constraints.reinit(relevant_dofs);
-            level_constraints.add_lines(mg_constrained_dofs.get_boundary_indices(level));
-            level_constraints.close();
-          }
+//      bool should_i_break = false;
+//      for (unsigned int level=0; level<n_levels; ++level)
+//        {
+//          ConstraintMatrix level_constraints;
+//          {
+//            IndexSet relevant_dofs;
+//            DoFTools::extract_locally_relevant_level_dofs(dof_handler_v, level, relevant_dofs);
+//            level_constraints.reinit(relevant_dofs);
+//            level_constraints.add_lines(mg_constrained_dofs.get_boundary_indices(level));
+//            level_constraints.close();
+//          }
 
-          ConstraintMatrix level_constraints_projection;
-          {
-            IndexSet relevant_dofs;
-            DoFTools::extract_locally_relevant_level_dofs(dof_handler_projection, level, relevant_dofs);
-            level_constraints_projection.reinit(relevant_dofs);
-            level_constraints_projection.close();
-          }
+//          ConstraintMatrix level_constraints_projection;
+//          {
+//            IndexSet relevant_dofs;
+//            DoFTools::extract_locally_relevant_level_dofs(dof_handler_projection, level, relevant_dofs);
+//            level_constraints_projection.reinit(relevant_dofs);
+//            level_constraints_projection.close();
+//          }
 
-          typename MatrixFree<dim,double>::AdditionalData additional_data;
-          additional_data.tasks_parallel_scheme =
-            MatrixFree<dim,double>::AdditionalData::none;
-          additional_data.mapping_update_flags = (update_values | update_quadrature_points);
-          additional_data.level_mg_handler = level;
+//          typename MatrixFree<dim,double>::AdditionalData additional_data;
+//          additional_data.tasks_parallel_scheme =
+//            MatrixFree<dim,double>::AdditionalData::none;
+//          additional_data.mapping_update_flags = (update_values | update_quadrature_points);
+//          additional_data.level_mg_handler = level;
 
-          std::vector<const DoFHandler<dim>*> dof_handlers;
-          dof_handlers.push_back(&dof_handler_v);
-          dof_handlers.push_back(&dof_handler_projection);
-          std::vector<const ConstraintMatrix *> projection_constraints;
-          projection_constraints.push_back(&level_constraints);
-          projection_constraints.push_back(&level_constraints_projection);
+//          std::vector<const DoFHandler<dim>*> dof_handlers;
+//          dof_handlers.push_back(&dof_handler_v);
+//          dof_handlers.push_back(&dof_handler_projection);
+//          std::vector<const ConstraintMatrix *> projection_constraints;
+//          projection_constraints.push_back(&level_constraints);
+//          projection_constraints.push_back(&level_constraints_projection);
 
-          std::shared_ptr<MatrixFree<dim,double> >
-          mg_mf_storage_level(new MatrixFree<dim,double>());
-          mg_mf_storage_level->reinit(dof_handlers, projection_constraints,
-                                      QGauss<1>(sim.parameters.stokes_velocity_degree+1),
-                                      additional_data);
+//          std::shared_ptr<MatrixFree<dim,double> >
+//          mg_mf_storage_level(new MatrixFree<dim,double>());
+//          mg_mf_storage_level->reinit(dof_handlers, projection_constraints,
+//                                      QGauss<1>(sim.parameters.stokes_velocity_degree+1),
+//                                      additional_data);
 
-          std::vector<MGConstrainedDoFs> mg_constrained_dofs_vec;
-          mg_constrained_dofs_vec.push_back(mg_constrained_dofs);
-          mg_constrained_dofs_vec.push_back(mg_constrained_dofs_projection);
+//          std::vector<MGConstrainedDoFs> mg_constrained_dofs_vec;
+//          mg_constrained_dofs_vec.push_back(mg_constrained_dofs);
+//          mg_constrained_dofs_vec.push_back(mg_constrained_dofs_projection);
 
-          MatrixFreeStokesOperators::ComputeCoefficientProjection<dim,3,1,double> coeff_operator;
-          coeff_operator.initialize(mg_mf_storage_level, mg_constrained_dofs_vec, level);
+//          MatrixFreeStokesOperators::ComputeCoefficientProjection<dim,3,1,double> coeff_operator;
+//          coeff_operator.initialize(mg_mf_storage_level, mg_constrained_dofs_vec, level);
 
-          dealii::LinearAlgebra::distributed::BlockVector<double> block_viscosity_values_level(2);
-          block_viscosity_values_level.collect_sizes();
-          coeff_operator.initialize_dof_vector(block_viscosity_values_level);
+//          dealii::LinearAlgebra::distributed::BlockVector<double> block_viscosity_values_level(2);
+//          block_viscosity_values_level.collect_sizes();
+//          coeff_operator.initialize_dof_vector(block_viscosity_values_level);
 
-          std::vector<types::global_dof_index> local_dof_indices(fe_projection.dofs_per_cell);
-          typename DoFHandler<dim>::cell_iterator cell = dof_handler_projection.begin(level),
-                                                  endc = dof_handler_projection.end(level);
-          for (; cell != endc; ++cell)
-            if (cell->is_locally_owned_on_level())
-              {
-                cell->get_mg_dof_indices(local_dof_indices);
-                for (unsigned int i=0; i<fe_projection.dofs_per_cell; ++i )
-                  block_viscosity_values_level.block(1)(local_dof_indices[i]) = 2.0*level_coef_dof_vec[level](local_dof_indices[i]);
-              }
-          block_viscosity_values_level.compress(VectorOperation::insert);
+//          std::vector<types::global_dof_index> local_dof_indices(fe_projection.dofs_per_cell);
+//          typename DoFHandler<dim>::cell_iterator cell = dof_handler_projection.begin(level),
+//                                                  endc = dof_handler_projection.end(level);
+//          for (; cell != endc; ++cell)
+//            if (cell->is_locally_owned_on_level())
+//              {
+//                cell->get_mg_dof_indices(local_dof_indices);
+//                for (unsigned int i=0; i<fe_projection.dofs_per_cell; ++i )
+//                  block_viscosity_values_level.block(1)(local_dof_indices[i]) = 2.0*level_coef_dof_vec[level](local_dof_indices[i]);
+//              }
+//          block_viscosity_values_level.compress(VectorOperation::insert);
 
-          mg_matrices[level].fill_viscosities(coeff_operator.return_viscosity_table(block_viscosity_values_level.block(1)));
-          //          if (sim.dof_handler.n_dofs() > 5000)
-          //          {
-          //              mg_matrices[level].output_visc(level,Utilities::MPI::this_mpi_process(sim.triangulation.get_communicator()));
-          //              should_i_break = true;
-          //          }
-          mg_matrices[level].compute_diagonal();
-        }
-      if (should_i_break)
-        Assert(false,ExcNotImplemented());
-    }
+//          mg_matrices[level].fill_viscosities(coeff_operator.return_viscosity_table(block_viscosity_values_level.block(1)));
+//          if (sim.dof_handler.n_dofs() > 10000)
+//            {
+//              GridOut grid_out;
+//              grid_out.write_mesh_per_processor_as_vtu(sim.triangulation,"grid",true,false);
+//              mg_matrices[level].output_visc(level,Utilities::MPI::this_mpi_process(sim.mpi_communicator));
+//              should_i_break = true;
+//            }
+//          mg_matrices[level].compute_diagonal();
+//        }
+//      if (should_i_break)
+//        Assert(false,ExcNotImplemented());
+//    }
+
+    const unsigned int n_levels = sim.triangulation.n_global_levels();
+    level_coef_dof_vec = 0.;
+    level_coef_dof_vec.resize(0,n_levels-1);
+
+    MGTransferMatrixFree<dim,double> transfer(mg_constrained_dofs);
+    transfer.build(dof_handler_projection);
+    transfer.interpolate_to_mg(dof_handler_projection,
+                               level_coef_dof_vec,
+                               active_coef_dof_vec);
+
+    for (unsigned int level=0; level<n_levels; ++level)
+      {
+        mg_matrices[level].fill_viscosities(level_coef_dof_vec,
+                                            sim.triangulation,
+                                            dof_handler_projection);
+        mg_matrices[level].compute_diagonal();
+      }
   }
 
 
@@ -616,8 +689,10 @@ namespace aspect
     stokes_matrix.initialize_dof_vector(u0);
 
     u0 = 0;
+    rhs_correction = 0;
     sim.current_constraints.distribute(u0);
     u0.update_ghost_values();
+
     const Table<2, VectorizedArray<double>> viscosity_table = stokes_matrix.get_visc_table();
     FEEvaluation<dim,2,3,dim,double>
     velocity (*stokes_matrix.get_matrix_free(), 0);
@@ -639,13 +714,14 @@ namespace aspect
                                                           velocity.get_symmetric_gradient (q);
             VectorizedArray<double> pres = pressure.get_value(q);
             VectorizedArray<double> div = -trace(sym_grad_u);
-            pressure.submit_value   (sim.pressure_scaling*div, q);
+            pressure.submit_value   (-1.0*sim.pressure_scaling*div, q);
 
             sym_grad_u *= viscosity_table(cell,q);
+
             for (unsigned int d=0; d<dim; ++d)
               sym_grad_u[d][d] -= sim.pressure_scaling*pres;
 
-            velocity.submit_symmetric_gradient(sym_grad_u, q);
+            velocity.submit_symmetric_gradient(-1.0*sym_grad_u, q);
           }
 
         velocity.integrate (false,true);
@@ -657,8 +733,8 @@ namespace aspect
 
     LinearAlgebra::BlockVector stokes_rhs_correction (sim.introspection.index_sets.stokes_partitioning, sim.mpi_communicator);
     internal::ChangeVectorTypes::copy(stokes_rhs_correction,rhs_correction);
-    sim.system_rhs.block(0) -= stokes_rhs_correction.block(0);
-    sim.system_rhs.block(1) -= stokes_rhs_correction.block(1);
+    sim.system_rhs.block(0) += stokes_rhs_correction.block(0);
+    sim.system_rhs.block(1) += stokes_rhs_correction.block(1);
   }
 
 
@@ -939,6 +1015,7 @@ namespace aspect
 
     PrimitiveVectorMemory<dealii::LinearAlgebra::distributed::BlockVector<double> > mem;
 
+
     // create Solver controls for the cheap and expensive solver phase
     SolverControl solver_control_cheap (sim.parameters.n_cheap_stokes_solver_steps,
                                         solver_tolerance, true);
@@ -1181,8 +1258,6 @@ namespace aspect
       //TODO: Assert no tangetial boundary
       for (auto it: sim.boundary_velocity_manager.get_active_boundary_velocity_names())
         {
-          sim.pcout << "HERE2" << std::endl;
-
           int bdryid = it.first;
           std::string component=it.second.first;
           Assert(component=="", ExcNotImplemented());

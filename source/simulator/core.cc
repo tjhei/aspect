@@ -1324,7 +1324,7 @@ namespace aspect
               << std::setw(8) << "out:"
               << std::setw(15) << "MPI_Ranks"
               << std::setw(15) << "Cells"
-              << std::setw(15) << "DoFs"
+              << std::setw(15) << "Deg of freedoms"
               << std::endl;
         pcout << std::left
               << std::setw(8) << "out:"

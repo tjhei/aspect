@@ -3,9 +3,14 @@
 set Additional shared libraries            = ./libinclusion.so
 
 subsection Solver parameters
-  subsection Stokes solver parameters
-    set Stokes solver type = block AMG 
+  subsection Stokes solver parameters 	
+    set Number of cheap Stokes solver steps = 500
+    set Stokes solver type = block AMG
   end
+end
+
+subsection Material model
+  set Material averaging = harmonic average
 end
 
 set Dimension                              = 2
@@ -17,6 +22,10 @@ set Pressure normalization                 = volume
 set Nonlinear solver scheme                = no Advection, iterated Stokes
 
 set Use years in output instead of seconds = false
+
+subsection Material model
+  set Material averaging =  harmonic average
+end
 
 ############### Parameters describing the model
 
@@ -75,16 +84,15 @@ end
 
 
 subsection Mesh refinement
-  set Initial adaptive refinement              = 6 
+  set Initial adaptive refinement              = 13
   set Initial global refinement                = 4
 
-  set Adapt by fraction of cells = true  
-
+  set Adapt by fraction of cells = false
+  
   set Strategy = velocity#viscosity
   set Run postprocessors on initial refinement = true
   set Coarsening fraction                      = 0.0
   set Refinement fraction                      = 0.5
-
 
 end
 
@@ -92,7 +100,7 @@ end
 ############### Parameters describing what to do with the solution
 
 subsection Postprocess
-  set List of postprocessors = InclusionPostprocessor, visualization
+  set List of postprocessors = InclusionPostprocessor, visualization, matrix statistics
 
 
 
@@ -102,3 +110,10 @@ subsection Postprocess
   end
 
 end
+
+set Output directory = output/mf/adaptive
+
+
+
+
+

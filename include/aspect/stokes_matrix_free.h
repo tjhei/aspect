@@ -56,8 +56,12 @@ namespace aspect
       public:
         StokesOperator ();
         void clear ();
-        void fill_viscosities_and_pressure_scaling(const Table<2, VectorizedArray<number> > &visc_table,
-                                                   const double scaling);
+//        void fill_viscosities_and_pressure_scaling(const Table<2, VectorizedArray<number> > &visc_table,
+//                                                   const double scaling);
+        void fill_viscosities_and_pressure_scaling(const dealii::LinearAlgebra::distributed::Vector<number> &visc_vals,
+                                                   const double scaling,
+                                                   const Triangulation<dim> &tria,
+                                                   const DoFHandler<dim> &dof_handler_for_projection);
         void output_visc (const unsigned int proc);
 
         Table<2, VectorizedArray<number> > get_visc_table();
@@ -87,18 +91,60 @@ namespace aspect
       viscosity_x_2.reinit(0, 0);
       MatrixFreeOperators::Base<dim,dealii::LinearAlgebra::distributed::BlockVector<number> >::clear();
     }
+
+
+
+
+
+//    template <int dim, int degree_v, typename number>
+//    void
+//    StokesOperator<dim,degree_v,number>::
+//    fill_viscosities_and_pressure_scaling (const Table<2, VectorizedArray<number> > &visc_table,
+//                                           const double scaling)
+//    {
+//      FEEvaluation<dim,degree_v,degree_v+1,dim,number> velocity (*this->data, 0);
+//      Assert(visc_table.n_elements() == this->data->n_macro_cells()*velocity.n_q_points, ExcMessage("Tables are not the right size!"));
+
+
+//      viscosity_x_2 = visc_table;
+//      pressure_scaling = scaling;
+//    }
+
     template <int dim, int degree_v, typename number>
     void
     StokesOperator<dim,degree_v,number>::
-    fill_viscosities_and_pressure_scaling (const Table<2, VectorizedArray<number> > &visc_table,
-                                           const double scaling)
+    fill_viscosities_and_pressure_scaling (const dealii::LinearAlgebra::distributed::Vector<number> &visc_vals,
+                                           const double scaling,
+                                           const Triangulation<dim> &tria,
+                                           const DoFHandler<dim> &dof_handler_for_projection)
     {
       FEEvaluation<dim,degree_v,degree_v+1,dim,number> velocity (*this->data, 0);
-      Assert(visc_table.n_elements() == this->data->n_macro_cells()*velocity.n_q_points, ExcMessage("Tables are not the right size!"));
+      const unsigned int n_cells = this->data->n_macro_cells();
+      viscosity_x_2.reinit(n_cells, velocity.n_q_points);
 
-      viscosity_x_2 = visc_table;
+      std::vector<types::global_dof_index> local_dof_indices(dof_handler_for_projection.get_fe().dofs_per_cell);
+      for (unsigned int cell=0; cell<n_cells; ++cell)
+        for (unsigned int i=0; i<this->get_matrix_free()->n_components_filled(cell); ++i)
+          {
+            typename DoFHandler<dim>::cell_iterator FEQ_cell = this->get_matrix_free()->get_cell_iterator(cell,i);
+            typename DoFHandler<dim>::cell_iterator DG_cell(&tria,
+                                                            FEQ_cell->level(),
+                                                            FEQ_cell->index(),
+                                                            &dof_handler_for_projection);
+            DG_cell->get_dof_indices(local_dof_indices);
+
+            //TODO: projection with higher degree
+            Assert(local_dof_indices.size() == 1, ExcNotImplemented());
+            for (unsigned int q=0; q<velocity.n_q_points; ++q)
+              viscosity_x_2(cell,q)[i] = 2.0*visc_vals(local_dof_indices[0]);
+          }
       pressure_scaling = scaling;
     }
+
+
+
+
+
     template <int dim, int degree_v, typename number>
     void
     StokesOperator<dim,degree_v,number>::
@@ -195,8 +241,12 @@ namespace aspect
       public:
         MassMatrixOperator ();
         void clear ();
-        void fill_viscosities_and_pressure_scaling(const Table<2, VectorizedArray<number> > &visc_table,
-                                                   const double scaling);
+//        void fill_viscosities_and_pressure_scaling(const Table<2, VectorizedArray<number> > &visc_table,
+//                                                   const double scaling);
+        void fill_viscosities_and_pressure_scaling (const dealii::LinearAlgebra::distributed::Vector<number> &visc_vals,
+                                                    const double scaling,
+                                                    const Triangulation<dim> &tria,
+                                                    const DoFHandler<dim> &dof_handler_for_projection);
         void output_visc (const unsigned int proc);
 
 
@@ -231,19 +281,52 @@ namespace aspect
       one_over_viscosity.reinit(0, 0);
       MatrixFreeOperators::Base<dim,dealii::LinearAlgebra::distributed::Vector<number> >::clear();
     }
+//    template <int dim, int degree_p, typename number>
+//    void
+//    MassMatrixOperator<dim,degree_p,number>::
+//    fill_viscosities_and_pressure_scaling (const Table<2, VectorizedArray<number> > &visc_table,
+//                                           const double scaling)
+//    {
+//      pressure_scaling = scaling;
+
+//      FEEvaluation<dim,degree_p,degree_p+2,dim,number> pressure (*this->data, 0);
+//      Assert(visc_table.n_elements() == this->data->n_macro_cells()*pressure.n_q_points, ExcMessage("Tables are not the right size!"));
+
+//      one_over_viscosity = visc_table;
+//    }
+
     template <int dim, int degree_p, typename number>
     void
     MassMatrixOperator<dim,degree_p,number>::
-    fill_viscosities_and_pressure_scaling (const Table<2, VectorizedArray<number> > &visc_table,
-                                           const double scaling)
+    fill_viscosities_and_pressure_scaling (const dealii::LinearAlgebra::distributed::Vector<number> &visc_vals,
+                                           const double scaling,
+                                           const Triangulation<dim> &tria,
+                                           const DoFHandler<dim> &dof_handler_for_projection)
     {
+      FEEvaluation<dim,degree_p,degree_p+2,1,number> pressure (*this->data, 0);
+      const unsigned int n_cells = this->data->n_macro_cells();
+      one_over_viscosity.reinit(n_cells, pressure.n_q_points);
+
+      std::vector<types::global_dof_index> local_dof_indices(dof_handler_for_projection.get_fe().dofs_per_cell);
+      for (unsigned int cell=0; cell<n_cells; ++cell)
+        for (unsigned int i=0; i<this->get_matrix_free()->n_components_filled(cell); ++i)
+          {
+            typename DoFHandler<dim>::cell_iterator FEQ_cell = this->get_matrix_free()->get_cell_iterator(cell,i);
+            typename DoFHandler<dim>::cell_iterator DG_cell(&tria,
+                                                            FEQ_cell->level(),
+                                                            FEQ_cell->index(),
+                                                            &dof_handler_for_projection);
+            DG_cell->get_dof_indices(local_dof_indices);
+
+            //TODO: projection with higher degree
+            Assert(local_dof_indices.size() == 1, ExcNotImplemented());
+            for (unsigned int q=0; q<pressure.n_q_points; ++q)
+              one_over_viscosity(cell,q)[i] = 1.0/visc_vals(local_dof_indices[0]);
+          }
       pressure_scaling = scaling;
-
-      FEEvaluation<dim,degree_p,degree_p+2,dim,number> pressure (*this->data, 0);
-      Assert(visc_table.n_elements() == this->data->n_macro_cells()*pressure.n_q_points, ExcMessage("Tables are not the right size!"));
-
-      one_over_viscosity = visc_table;
     }
+
+
     template <int dim, int degree_p, typename number>
     void
     MassMatrixOperator<dim,degree_p,number>::
@@ -354,11 +437,8 @@ namespace aspect
 
               pressure.evaluate (true,false,false);
               for (unsigned int q=0; q<pressure.n_q_points; ++q)
-                {
-                  //std::cout << one_over_viscosity(cell,q)[0] << std::endl;
-                  pressure.submit_value(one_over_viscosity(cell,q)*pressure_scaling*pressure_scaling*
-                                        pressure.get_value(q),q);
-                }
+                pressure.submit_value(one_over_viscosity(cell,q)*pressure_scaling*pressure_scaling*
+                                      pressure.get_value(q),q);
               pressure.integrate (true,false);
 
               diagonal[i] = pressure.begin_dof_values()[i];
@@ -379,7 +459,10 @@ namespace aspect
       public:
         ABlockOperator ();
         void clear ();
-        void fill_viscosities(const Table<2, VectorizedArray<number> > &visc_table);
+        //void fill_viscosities(const Table<2, VectorizedArray<number> > &visc_table);
+        void fill_viscosities(const MGLevelObject<dealii::LinearAlgebra::distributed::Vector<number> > &visc_vals,
+                              const Triangulation<dim> &tria,
+                              const DoFHandler<dim> &dof_handler_for_projection);
         void output_visc (const unsigned int level, const unsigned int proc);
         virtual void compute_diagonal ();
 
@@ -411,16 +494,52 @@ namespace aspect
       viscosity_x_2.reinit(0, 0);
       MatrixFreeOperators::Base<dim,dealii::LinearAlgebra::distributed::Vector<number> >::clear();
     }
+//    template <int dim, int degree_v, typename number>
+//    void
+//    ABlockOperator<dim,degree_v,number>::
+//    fill_viscosities (const Table<2, VectorizedArray<number> > &visc_table)
+//    {
+//      FEEvaluation<dim,degree_v,degree_v+1,dim,number> velocity (*this->data, 0);
+//      Assert(visc_table.n_elements() == this->data->n_macro_cells()*velocity.n_q_points, ExcMessage("Tables are not the right size!"));
+
+//      viscosity_x_2 = visc_table;
+//    }
+
+
+
+
     template <int dim, int degree_v, typename number>
     void
     ABlockOperator<dim,degree_v,number>::
-    fill_viscosities (const Table<2, VectorizedArray<number> > &visc_table)
+    fill_viscosities (const MGLevelObject<dealii::LinearAlgebra::distributed::Vector<number> > &visc_vals,
+                      const Triangulation<dim> &tria,
+                      const DoFHandler<dim> &dof_handler_for_projection)
     {
       FEEvaluation<dim,degree_v,degree_v+1,dim,number> velocity (*this->data, 0);
-      Assert(visc_table.n_elements() == this->data->n_macro_cells()*velocity.n_q_points, ExcMessage("Tables are not the right size!"));
+      const unsigned int n_cells = this->data->n_macro_cells();
+      viscosity_x_2.reinit(n_cells, velocity.n_q_points);
 
-      viscosity_x_2 = visc_table;
+      std::vector<types::global_dof_index> local_mg_dof_indices(dof_handler_for_projection.get_fe().dofs_per_cell);
+      for (unsigned int cell=0; cell<n_cells; ++cell)
+        for (unsigned int i=0; i<this->get_matrix_free()->n_components_filled(cell); ++i)
+          {
+            typename DoFHandler<dim>::cell_iterator FEQ_cell = this->get_matrix_free()->get_cell_iterator(cell,i);
+            typename DoFHandler<dim>::cell_iterator DG_cell(&tria,
+                                                            FEQ_cell->level(),
+                                                            FEQ_cell->index(),
+                                                            &dof_handler_for_projection);
+            DG_cell->get_mg_dof_indices(local_mg_dof_indices);
+
+            //TODO: projection with higher degree
+            Assert(local_mg_dof_indices.size() == 1, ExcNotImplemented());
+            for (unsigned int q=0; q<velocity.n_q_points; ++q)
+              viscosity_x_2(cell,q)[i] = 2.0*visc_vals[DG_cell->level()](local_mg_dof_indices[0]);
+          }
     }
+
+
+
+
 
 
     template <int dim, int degree_v, typename number>
@@ -549,75 +668,75 @@ namespace aspect
 
 // Class for computing the coefficient table. It's necessary since the parallel ordering
 // of cells in matrix-free is different between DG and Continuous elements.
-    template <int dim, int degree_q, int proj_comp, typename number>
-    class ComputeCoefficientProjection
-      : public MatrixFreeOperators::Base<dim, dealii::LinearAlgebra::distributed::BlockVector<number>>
-    {
-      public:
-        ComputeCoefficientProjection ();
-        void clear ();
+//    template <int dim, int degree_q, int proj_comp, typename number>
+//    class ComputeCoefficientProjection
+//      : public MatrixFreeOperators::Base<dim, dealii::LinearAlgebra::distributed::BlockVector<number>>
+//    {
+//      public:
+//        ComputeCoefficientProjection ();
+//        void clear ();
 
-        Table<2, VectorizedArray<number> >
-        return_viscosity_table(const dealii::LinearAlgebra::distributed::Vector<number> &dof_vals_dg);
+//        Table<2, VectorizedArray<number> >
+//        return_viscosity_table(const dealii::LinearAlgebra::distributed::Vector<number> &dof_vals_dg);
 
 
-        virtual void compute_diagonal ();
-      private:
-        virtual void apply_add (dealii::LinearAlgebra::distributed::BlockVector<number> &dst,
-                                const dealii::LinearAlgebra::distributed::BlockVector<number> &src) const;
-    };
-    template <int dim, int degree_q, int proj_comp, typename number>
-    ComputeCoefficientProjection<dim,degree_q,proj_comp,number>::ComputeCoefficientProjection ()
-      :
-      MatrixFreeOperators::Base<dim, dealii::LinearAlgebra::distributed::BlockVector<number> >()
-    {}
-    template <int dim, int degree_q, int proj_comp, typename number>
-    void
-    ComputeCoefficientProjection<dim,degree_q,proj_comp,number>::clear ()
-    {
-      MatrixFreeOperators::Base<dim,dealii::LinearAlgebra::distributed::BlockVector<number> >::clear();
-    }
+//        virtual void compute_diagonal ();
+//      private:
+//        virtual void apply_add (dealii::LinearAlgebra::distributed::BlockVector<number> &dst,
+//                                const dealii::LinearAlgebra::distributed::BlockVector<number> &src) const;
+//    };
+//    template <int dim, int degree_q, int proj_comp, typename number>
+//    ComputeCoefficientProjection<dim,degree_q,proj_comp,number>::ComputeCoefficientProjection ()
+//      :
+//      MatrixFreeOperators::Base<dim, dealii::LinearAlgebra::distributed::BlockVector<number> >()
+//    {}
+//    template <int dim, int degree_q, int proj_comp, typename number>
+//    void
+//    ComputeCoefficientProjection<dim,degree_q,proj_comp,number>::clear ()
+//    {
+//      MatrixFreeOperators::Base<dim,dealii::LinearAlgebra::distributed::BlockVector<number> >::clear();
+//    }
 
-    template <int dim, int degree_q, int proj_comp, typename number>
-    Table<2, VectorizedArray<number> >
-    ComputeCoefficientProjection<dim,degree_q,proj_comp,number>::
-    return_viscosity_table (const dealii::LinearAlgebra::distributed::Vector<number> &dof_vals_dg)
-    {
-      const unsigned int n_cells = this->data->n_macro_cells();
-      FEEvaluation<dim,0,  degree_q, 1,  number> projection (*this->data, proj_comp);
+//    template <int dim, int degree_q, int proj_comp, typename number>
+//    Table<2, VectorizedArray<number> >
+//    ComputeCoefficientProjection<dim,degree_q,proj_comp,number>::
+//    return_viscosity_table (const dealii::LinearAlgebra::distributed::Vector<number> &dof_vals_dg)
+//    {
+//      const unsigned int n_cells = this->data->n_macro_cells();
+//      FEEvaluation<dim,0,  degree_q, 1,  number> projection (*this->data, proj_comp);
 
-      Table<2, VectorizedArray<number> > viscosity_table(n_cells, projection.n_q_points);
-      for (unsigned int cell=0; cell<n_cells; ++cell)
-        {
-          projection.reinit (cell);
-          projection.read_dof_values_plain(dof_vals_dg);
-          projection.evaluate(true,false,false);
+//      Table<2, VectorizedArray<number> > viscosity_table(n_cells, projection.n_q_points);
+//      for (unsigned int cell=0; cell<n_cells; ++cell)
+//        {
+//          projection.reinit (cell);
+//          projection.read_dof_values_plain(dof_vals_dg);
+//          projection.evaluate(true,false,false);
 
-          for (unsigned int q=0; q<projection.n_q_points; ++q)
-            viscosity_table(cell,q) = projection.get_value(q);
-        }
+//          for (unsigned int q=0; q<projection.n_q_points; ++q)
+//            viscosity_table(cell,q) = projection.get_value(q);
+//        }
 
-      return viscosity_table;
-    }
-    template <int dim, int degree_q, int proj_comp, typename number>
-    void
-    ComputeCoefficientProjection<dim,degree_q,proj_comp,number>
-    ::apply_add (dealii::LinearAlgebra::distributed::BlockVector<number> &dst,
-                 const dealii::LinearAlgebra::distributed::BlockVector<number> &src) const
-    {
-      // Function not needed, but must be defined
-      (void)dst;
-      (void)src;
-      Assert(false, ExcNotImplemented());
-    }
-    template <int dim, int degree_q, int proj_comp, typename number>
-    void
-    ComputeCoefficientProjection<dim,degree_q,proj_comp,number>
-    ::compute_diagonal ()
-    {
-      // Function not needed, but must be defined
-      Assert(false, ExcNotImplemented());
-    }
+//      return viscosity_table;
+//    }
+//    template <int dim, int degree_q, int proj_comp, typename number>
+//    void
+//    ComputeCoefficientProjection<dim,degree_q,proj_comp,number>
+//    ::apply_add (dealii::LinearAlgebra::distributed::BlockVector<number> &dst,
+//                 const dealii::LinearAlgebra::distributed::BlockVector<number> &src) const
+//    {
+//      // Function not needed, but must be defined
+//      (void)dst;
+//      (void)src;
+//      Assert(false, ExcNotImplemented());
+//    }
+//    template <int dim, int degree_q, int proj_comp, typename number>
+//    void
+//    ComputeCoefficientProjection<dim,degree_q,proj_comp,number>
+//    ::compute_diagonal ()
+//    {
+//      // Function not needed, but must be defined
+//      Assert(false, ExcNotImplemented());
+//    }
   }
 
   template<int dim>
@@ -625,58 +744,58 @@ namespace aspect
   {
     public:
       /**
-               * Initialize this class, allowing it to read in
-               * relevant parameters as well as giving it a reference to the
-               * Simulator that owns it, since it needs to make fairly extensive
-               * changes to the internals of the simulator.
-               */
+                 * Initialize this class, allowing it to read in
+                 * relevant parameters as well as giving it a reference to the
+                 * Simulator that owns it, since it needs to make fairly extensive
+                 * changes to the internals of the simulator.
+                 */
       StokesMatrixFreeHandler(Simulator<dim> &, ParameterHandler &prm);
 
       /**
-               * Destructor for the free surface handler.
-               */
+                 * Destructor for the free surface handler.
+                 */
       ~StokesMatrixFreeHandler();
 
       /**
-               * The main execution step
-               */
+                 * The main execution step
+                 */
       std::pair<double,double> solve(unsigned int i = 0);
 
       /**
-               * Allocates and sets up the members of the FreeSurfaceHandler. This
-               * is called by Simulator<dim>::setup_dofs()
-               */
+                 * Allocates and sets up the members of the FreeSurfaceHandler. This
+                 * is called by Simulator<dim>::setup_dofs()
+                 */
       void setup_dofs();
 
       /**
-           * Evalute the MaterialModel to query for the viscosity on the active cells
-           * and cache the information for later usage.
-           */
+             * Evalute the MaterialModel to query for the viscosity on the active cells
+             * and cache the information for later usage.
+             */
       void evaluate_viscosity();
 
       /**
-           * Add correction to system RHS
-           */
+             * Add correction to system RHS
+             */
       void correct_stokes_rhs();
 
       /**
-               * Declare parameters.
-               */
+                 * Declare parameters.
+                 */
 
       static
       void declare_parameters (ParameterHandler &prm);
 
       /**
-               * Parse parameters
-               */
+                 * Parse parameters
+                 */
 
       void parse_parameters (ParameterHandler &prm);
 
     private:
       /**
-               * Reference to the Simulator object to which a FreeSurfaceHandler
-               * instance belongs.
-               */
+                 * Reference to the Simulator object to which a FreeSurfaceHandler
+                 * instance belongs.
+                 */
       Simulator<dim> &sim;
 
       // TODO: velocity degree not only 2, Choosing quadrature degree?
