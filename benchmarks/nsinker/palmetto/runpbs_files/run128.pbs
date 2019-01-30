@@ -1,5 +1,5 @@
 #!/bin/bash                                                                                                      
-#PBS -l select=8:ncpus=16:mpiprocs=16:chip_type=e5-2665:interconnect=fdr:mem=61gb                                   
+#PBS -l select=8:ncpus=16:mpiprocs=16:chip_type=e5-2665:interconnect=fdr:mem=100gb                                   
 #PBS -l walltime=1:00:00                                                                                            
 #PBS -j oe                                                                                                          
 #PBS -N test                                                                                                        
@@ -10,6 +10,8 @@ source /etc/profile.d/modules.sh
 source ~/.bash_profile
 source /home/heister/shared-dealii/modules_9.0.0pre1
 
+ulimit -c 0
+
 # compute processor count and print it:                                                                             
 Nproc=`qstat -xf $PBS_JOBID | grep List.ncpus | sed 's/^.\{26\}//'`
 cd $PBS_O_WORKDIR
@@ -19,46 +21,48 @@ echo
 
 cd ../../
 
-echo "MatrixFree"
-for refinement in 5 6 7; do # 4 5 6 7
-  cp nsinker_mf.prm temp.prm
-  echo "subsection Mesh refinement" >> temp.prm
-  echo "  set Initial global refinement = $refinement" >> temp.prm
-  echo "end" >> temp.prm
+echo "MatrixFree, 4 sinkers, 1e4 visc jump"
+for refinement in 4 5 6 7; do # 4 5 6 7
+  cp nsinker_mf.prm temp128.prm
+
+  echo "subsection Mesh refinement" >> temp128.prm
+  echo "  set Initial global refinement = $refinement" >> temp128.prm
+  echo "end" >> temp128.prm
         
-  echo "subsection Postprocess" >> temp.prm
-  echo "  subsection Visualization" >> temp.prm
-  echo "    set Time between graphical output = 2147483647" >> temp.prm
-  echo "  end" >> temp.prm
-  echo "end" >> temp.prm
+  echo "subsection Postprocess" >> temp128.prm
+  echo "  subsection Visualization" >> temp128.prm
+  echo "    set Time between graphical output = 2147483647" >> temp128.prm
+  echo "  end" >> temp128.prm
+  echo "end" >> temp128.prm
 
   #current_model="mb/harmonic/nsinkers${nsinkers}_viscosity${viscosity}_refinement${refinement}"
   current_model="no_output"
-  echo "set Output directory = output/${current_model}" >> temp.prm
+  echo "set Output directory = output/${current_model}" >> temp128.prm
   #echo "Starting ${current_model}"
-  mpirun -np $Nproc ./aspect temp.prm | grep "out:"
-  rm temp.prm
+  mpirun -np $Nproc ./aspect temp128.prm | grep "out:"
+  rm temp128.prm
 done
 
-echo "MatrixBased"
-for refinement in 5 6 7; do # 4 5 6 7
-  cp nsinker_mb.prm temp.prm
 
-  echo "subsection Mesh refinement" >> temp.prm
-  echo "  set Initial global refinement = $refinement" >> temp.prm
-  echo "end" >> temp.prm
+echo "MatrixBased, 4 sinkers, 1e4 visc jump"
+for refinement in 4 5 6 7; do # 4 5 6 7
+  cp nsinker_mb.prm temp128.prm
+
+  echo "subsection Mesh refinement" >> temp128.prm
+  echo "  set Initial global refinement = $refinement" >> temp128.prm
+  echo "end" >> temp128.prm
         
-  echo "subsection Postprocess" >> temp.prm
-  echo "  subsection Visualization" >> temp.prm
-  echo "    set Time between graphical output = 2147483647" >> temp.prm
-  echo "  end" >> temp.prm
-  echo "end" >> temp.prm
+  echo "subsection Postprocess" >> temp128.prm
+  echo "  subsection Visualization" >> temp128.prm
+  echo "    set Time between graphical output = 2147483647" >> temp128.prm
+  echo "  end" >> temp128.prm
+  echo "end" >> temp128.prm
 
   #current_model="mb/harmonic/nsinkers${nsinkers}_viscosity${viscosity}_refinement${refinement}"
   current_model="no_output"
-  echo "set Output directory = output/${current_model}" >> temp.prm
+  echo "set Output directory = output/${current_model}" >> temp128.prm
   #echo "Starting ${current_model}"
-  mpirun -np $Nproc ./aspect temp.prm | grep "out:"
-  rm temp.prm
+  mpirun -np $Nproc ./aspect temp128.prm | grep "out:"
+  rm temp128.prm
 done
 

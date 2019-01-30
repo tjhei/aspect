@@ -1046,9 +1046,9 @@ namespace aspect
     solution_copy.update_ghost_values();
 
 
-    sim.vcycle_time = 0;
     if (i==0 && sim.parameters.n_timings!=0)
       {
+        sim.vcycle_time = 0;
         dealii::LinearAlgebra::distributed::BlockVector<double> tmp_dst = solution_copy;
         dealii::LinearAlgebra::distributed::BlockVector<double> tmp_scr = rhs_copy;
         Timer time(sim.triangulation.get_communicator(),true);
