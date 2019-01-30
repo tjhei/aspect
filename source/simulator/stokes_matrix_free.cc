@@ -1046,6 +1046,29 @@ namespace aspect
     solution_copy.update_ghost_values();
 
 
+    sim.vcycle_time = 0;
+    if (i==0 && sim.parameters.n_timings!=0)
+      {
+        dealii::LinearAlgebra::distributed::BlockVector<double> tmp_dst = solution_copy;
+        dealii::LinearAlgebra::distributed::BlockVector<double> tmp_scr = rhs_copy;
+        Timer time(sim.triangulation.get_communicator(),true);
+        for (unsigned int i=0; i<sim.parameters.n_timings+1; ++i)
+          {
+            time.restart();
+
+            preconditioner_cheap.vmult(tmp_dst, tmp_scr);
+
+            time.stop();
+            if (i!=0)
+              sim.vcycle_time += time.last_wall_time();
+
+            tmp_scr = tmp_dst;
+          }
+        if (sim.parameters.n_timings != 0)
+          sim.vcycle_time /= (1.0*sim.parameters.n_timings);
+      }
+
+
     // TODO: doesn't make a difference
     //solution_copy = 0.;
 

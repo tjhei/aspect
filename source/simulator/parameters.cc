@@ -47,6 +47,10 @@ namespace aspect
   Parameters<dim>::
   declare_parameters (ParameterHandler &prm)
   {
+    prm.declare_entry ("Number of timings","0",Patterns::Integer (0,20),
+                       "Number of times to run each function for timing purposes in sinker and inclusion."
+                       "A value of \"0\" represents 1 run, no timings.");
+
     prm.declare_entry ("Dimension", "2",
                        Patterns::Integer (2,3),
                        "The number of space dimensions you want to run this program in. "
@@ -1134,6 +1138,8 @@ namespace aspect
     // parameter
     AssertThrow (prm.get_integer("Dimension") == dim,
                  ExcInternalError());
+
+    n_timings  =  prm.get_integer("Number of timings");
 
     CFL_number              = prm.get_double ("CFL number");
     use_conduction_timestep = prm.get_bool ("Use conduction timestep");

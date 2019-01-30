@@ -809,6 +809,32 @@ namespace aspect
                                     parameters.linear_solver_S_block_tolerance,
                                     triangulation.get_communicator());
 
+
+        vcycle_time = 0;
+        if (i==0 && parameters.n_timings!=0)
+          {
+            LinearAlgebra::BlockVector tmp_dst = distributed_stokes_solution;
+            LinearAlgebra::BlockVector tmp_scr = distributed_stokes_rhs;
+            Timer time(triangulation.get_communicator(),true);
+            for (unsigned int i=0; i<parameters.n_timings+1; ++i)
+              {
+                time.restart();
+
+                preconditioner_cheap.vmult(tmp_dst, tmp_scr);
+
+                time.stop();
+                if (i!=0)
+                  vcycle_time += time.last_wall_time();
+
+                tmp_scr = tmp_dst;
+              }
+            if (parameters.n_timings != 0)
+              vcycle_time /= (1.0*parameters.n_timings);
+          }
+
+
+
+
         // create an expensive preconditioner that solves for the A block with CG
         const internal::BlockSchurPreconditioner<LinearAlgebra::PreconditionAMG,
               LinearAlgebra::PreconditionBase>

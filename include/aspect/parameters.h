@@ -347,6 +347,9 @@ namespace aspect
      * @name Global parameters
      * @{
      */
+
+    unsigned int n_timings;
+
     typename NonlinearSolver::Kind nonlinear_solver;
 
     double                         nonlinear_tolerance;

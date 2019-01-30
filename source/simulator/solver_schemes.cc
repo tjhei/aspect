@@ -290,7 +290,7 @@ namespace aspect
     assemble_time = 0;
     {
       Timer time(triangulation.get_communicator(),true);
-      for (unsigned int i=0; i<5; ++i)
+      for (unsigned int i=0; i<parameters.n_timings+1; ++i)
         {
           time.restart();
 
@@ -304,7 +304,8 @@ namespace aspect
           if (i!=0)
             assemble_time += time.last_wall_time();
         }
-      assemble_time /= 4.0;
+      if (parameters.n_timings != 0)
+        assemble_time /= (1.0*parameters.n_timings);
     }
 
 
@@ -319,7 +320,7 @@ namespace aspect
     solve_time = 0;
     {
       Timer time(triangulation.get_communicator(),true);
-      for (unsigned int i=0; i<5; ++i)
+      for (unsigned int i=0; i<parameters.n_timings+1; ++i)
         {
           time.restart();
 
@@ -329,7 +330,8 @@ namespace aspect
           if (i!=0)
             solve_time += time.last_wall_time();
         }
-      solve_time /= 4.0;
+      if (parameters.n_timings != 0)
+        solve_time /= (1.0*parameters.n_timings);
     }
 
     const double current_nonlinear_residual = res;

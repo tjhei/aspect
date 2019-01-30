@@ -1814,7 +1814,7 @@ namespace aspect
         setup_time = 0;
         {
           Timer time(triangulation.get_communicator(),true);
-          for (unsigned int i=0; i<5; ++i)
+          for (unsigned int i=0; i<parameters.n_timings+1; ++i)
             {
               time.restart();
 
@@ -1824,7 +1824,8 @@ namespace aspect
               if (i!=0)
                 setup_time += time.last_wall_time();
             }
-          setup_time /= 4.0;
+          if (parameters.n_timings != 0)
+            setup_time /= (1.0*parameters.n_timings);
         }
 
         global_volume = GridTools::volume (triangulation, *mapping);
@@ -1873,9 +1874,9 @@ namespace aspect
           }
         pcout << std::left
               << std::setw(8) << "out:"
-              << "Average of 5 function calls: " << std::endl
+              << "Average of " << parameters.n_timings << " function calls: " << std::endl
               << std::setw(8) << "out:"
-              << "Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; "
+              << "Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; "
               << Utilities::MPI::n_mpi_processes(mpi_communicator) << "; "
               << triangulation.n_global_active_cells() << "; "
               << dof_handler.n_dofs() << "; "
@@ -1883,6 +1884,7 @@ namespace aspect
               << assemble_time << "; "
               << solve_time << "; "
               << gmres_iterations << "; "
+              << vcycle_time << "; "
               << std::endl
               << std::setw(8) << "out:" << std::endl;
 
