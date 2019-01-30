@@ -19,7 +19,7 @@ set Use years in output instead of seconds = false
 # Follow as closely as possible the parameters from Rudi et al. (2017)
 subsection Solver parameters
   subsection Stokes solver parameters
-    set Use full A block as preconditioner              = true
+    set Use full A block as preconditioner              = true 
     set Number of cheap Stokes solver steps             = 200
     set Maximum number of expensive Stokes solver steps = 1000
     set Linear solver tolerance                         = 1e-6
@@ -51,14 +51,7 @@ end
 
 subsection Material model
   set Model name = nsinker
-  set Material averaging = harmonic average 
-
-  subsection NSinker
-    set Number of sinkers = 4
-    set Dynamic viscosity ratio = 1e4
-  end
 end
-
 
 subsection Gravity model
   set Model name = vertical
@@ -74,20 +67,4 @@ subsection Initial temperature model
 end
 
 
-subsection Mesh refinement
-  set Initial global refinement                = 5
-  set Initial adaptive refinement              = 0
-end
-
-
-subsection Postprocess
-  set List of postprocessors = visualization
-
-  subsection Visualization
-    set List of output variables = material properties
-    set Time between graphical output = 0
-  end
-end
-
-set Output directory = output/test_mb
 
