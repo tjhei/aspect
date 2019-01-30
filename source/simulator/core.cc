@@ -1602,7 +1602,22 @@ namespace aspect
       triangulation.execute_coarsening_and_refinement ();
     } // leave the timed section
 
-    setup_dofs ();
+    setup_time = 0;
+    {
+      Timer time(triangulation.get_communicator(),true);
+      for (unsigned int i=0; i<parameters.n_timings+1; ++i)
+        {
+          time.restart();
+
+          setup_dofs(i);
+
+          time.stop();
+          if (i!=0)
+            setup_time += time.last_wall_time();
+        }
+      if (parameters.n_timings != 0)
+        setup_time /= (1.0*parameters.n_timings);
+    }
 
     {
       TimerOutput::Scope timer (computing_timer, "Refine mesh structure, part 2");
