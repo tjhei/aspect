@@ -22,44 +22,44 @@ echo
 cd ../../
 
 echo "MatrixFree, 4 sinkers, 1e4 visc jump"
-cp adaptive_mf.prm temp64.prm
+cp adaptive_mf.prm temp64a.prm
 
-echo "subsection Mesh refinement" >> temp64.prm
-echo "  set Initial global refinement = 2" >> temp64.prm
-echo "  set Initial adaptive refinement = 11" >> temp64.prm 
-echo "end" >> temp64.prm
+echo "subsection Mesh refinement" >> temp64a.prm
+echo "  set Initial global refinement = 2" >> temp64a.prm
+echo "  set Initial adaptive refinement = 11" >> temp64a.prm 
+echo "end" >> temp64a.prm
         
-echo "subsection Postprocess" >> temp64.prm
-echo "  subsection Visualization" >> temp64.prm
-echo "    set Time between graphical output = 2147483647" >> temp64.prm
-echo "  end" >> temp64.prm
-echo "end" >> temp64.prm
+echo "subsection Postprocess" >> temp64a.prm
+echo "  subsection Visualization" >> temp64a.prm
+echo "    set Time between graphical output = 2147483647" >> temp64a.prm
+echo "  end" >> temp64a.prm
+echo "end" >> temp64a.prm
 
 current_model="no_output"
-echo "set Output directory = output/${current_model}" >> temp64.prm
+echo "set Output directory = output/${current_model}" >> temp64a.prm
 #echo "Starting ${current_model}"
-mpirun -np $Nproc ./aspect temp64.prm | grep "out:"
-rm temp64.prm
+mpirun -np $Nproc ./aspect temp64a.prm | grep "out:"
+rm temp64a.prm
 
 
 
 echo "MatrixBased, 4 sinkers, 1e4 visc jump"
-cp adaptive_mb.prm temp64.prm
+cp adaptive_mb.prm temp64a.prm
 
-echo "subsection Mesh refinement" >> temp64.prm
-echo "  set Initial global refinement = 2" >> temp64.prm
-echo "  set Initial adaptive refinement = 11" >> temp64.prm  
-echo "end" >> temp64.prm
+echo "subsection Mesh refinement" >> temp64a.prm
+echo "  set Initial global refinement = 2" >> temp64a.prm
+echo "  set Initial adaptive refinement = 11" >> temp64a.prm  
+echo "end" >> temp64a.prm
         
-echo "subsection Postprocess" >> temp64.prm
-echo "  subsection Visualization" >> temp64.prm
-echo "    set Time between graphical output = 2147483647" >> temp64.prm
-echo "  end" >> temp64.prm
-echo "end" >> temp64.prm
+echo "subsection Postprocess" >> temp64a.prm
+echo "  subsection Visualization" >> temp64a.prm
+echo "    set Time between graphical output = 2147483647" >> temp64a.prm
+echo "  end" >> temp64a.prm
+echo "end" >> temp64a.prm
 
 current_model="no_output"
-echo "set Output directory = output/${current_model}" >> temp64.prm
+echo "set Output directory = output/${current_model}" >> temp64a.prm
 #echo "Starting ${current_model}"
-mpirun -np $Nproc ./aspect temp64.prm | grep "out:"
-rm temp64.prm
+mpirun -np $Nproc ./aspect temp64a.prm | grep "out:"
+rm temp64a.prm
 
