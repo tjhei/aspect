@@ -37,17 +37,17 @@ namespace aspect
     {
       // memory consumption:
       const double mb = 1024*1024; // convert from bytes into mb
-      statistics.add_value ("System matrix memory consumption (MB) ", this->get_system_matrix().memory_consumption()/mb);
-      statistics.add_value ("Triangulation memory consumption (MB) ", this->get_triangulation().memory_consumption()/mb);
-      statistics.add_value ("p4est memory consumption (MB) ", this->get_triangulation().memory_consumption_p4est()/mb);
-      statistics.add_value ("DoFHandler memory consumption (MB) ", this->get_dof_handler().memory_consumption()/mb);
-      statistics.add_value ("current_constraints memory consumption (MB) ", this->get_current_constraints().memory_consumption()/mb);
-      statistics.add_value ("Solution vector memory consumption (MB) ", this->get_solution().memory_consumption()/mb);
+      statistics.add_value ("out: System matrix memory consumption (MB) ", this->get_system_matrix().memory_consumption()/mb);
+      statistics.add_value ("out: Triangulation memory consumption (MB) ", this->get_triangulation().memory_consumption()/mb);
+      statistics.add_value ("out: p4est memory consumption (MB) ", this->get_triangulation().memory_consumption_p4est()/mb);
+      statistics.add_value ("out: DoFHandler memory consumption (MB) ", this->get_dof_handler().memory_consumption()/mb);
+      statistics.add_value ("out: current_constraints memory consumption (MB) ", this->get_current_constraints().memory_consumption()/mb);
+      statistics.add_value ("out: Solution vector memory consumption (MB) ", this->get_solution().memory_consumption()/mb);
 
       std::ostringstream output;
       output << std::fixed << std::setprecision(2) << this->get_system_matrix().memory_consumption()/mb << " MB";
 
-      return std::pair<std::string, std::string> ("System matrix memory consumption: ",
+      return std::pair<std::string, std::string> ("out: System matrix memory consumption: ",
                                                   output.str());
 
     }
