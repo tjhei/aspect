@@ -86,3 +86,26 @@ set ylabel "time (avg. of 4)"
 plot "mf/7ref_mf" u 9:16 with linespoints title "matrix-free", "mb/7ref_mb" u 9:16 with linespoints title "matrix-based", 128*0.507434/x with lines dt 2 lt -1 title "O(p)"
 
 
+
+
+
+
+
+
+
+#iterations
+set logscale xy
+unset logscale y
+set xtics (16,32,64,128,256,512,1024)
+set xrange [16:1024]
+set yrange [0:100]
+set title "GMRES iterations for global refinement"
+set xlabel "# of processors"
+set ylabel "GMRES iterations"
+plot "mf/7ref_mf" u 9:15 with linespoints lt 1 pt 1 dt 1 title "matrix-free, 70M", "mf/6ref_mf" u 9:15 with linespoints lt 1 pt 3 dt 2 title "matrix-free, 8.9M", "mf/5ref_mf" u 9:15 with linespoints lt 1 pt 5 dt 3 title "matrix-free, 1.1M", "mb/7ref_mb" u 9:15 with linespoints lt 2 pt 1 dt 1 title "matrix-based, 70M", "mb/6ref_mb" u 9:15 with linespoints lt 2 pt 3 dt 2 title "matrix-based, 8.9M", "mb/5ref_mb" u 9:15 with linespoints lt 2 pt 5 dt 3 title "matrix-based, 1.1M"
+
+
+
+
+
+
