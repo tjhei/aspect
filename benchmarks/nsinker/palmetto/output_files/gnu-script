@@ -40,6 +40,18 @@ set xlabel "# of processors"
 set ylabel "time (avg. of 4)"
 plot "mf/6ref_mf" u 9:16 with linespoints title "matrix-free", "mb/6ref_mb" u 9:16 with linespoints title "matrix-based", 16*0.521464/x with lines dt 2 lt -1 title "O(p)"
 
+#6 ref, total time
+set logscale xy
+set xtics (16,32,64,128,256,512,1024)
+set xrange [16:1024]
+set yrange [.4:150]
+set title "Total Time - 8.9M"
+set xlabel "# of processors"
+set ylabel "time (avg. of 4)"
+plot "mf/6ref_mf" u 9:($12+$13+$14):($12+$13+$14) with labels notitle, "" u 9:($12+$13+$14) with linespoints title "matrix-free",\
+     "mb/6ref_mb" u 9:($12+$13+$14):($12+$13+$14) with labels notitle,"" u 9:($12+$13+$14) with linespoints title  "matrix-based",\
+     16*29.15689/x with lines dt 2 lt -1 title "O(p)"
+
 
 
 
@@ -84,6 +96,20 @@ set title "Preconditioner Vmult - 70M"
 set xlabel "# of processors"
 set ylabel "time (avg. of 4)"
 plot "mf/7ref_mf" u 9:16 with linespoints title "matrix-free", "mb/7ref_mb" u 9:16 with linespoints title "matrix-based", 128*0.507434/x with lines dt 2 lt -1 title "O(p)"
+
+#7 ref, total time
+set logscale xy
+set xtics (128,256,512,1024)
+set xrange [128:1024]
+set yrange [4:200]
+set title "Total Time - 70M"
+set xlabel "# of processors"
+set ylabel "time (avg. of 4)"
+plot "mf/7ref_mf" u 9:($12+$13+$14):($12+$13+$14) with labels notitle, "" u 9:($12+$13+$14) with linespoints title "matrix-free",\
+     "mb/7ref_mb" u 9:($12+$13+$14):($12+$13+$14) with labels notitle, "" u 9:($12+$13+$14) with linespoints title "matrix-based",\
+     128*33.51299/x with lines dt 2 lt -1 title "O(p)"
+
+
 
 
 
