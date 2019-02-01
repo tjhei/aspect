@@ -128,4 +128,18 @@ plot "mf/12ref_mf" u 9:16 with linespoints title "matrix-free", "mb/12ref_mb" u 
 
 
 
+#iterations
+set logscale xy
+unset logscale y
+set xtics (16,32,64,128,256,512,1024)
+set xrange [16:1024]
+set yrange [0:100]
+set title "GMRES iterations for adaptive refinement"
+set xlabel "# of processors"
+set ylabel "GMRES iterations"
+plot "mf/12ref_mf" u 9:15 with linespoints lt 1 pt 1 dt 1 title "matrix-free, 43M", "mf/11ref_mf" u 9:15 with linespoints lt 1 pt 3 dt 2 title "matrix-free, 16.7M", "mf/10ref_mf" u 9:15 with linespoints lt 1 pt 5 dt 3 title "matrix-free, 5.5M", "mb/12ref_mb" u 9:15 with linespoints lt 2 pt 1 dt 1 title "matrix-based, 43M", "mb/11ref_mb" u 9:15 with linespoints lt 2 pt 3 dt 2 title "matrix-based, 16.7M", "mb/10ref_mb" u 9:15 with linespoints lt 2 pt 5 dt 3 title "matrix-based, 5.5M"
+
+
+
+
 
