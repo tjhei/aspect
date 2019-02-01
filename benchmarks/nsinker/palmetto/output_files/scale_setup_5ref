@@ -1,8 +1,0 @@
-Procs; Cells; DoFs; scale; 16; 32768; 1134437; 0.91825; 
-Procs; Cells; DoFs; scale; 32; 32768; 1134437; 0.459125;
-Procs; Cells; DoFs; scale; 64; 32768; 1134437; 0.2295625;
-Procs; Cells; DoFs; scale; 128; 32768; 1134437; 0.11478125; 
-Procs; Cells; DoFs; scale; 256;  32768; 1134437; 0.057390625; 
-Procs; Cells; DoFs; scale; 512; 32768; 1134437; 0.028695313; 
-Procs; Cells; DoFs; scale; 1024; 32768; 1134437; 0.014347656; 
-   

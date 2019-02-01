@@ -1,0 +1,131 @@
+#Gnuplot scrips:
+
+#10 ref, setup time
+set logscale xy
+set xtics (16,32,64,128,256,512,1024)
+set xrange [16:1024]
+set yrange [.4:10]
+set title "Setup - 5.5M"
+set xlabel "# of processors"
+set ylabel "time (avg. of 4)"
+plot "mf/10ref_mf" u 9:12 with linespoints title "matrix-free", "mb/10ref_mb" u 9:12 with linespoints title "matrix-based", 16*8.5643/x with lines dt 2 lt -1 title "O(p)"
+
+#10 ref, assemble time
+set logscale xy
+set xtics (16,32,64,128,256,512,1024)
+set xrange [16:1024]
+set yrange [.01:60]
+set title "Assemble RHS/StokesMatrix/AMG - 5.5M"
+set xlabel "# of processors"
+set ylabel "time (avg. of 4)"
+plot "mf/10ref_mf" u 9:13 with linespoints title "matrix-free", "mb/10ref_mb" u 9:13 with linespoints title "matrix-based", 16*0.988671/x with lines dt 2 lt -1 title "O(p)"
+
+#10 ref, solve time
+set logscale xy
+set xtics (16,32,64,128,256,512,1024)
+set xrange [16:1024]
+set yrange [0.4:35]
+set title "Solve - 5.5M"
+set xlabel "# of processors"
+set ylabel "time (avg. of 4)"
+plot "mf/10ref_mf" u 9:14 with linespoints title "matrix-free", "mb/10ref_mb" u 9:14 with linespoints title "matrix-based", 16*16.162/x with lines dt 2 lt -1 title "O(p)"
+
+#10 ref, preconditioner vmult time
+set logscale xy
+set xtics (16,32,64,128,256,512,1024)
+set xrange [16:1024]
+set yrange [.02:1.1]
+set title "Preconditioner Vmult - 5.5M"
+set xlabel "# of processors"
+set ylabel "time (avg. of 4)"
+plot "mf/10ref_mf" u 9:16 with linespoints title "matrix-free", "mb/10ref_mb" u 9:16 with linespoints title "matrix-based", 16*0.464976/x with lines dt 2 lt -1 title "O(p)"
+
+
+
+
+#11 ref, setup time
+set logscale xy
+set xtics (64,128,256,512,1024)
+set xrange [64:1024]
+set yrange [.4:10]
+set title "Setup - 16.7M"
+set xlabel "# of processors"
+set ylabel "time (avg. of 4)"
+plot "mf/11ref_mf" u 9:12 with linespoints title "matrix-free", "mb/11ref_mb" u 9:12 with linespoints title "matrix-based", 64*8.00078/x with lines dt 2 lt -1 title "O(p)"
+
+#11 ref, assemble time
+set logscale xy
+set xtics (64,128,256,512,1024)
+set xrange [64:1024]
+set yrange [.05:50]
+set title "Assemble RHS/StokesMatrix/AMG - 16.7M"
+set xlabel "# of processors"
+set ylabel "time (avg. of 4)"
+plot "mf/11ref_mf" u 9:13 with linespoints title "matrix-free", "mb/11ref_mb" u 9:13 with linespoints title "matrix-based", 64*0.819317/x with lines dt 2 lt -1 title "O(p)"
+
+#11 ref, solve time
+set logscale xy
+set xtics (64,128,256,512,1024)
+set xrange [64:1024]
+set yrange [1:50]
+set title "Solve - 16.7M"
+set xlabel "# of processors"
+set ylabel "time (avg. of 4)"
+plot "mf/11ref_mf" u 9:14 with linespoints title "matrix-free", "mb/11ref_mb" u 9:14 with linespoints title "matrix-based", 64*16.1768/x with lines dt 2 lt -1 title "O(p)"
+
+#11 ref, preconditioner vmult time
+set logscale xy
+set xtics (64,128,256,512,1024)
+set xrange [64:1024]
+set yrange [.05:.75]
+set title "Preconditioner Vmult - 16.7M"
+set xlabel "# of processors"
+set ylabel "time (avg. of 4)"
+plot "mf/11ref_mf" u 9:16 with linespoints title "matrix-free", "mb/11ref_mb" u 9:16 with linespoints title "matrix-based", 64*0.47709/x with lines dt 2 lt -1 title "O(p)"
+
+
+
+#12 ref, setup time
+set logscale xy
+set xtics (128,256,512,1024)
+set xrange [128:1024]
+set yrange [1.5:15]
+set title "Setup - 43M"
+set xlabel "# of processors"
+set ylabel "time (avg. of 4)"
+plot "mf/12ref_mf" u 9:12 with linespoints title "matrix-free", "mb/12ref_mb" u 9:12 with linespoints title "matrix-based", 128*11.6818/x with lines dt 2 lt -1 title "O(p)"
+
+#12 ref, assemble time
+set logscale xy
+set xtics (128,256,512,1024)
+set xrange [128:1024]
+set yrange [.1:40]
+set title "Assemble RHS/StokesMatrix/AMG - 43M"
+set xlabel "# of processors"
+set ylabel "time (avg. of 4)"
+plot "mf/12ref_mf" u 9:13 with linespoints title "matrix-free", "mb/12ref_mb" u 9:13 with linespoints title "matrix-based", 128*1.21931/x with lines dt 2 lt -1 title "O(p)"
+
+#12 ref, solve time
+set logscale xy
+set xtics (128,256,512,1024)
+set xrange [128:1024]
+set yrange [3:50]
+set title "Solve - 43M"
+set xlabel "# of processors"
+set ylabel "time (avg. of 4)"
+plot "mf/12ref_mf" u 9:14 with linespoints title "matrix-free", "mb/12ref_mb" u 9:14 with linespoints title "matrix-based", 128*27.6675/x with lines dt 2 lt -1 title "O(p)"
+
+#12 ref, preconditioner vmult time
+set logscale xy
+set xtics (128,256,512,1024)
+set xrange [128:1024]
+set yrange [.1:1]
+set title "Preconditioner Vmult - 43M"
+set xlabel "# of processors"
+set ylabel "time (avg. of 4)"
+plot "mf/12ref_mf" u 9:16 with linespoints title "matrix-free", "mb/12ref_mb" u 9:16 with linespoints title "matrix-based", 128*0.765276/x with lines dt 2 lt -1 title "O(p)"
+
+
+
+
+
