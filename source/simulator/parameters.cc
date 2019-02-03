@@ -23,6 +23,7 @@
 #include <aspect/global.h>
 #include <aspect/utilities.h>
 #include <aspect/melt.h>
+#include <aspect/volume_of_fluid/handler.h>
 #include <aspect/newton.h>
 #include <aspect/free_surface.h>
 
@@ -1009,7 +1010,7 @@ namespace aspect
                          Patterns::List(Patterns::Anything()),
                          "A user-defined name for each of the compositional fields requested.");
       prm.declare_entry ("Compositional field methods", "",
-                         Patterns::List (Patterns::Selection("field|particles|static|melt field|prescribed field|prescribed field with diffusion")),
+                         Patterns::List (Patterns::Selection("field|particles|volume of fluid|static|melt field|prescribed field|prescribed field with diffusion")),
                          "A comma separated list denoting the solution method of each "
                          "compositional field. Each entry of the list must be "
                          "one of the currently implemented field types: "
@@ -1033,6 +1034,13 @@ namespace aspect
                          "and particle properties can react with each other as well. "
                          "See Section~\\ref{sec:particles} for more information about "
                          "how particles behave."
+                         "\n"
+                         "\\item ``volume of fluid``: If a compositional field "
+                         "is marked with this method, then its values are "
+                         "obtained in each timestep by reconstructing a "
+                         "polynomial finite element approximation on each cell "
+                         "from a volume of fluid interface tracking method, "
+                         "which is used to compute the advection updates."
                          "\n"
                          "\\item ``static'': If a compositional field is marked "
                          "this way, then it does not evolve at all. Its values are "
@@ -1123,6 +1131,17 @@ namespace aspect
                          "which can be used in combination with other material models.");
     }
     prm.leave_subsection ();
+
+    prm.enter_subsection ("Volume of Fluid");
+    {
+      prm.declare_entry ("Enable interface tracking", "false",
+                         Patterns::Bool (),
+                         "When set to true, Volume of Fluid interface tracking will be used");
+    }
+    prm.leave_subsection ();
+
+    // declare the VolumeOfFluid parameters
+    VolumeOfFluidHandler<dim>::declare_parameters(prm);
 
     // also declare the parameters that the FreeSurfaceHandler needs
     FreeSurfaceHandler<dim>::declare_parameters (prm);
@@ -1610,6 +1629,8 @@ namespace aspect
             compositional_field_methods[i] = AdvectionFieldMethod::fem_field;
           else if (x_compositional_field_methods[i] == "particles")
             compositional_field_methods[i] = AdvectionFieldMethod::particles;
+          else if (x_compositional_field_methods[i] == "volume of fluid")
+            compositional_field_methods[i] = AdvectionFieldMethod::volume_of_fluid;
           else if (x_compositional_field_methods[i] == "static")
             compositional_field_methods[i] = AdvectionFieldMethod::static_field;
           else if (x_compositional_field_methods[i] == "melt field")
@@ -1621,6 +1642,11 @@ namespace aspect
           else
             AssertThrow(false,ExcNotImplemented());
         }
+
+      // Enable Volume of Fluid field tracking if any compositional_field_methods are volume_of_fluid
+      volume_of_fluid_tracking_enabled =
+        (std::count(compositional_field_methods.begin(),compositional_field_methods.end(),AdvectionFieldMethod::volume_of_fluid)
+         > 0);
 
       if (std::find(compositional_field_methods.begin(), compositional_field_methods.end(), AdvectionFieldMethod::fem_melt_field)
           != compositional_field_methods.end())
@@ -1743,6 +1769,18 @@ namespace aspect
     }
     prm.leave_subsection ();
 
+    prm.enter_subsection ("Volume of Fluid");
+    {
+      const bool explicit_volume_of_fluid_tracking_enabled = prm.get_bool("Enable interface tracking");
+
+      // Check that volume of fluid interface tracking has been enabled explicitly if used
+      AssertThrow(explicit_volume_of_fluid_tracking_enabled || !volume_of_fluid_tracking_enabled,
+                  ExcMessage("Volume of Fluid interface tracking must be enabled "
+                             "(Volume of Fluid/Enable interface tracking) to use the "
+                             "``volume of fluid`` interface tracking advection "
+                             "method(Compositional fields/Compositional field methods)."));
+    }
+    prm.leave_subsection ();
 
     // then, finally, let user additions that do not go through the usual
     // plugin mechanism, declare their parameters if they have subscribed

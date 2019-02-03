@@ -112,6 +112,7 @@ namespace aspect
       {
         fem_field,
         particles,
+        volume_of_fluid,
         static_field,
         fem_melt_field,
         prescribed_field,
@@ -587,6 +588,16 @@ namespace aspect
     /**
      * @}
      */
+
+    /**
+     * @name Parameters that have to do with volume of fluid calculations
+     * @{
+     */
+    bool                           volume_of_fluid_tracking_enabled;
+    /**
+     * @}
+     */
+
 
   };
 
