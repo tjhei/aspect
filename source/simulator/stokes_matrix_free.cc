@@ -453,117 +453,10 @@ namespace aspect
       active_coef_dof_vec.compress(VectorOperation::insert);
     }
 
-    // Fill viscosities table for active mesh
-//      {
-//        time.restart();
-
-//        typename MatrixFree<dim,double>::AdditionalData additional_data;
-//        additional_data.tasks_parallel_scheme =
-//          MatrixFree<dim,double>::AdditionalData::none;
-//        additional_data.mapping_update_flags = (update_values | update_quadrature_points);
-
-//        std::vector<const DoFHandler<dim>*> dof_handlers;
-//        dof_handlers.push_back(&dof_handler_v);
-//        dof_handlers.push_back(&dof_handler_p);
-//        dof_handlers.push_back(&dof_handler_projection);
-//        std::vector<const ConstraintMatrix *> projection_constraints;
-//        projection_constraints.push_back(&constraints_v);
-//        projection_constraints.push_back(&constraints_p);
-//        projection_constraints.push_back(&constraints_projection);
-
-//        std::shared_ptr<MatrixFree<dim,double> >
-//        mg_mf_storage(new MatrixFree<dim,double>());
-//        mg_mf_storage->reinit(dof_handlers, projection_constraints,
-//                              QGauss<1>(sim.parameters.stokes_velocity_degree+1), additional_data);
-
-//        MatrixFreeStokesOperators::ComputeCoefficientProjection<dim,3,2,double> coeff_operator;
-//        coeff_operator.initialize(mg_mf_storage);
-
-//        dealii::LinearAlgebra::distributed::BlockVector<double> block_viscosity_values_stokes(3);
-//        block_viscosity_values_stokes.collect_sizes();
-//        coeff_operator.initialize_dof_vector(block_viscosity_values_stokes);
-
-//        std::vector<types::global_dof_index> local_dof_indices(fe_projection.dofs_per_cell);
-
-//        typename DoFHandler<dim>::active_cell_iterator cell = dof_handler_projection.begin_active(),
-//                                                       endc = dof_handler_projection.end();
-//        for (; cell != endc; ++cell)
-//          if (cell->is_locally_owned())
-//            {
-//              cell->get_dof_indices(local_dof_indices);
-//              for (unsigned int i=0; i<fe_projection.dofs_per_cell; ++i )
-//                block_viscosity_values_stokes.block(2)(local_dof_indices[i]) = 2.0*active_coef_dof_vec(local_dof_indices[i]);
-//            }
-//        block_viscosity_values_stokes.compress(VectorOperation::insert);
-
-//        stokes_matrix.fill_viscosities_and_pressure_scaling(coeff_operator.return_viscosity_table(block_viscosity_values_stokes.block(2)),
-//                                                            sim.pressure_scaling);
-//      }
-
-
     stokes_matrix.fill_viscosities_and_pressure_scaling(active_coef_dof_vec,
                                                         sim.pressure_scaling,
                                                         sim.triangulation,
                                                         dof_handler_projection);
-
-//    if (sim.dof_handler.n_dofs() > 5000)
-//      {
-//        stokes_matrix.output_visc(Utilities::MPI::this_mpi_process(sim.triangulation.get_communicator()));
-//        Assert(false,ExcInternalError());
-//      }
-
-//    {
-//      typename MatrixFree<dim,double>::AdditionalData additional_data;
-//      additional_data.tasks_parallel_scheme =
-//        MatrixFree<dim,double>::AdditionalData::none;
-//      additional_data.mapping_update_flags = (update_values | update_quadrature_points);
-
-//      std::vector<const DoFHandler<dim>*> dof_handlers;
-//      dof_handlers.push_back(&dof_handler_p);
-//      dof_handlers.push_back(&dof_handler_projection);
-//      std::vector<const ConstraintMatrix *> projection_constraints;
-//      projection_constraints.push_back(&constraints_p);
-//      projection_constraints.push_back(&constraints_projection);
-
-//      std::shared_ptr<MatrixFree<dim,double> >
-//      mg_mf_storage(new MatrixFree<dim,double>());
-//      mg_mf_storage->reinit(dof_handlers, projection_constraints,
-//                            QGauss<1>(sim.parameters.stokes_velocity_degree+1), additional_data);
-
-//      MatrixFreeStokesOperators::ComputeCoefficientProjection<dim,3,1,double> coeff_operator;
-//      coeff_operator.initialize(mg_mf_storage);
-
-//      dealii::LinearAlgebra::distributed::BlockVector<double> block_viscosity_values_mass(2);
-//      block_viscosity_values_mass.collect_sizes();
-//      coeff_operator.initialize_dof_vector(block_viscosity_values_mass);
-
-//      std::vector<types::global_dof_index> local_dof_indices(fe_projection.dofs_per_cell);
-
-//      typename DoFHandler<dim>::active_cell_iterator cell = dof_handler_projection.begin_active(),
-//                                                     endc = dof_handler_projection.end();
-//      for (; cell != endc; ++cell)
-//        if (cell->is_locally_owned())
-//          {
-//            cell->get_dof_indices(local_dof_indices);
-//            for (unsigned int i=0; i<fe_projection.dofs_per_cell; ++i )
-//              {
-//                block_viscosity_values_mass.block(1)(local_dof_indices[i]) = 1.0/active_coef_dof_vec(local_dof_indices[i]);
-//              }
-//          }
-//      block_viscosity_values_mass.compress(VectorOperation::insert);
-
-//      mass_matrix.fill_viscosities_and_pressure_scaling(coeff_operator.return_viscosity_table(block_viscosity_values_mass.block(1)),
-//                                                        sim.pressure_scaling);
-
-//      //      if (sim.dof_handler.n_dofs() > 5000)
-//      //      {
-//      //          stokes_matrix.output_visc(Utilities::MPI::this_mpi_process(sim.triangulation.get_communicator()));
-//      //          mass_matrix.output_visc(Utilities::MPI::this_mpi_process(sim.triangulation.get_communicator()));
-//      //          //Assert(false,ExcInternalError());
-//      //      }
-
-//      mass_matrix.compute_diagonal();
-//    }
 
     mass_matrix.fill_viscosities_and_pressure_scaling(active_coef_dof_vec,
                                                       sim.pressure_scaling,
@@ -572,92 +465,7 @@ namespace aspect
     mass_matrix.compute_diagonal();
 
 
-    // Fill viscosities for the level operators
-//    {
-//      unsigned int n_levels = sim.triangulation.n_global_levels();
-//      level_coef_dof_vec = 0.;
-//      level_coef_dof_vec.resize(0,n_levels-1);
-
-//      MGTransferMatrixFree<dim,double> transfer(mg_constrained_dofs);
-//      transfer.build(dof_handler_projection);
-//      transfer.interpolate_to_mg(dof_handler_projection,level_coef_dof_vec,active_coef_dof_vec);
-
-//      bool should_i_break = false;
-//      for (unsigned int level=0; level<n_levels; ++level)
-//        {
-//          ConstraintMatrix level_constraints;
-//          {
-//            IndexSet relevant_dofs;
-//            DoFTools::extract_locally_relevant_level_dofs(dof_handler_v, level, relevant_dofs);
-//            level_constraints.reinit(relevant_dofs);
-//            level_constraints.add_lines(mg_constrained_dofs.get_boundary_indices(level));
-//            level_constraints.close();
-//          }
-
-//          ConstraintMatrix level_constraints_projection;
-//          {
-//            IndexSet relevant_dofs;
-//            DoFTools::extract_locally_relevant_level_dofs(dof_handler_projection, level, relevant_dofs);
-//            level_constraints_projection.reinit(relevant_dofs);
-//            level_constraints_projection.close();
-//          }
-
-//          typename MatrixFree<dim,double>::AdditionalData additional_data;
-//          additional_data.tasks_parallel_scheme =
-//            MatrixFree<dim,double>::AdditionalData::none;
-//          additional_data.mapping_update_flags = (update_values | update_quadrature_points);
-//          additional_data.level_mg_handler = level;
-
-//          std::vector<const DoFHandler<dim>*> dof_handlers;
-//          dof_handlers.push_back(&dof_handler_v);
-//          dof_handlers.push_back(&dof_handler_projection);
-//          std::vector<const ConstraintMatrix *> projection_constraints;
-//          projection_constraints.push_back(&level_constraints);
-//          projection_constraints.push_back(&level_constraints_projection);
-
-//          std::shared_ptr<MatrixFree<dim,double> >
-//          mg_mf_storage_level(new MatrixFree<dim,double>());
-//          mg_mf_storage_level->reinit(dof_handlers, projection_constraints,
-//                                      QGauss<1>(sim.parameters.stokes_velocity_degree+1),
-//                                      additional_data);
-
-//          std::vector<MGConstrainedDoFs> mg_constrained_dofs_vec;
-//          mg_constrained_dofs_vec.push_back(mg_constrained_dofs);
-//          mg_constrained_dofs_vec.push_back(mg_constrained_dofs_projection);
-
-//          MatrixFreeStokesOperators::ComputeCoefficientProjection<dim,3,1,double> coeff_operator;
-//          coeff_operator.initialize(mg_mf_storage_level, mg_constrained_dofs_vec, level);
-
-//          dealii::LinearAlgebra::distributed::BlockVector<double> block_viscosity_values_level(2);
-//          block_viscosity_values_level.collect_sizes();
-//          coeff_operator.initialize_dof_vector(block_viscosity_values_level);
-
-//          std::vector<types::global_dof_index> local_dof_indices(fe_projection.dofs_per_cell);
-//          typename DoFHandler<dim>::cell_iterator cell = dof_handler_projection.begin(level),
-//                                                  endc = dof_handler_projection.end(level);
-//          for (; cell != endc; ++cell)
-//            if (cell->is_locally_owned_on_level())
-//              {
-//                cell->get_mg_dof_indices(local_dof_indices);
-//                for (unsigned int i=0; i<fe_projection.dofs_per_cell; ++i )
-//                  block_viscosity_values_level.block(1)(local_dof_indices[i]) = 2.0*level_coef_dof_vec[level](local_dof_indices[i]);
-//              }
-//          block_viscosity_values_level.compress(VectorOperation::insert);
-
-//          mg_matrices[level].fill_viscosities(coeff_operator.return_viscosity_table(block_viscosity_values_level.block(1)));
-//          if (sim.dof_handler.n_dofs() > 10000)
-//            {
-//              GridOut grid_out;
-//              grid_out.write_mesh_per_processor_as_vtu(sim.triangulation,"grid",true,false);
-//              mg_matrices[level].output_visc(level,Utilities::MPI::this_mpi_process(sim.mpi_communicator));
-//              should_i_break = true;
-//            }
-//          mg_matrices[level].compute_diagonal();
-//        }
-//      if (should_i_break)
-//        Assert(false,ExcNotImplemented());
-//    }
-
+    // Project to MG
     const unsigned int n_levels = sim.triangulation.n_global_levels();
     level_coef_dof_vec = 0.;
     level_coef_dof_vec.resize(0,n_levels-1);
@@ -670,7 +478,7 @@ namespace aspect
 
     for (unsigned int level=0; level<n_levels; ++level)
       {
-        mg_matrices[level].fill_viscosities(level_coef_dof_vec,
+        mg_matrices[level].fill_viscosities(level_coef_dof_vec[level],
                                             sim.triangulation,
                                             dof_handler_projection);
         mg_matrices[level].compute_diagonal();
@@ -790,15 +598,7 @@ namespace aspect
 
     LinearAlgebra::BlockVector distributed_stokes_solution (sim.introspection.index_sets.stokes_partitioning, sim.mpi_communicator);
 
-
     typedef dealii::LinearAlgebra::distributed::Vector<double> vector_t;
-
-
-    //    //Jacobi Smoother
-    //        typedef PreconditionJacobi<ABlockMatrixType> SmootherType;
-    //        MGSmootherPrecondition<ABlockMatrixType, SmootherType, vector_t> mg_smoother;
-    //        mg_smoother.initialize(mg_matrices, typename SmootherType::AdditionalData(0.4));
-    //        mg_smoother.set_steps(4);
 
     //Chebyshev smoother
     typedef PreconditionChebyshev<ABlockMatrixType,vector_t> SmootherType;
@@ -866,17 +666,6 @@ namespace aspect
     prec_S_data.eig_cg_n_iterations = mass_matrix.m();
     prec_S_data.preconditioner = mass_matrix.get_matrix_diagonal_inverse();
     prec_S.initialize(mass_matrix,prec_S_data);
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -1163,194 +952,217 @@ namespace aspect
 
 
   template <int dim>
-  void StokesMatrixFreeHandler<dim>::setup_dofs()
+  void StokesMatrixFreeHandler<dim>::setup_dofs(const unsigned int i)
   {
 
-//    Timer time(sim.triangulation.get_communicator(),true);
-//    double dof_setup = 0.0, mf_setup = 0.0, gmg_transfer = 0.0;
+    Timer time(sim.triangulation.get_communicator(),true);
+    double dof_setup = 0.0, mf_setup = 0.0, gmg_transfer = 0.0;
+    unsigned int n_runs = (i==0 ? 1/*sim.parameters.n_timings*/ : 1);
 
-//    time.restart();
-    {
-      dof_handler_v.clear();
-      dof_handler_v.distribute_dofs(fe_v);
-      dof_handler_v.distribute_mg_dofs();
-
-      DoFRenumbering::hierarchical(dof_handler_v);
-
-      constraints_v.clear();
-      IndexSet locally_relevant_dofs;
-      DoFTools::extract_locally_relevant_dofs (dof_handler_v,
-                                               locally_relevant_dofs);
-      constraints_v.reinit(locally_relevant_dofs);
-      DoFTools::make_hanging_node_constraints (dof_handler_v, constraints_v);
-      sim.compute_initial_velocity_boundary_constraints(constraints_v);
-      sim.compute_current_velocity_boundary_constraints(constraints_v);
-      constraints_v.close ();
-    }
-
-    {
-      dof_handler_p.clear();
-      dof_handler_p.distribute_dofs(fe_p);
-
-      DoFRenumbering::hierarchical(dof_handler_p);
-
-      constraints_p.clear();
-      IndexSet locally_relevant_dofs;
-      DoFTools::extract_locally_relevant_dofs (dof_handler_p,
-                                               locally_relevant_dofs);
-      constraints_p.reinit(locally_relevant_dofs);
-      DoFTools::make_hanging_node_constraints (dof_handler_p, constraints_p);
-      constraints_p.close();
-    }
-
-    // Coefficient transfer objects
-    {
-      dof_handler_projection.clear();
-      dof_handler_projection.distribute_dofs(fe_projection);
-      dof_handler_projection.distribute_mg_dofs();
-
-      DoFRenumbering::hierarchical(dof_handler_projection);
-
-
-      constraints_projection.clear();
-      IndexSet locally_relevant_dofs;
-      DoFTools::extract_locally_relevant_dofs (dof_handler_projection,
-                                               locally_relevant_dofs);
-      constraints_projection.reinit(locally_relevant_dofs);
-      DoFTools::make_hanging_node_constraints (dof_handler_projection, constraints_projection);
-      // TODO: boundary constraints if not DG(0)?
-      constraints_projection.close ();
-
-      mg_constrained_dofs_projection.clear();
-      mg_constrained_dofs_projection.initialize(dof_handler_projection);
-
-      active_coef_dof_vec.reinit(dof_handler_projection.locally_owned_dofs(), sim.triangulation.get_communicator());
-    }
-//    time.stop();
-//    dof_setup += time.last_wall_time();
-
-
-
-//    time.restart();
-    // Stokes matrix stuff...
-    {
-      typename MatrixFree<dim,double>::AdditionalData additional_data;
-      additional_data.tasks_parallel_scheme =
-        MatrixFree<dim,double>::AdditionalData::none;
-      additional_data.mapping_update_flags = (update_values | update_gradients |
-                                              update_JxW_values | update_quadrature_points);
-
-      std::vector<const DoFHandler<dim>*> stokes_dofs;
-      stokes_dofs.push_back(&dof_handler_v);
-      stokes_dofs.push_back(&dof_handler_p);
-      std::vector<const ConstraintMatrix *> stokes_constraints;
-      stokes_constraints.push_back(&constraints_v);
-      stokes_constraints.push_back(&constraints_p);
-
-      std::shared_ptr<MatrixFree<dim,double> >
-      stokes_mf_storage(new MatrixFree<dim,double>());
-      stokes_mf_storage->reinit(stokes_dofs, stokes_constraints,
-                                QGauss<1>(sim.parameters.stokes_velocity_degree+1), additional_data);
-      stokes_matrix.clear();
-      stokes_matrix.initialize(stokes_mf_storage);
-    }
-
-    // Mass matrix matrix-free operator...
-    {
-      typename MatrixFree<dim,double>::AdditionalData additional_data;
-      additional_data.tasks_parallel_scheme =
-        MatrixFree<dim,double>::AdditionalData::none;
-      additional_data.mapping_update_flags = (update_values | update_JxW_values |
-                                              update_quadrature_points);
-      std::shared_ptr<MatrixFree<dim,double> >
-      mass_mf_storage(new MatrixFree<dim,double>());
-      mass_mf_storage->reinit(dof_handler_p, constraints_p,
-                              QGauss<1>(sim.parameters.stokes_velocity_degree+1), additional_data);
-
-      mass_matrix.clear();
-      mass_matrix.initialize(mass_mf_storage);
-    }
-
-    // GMG Matrix-free operators
-    {
-      const unsigned int n_levels = sim.triangulation.n_global_levels();
-      mg_matrices.clear_elements();
-      // TODO: minlevel != 0
-      mg_matrices.resize(0, n_levels-1);
-
-      mg_constrained_dofs.clear();
-      std::set<types::boundary_id> dirichlet_boundary = sim.boundary_velocity_manager.get_zero_boundary_velocity_indicators();
-      //TODO: Assert no tangetial boundary
-      for (auto it: sim.boundary_velocity_manager.get_active_boundary_velocity_names())
+    for (unsigned int t=0; t<n_runs; ++t)
+      {
+        if (i==0)
+          time.restart();
         {
-          int bdryid = it.first;
-          std::string component=it.second.first;
-          Assert(component=="", ExcNotImplemented());
-          dirichlet_boundary.insert(bdryid);
+          dof_handler_v.clear();
+          dof_handler_v.distribute_dofs(fe_v);
+          dof_handler_v.distribute_mg_dofs();
+
+          DoFRenumbering::hierarchical(dof_handler_v);
+
+          constraints_v.clear();
+          IndexSet locally_relevant_dofs;
+          DoFTools::extract_locally_relevant_dofs (dof_handler_v,
+                                                   locally_relevant_dofs);
+          constraints_v.reinit(locally_relevant_dofs);
+          DoFTools::make_hanging_node_constraints (dof_handler_v, constraints_v);
+          sim.compute_initial_velocity_boundary_constraints(constraints_v);
+          sim.compute_current_velocity_boundary_constraints(constraints_v);
+          constraints_v.close ();
         }
 
-      mg_constrained_dofs.initialize(dof_handler_v);
-      mg_constrained_dofs.make_zero_boundary_constraints(dof_handler_v, dirichlet_boundary);
-
-      for (unsigned int level=0; level<n_levels; ++level)
         {
-          IndexSet relevant_dofs;
-          DoFTools::extract_locally_relevant_level_dofs(dof_handler_v, level, relevant_dofs);
-          ConstraintMatrix level_constraints;
-          level_constraints.reinit(relevant_dofs);
-          level_constraints.add_lines(mg_constrained_dofs.get_boundary_indices(level));
-          level_constraints.close();
+          dof_handler_p.clear();
+          dof_handler_p.distribute_dofs(fe_p);
 
+          DoFRenumbering::hierarchical(dof_handler_p);
+
+          constraints_p.clear();
+          IndexSet locally_relevant_dofs;
+          DoFTools::extract_locally_relevant_dofs (dof_handler_p,
+                                                   locally_relevant_dofs);
+          constraints_p.reinit(locally_relevant_dofs);
+          DoFTools::make_hanging_node_constraints (dof_handler_p, constraints_p);
+          constraints_p.close();
+        }
+
+        // Coefficient transfer objects
+        {
+          dof_handler_projection.clear();
+          dof_handler_projection.distribute_dofs(fe_projection);
+          dof_handler_projection.distribute_mg_dofs();
+
+          DoFRenumbering::hierarchical(dof_handler_projection);
+
+
+          constraints_projection.clear();
+          IndexSet locally_relevant_dofs;
+          DoFTools::extract_locally_relevant_dofs (dof_handler_projection,
+                                                   locally_relevant_dofs);
+          constraints_projection.reinit(locally_relevant_dofs);
+          DoFTools::make_hanging_node_constraints (dof_handler_projection, constraints_projection);
+          // TODO: boundary constraints if not DG(0)?
+          constraints_projection.close ();
+
+          mg_constrained_dofs_projection.clear();
+          mg_constrained_dofs_projection.initialize(dof_handler_projection);
+
+          active_coef_dof_vec.reinit(dof_handler_projection.locally_owned_dofs(), sim.triangulation.get_communicator());
+        }
+        if (i==0)
           {
-            typename MatrixFree<dim,double>::AdditionalData additional_data;
-            additional_data.tasks_parallel_scheme =
-              MatrixFree<dim,double>::AdditionalData::none;
-            additional_data.mapping_update_flags = (update_gradients | update_JxW_values |
-                                                    update_quadrature_points);
-            additional_data.level_mg_handler = level;
-            std::shared_ptr<MatrixFree<dim,double> >
-            mg_mf_storage_level(new MatrixFree<dim,double>());
-            mg_mf_storage_level->reinit(dof_handler_v, level_constraints,
-                                        QGauss<1>(sim.parameters.stokes_velocity_degree+1),
-                                        additional_data);
-
-            mg_matrices[level].clear();
-            mg_matrices[level].initialize(mg_mf_storage_level, mg_constrained_dofs, level);
-
-            //add zero boundary coarsest level
+            time.stop();
+            dof_setup += time.last_wall_time()/sim.parameters.n_timings;
           }
-        }
-    }
-//    time.stop();
-//    mf_setup += time.last_wall_time();
+      }
 
+
+    for (unsigned int t=0; t<n_runs; ++t)
+      {
+        if (i==0)
+          time.restart();
+        // Stokes matrix stuff...
+        {
+          typename MatrixFree<dim,double>::AdditionalData additional_data;
+          additional_data.tasks_parallel_scheme =
+            MatrixFree<dim,double>::AdditionalData::none;
+          additional_data.mapping_update_flags = (update_values | update_gradients |
+                                                  update_JxW_values | update_quadrature_points);
+
+          std::vector<const DoFHandler<dim>*> stokes_dofs;
+          stokes_dofs.push_back(&dof_handler_v);
+          stokes_dofs.push_back(&dof_handler_p);
+          std::vector<const ConstraintMatrix *> stokes_constraints;
+          stokes_constraints.push_back(&constraints_v);
+          stokes_constraints.push_back(&constraints_p);
+
+          std::shared_ptr<MatrixFree<dim,double> >
+          stokes_mf_storage(new MatrixFree<dim,double>());
+          stokes_mf_storage->reinit(stokes_dofs, stokes_constraints,
+                                    QGauss<1>(sim.parameters.stokes_velocity_degree+1), additional_data);
+          stokes_matrix.clear();
+          stokes_matrix.initialize(stokes_mf_storage);
+        }
+
+        // Mass matrix matrix-free operator...
+        {
+          typename MatrixFree<dim,double>::AdditionalData additional_data;
+          additional_data.tasks_parallel_scheme =
+            MatrixFree<dim,double>::AdditionalData::none;
+          additional_data.mapping_update_flags = (update_values | update_JxW_values |
+                                                  update_quadrature_points);
+          std::shared_ptr<MatrixFree<dim,double> >
+          mass_mf_storage(new MatrixFree<dim,double>());
+          mass_mf_storage->reinit(dof_handler_p, constraints_p,
+                                  QGauss<1>(sim.parameters.stokes_velocity_degree+1), additional_data);
+
+          mass_matrix.clear();
+          mass_matrix.initialize(mass_mf_storage);
+        }
+
+        // GMG Matrix-free operators
+        {
+          const unsigned int n_levels = sim.triangulation.n_global_levels();
+          mg_matrices.clear_elements();
+          // TODO: minlevel != 0
+          mg_matrices.resize(0, n_levels-1);
+
+          mg_constrained_dofs.clear();
+          std::set<types::boundary_id> dirichlet_boundary = sim.boundary_velocity_manager.get_zero_boundary_velocity_indicators();
+          //TODO: Assert no tangetial boundary
+          for (auto it: sim.boundary_velocity_manager.get_active_boundary_velocity_names())
+            {
+              int bdryid = it.first;
+              std::string component=it.second.first;
+              Assert(component=="", ExcNotImplemented());
+              dirichlet_boundary.insert(bdryid);
+            }
+
+          mg_constrained_dofs.initialize(dof_handler_v);
+          mg_constrained_dofs.make_zero_boundary_constraints(dof_handler_v, dirichlet_boundary);
+
+          for (unsigned int level=0; level<n_levels; ++level)
+            {
+              IndexSet relevant_dofs;
+              DoFTools::extract_locally_relevant_level_dofs(dof_handler_v, level, relevant_dofs);
+              ConstraintMatrix level_constraints;
+              level_constraints.reinit(relevant_dofs);
+              level_constraints.add_lines(mg_constrained_dofs.get_boundary_indices(level));
+              level_constraints.close();
+
+              {
+                typename MatrixFree<dim,double>::AdditionalData additional_data;
+                additional_data.tasks_parallel_scheme =
+                  MatrixFree<dim,double>::AdditionalData::none;
+                additional_data.mapping_update_flags = (update_gradients | update_JxW_values |
+                                                        update_quadrature_points);
+                additional_data.level_mg_handler = level;
+                std::shared_ptr<MatrixFree<dim,double> >
+                mg_mf_storage_level(new MatrixFree<dim,double>());
+                mg_mf_storage_level->reinit(dof_handler_v, level_constraints,
+                                            QGauss<1>(sim.parameters.stokes_velocity_degree+1),
+                                            additional_data);
+
+                mg_matrices[level].clear();
+                mg_matrices[level].initialize(mg_mf_storage_level, mg_constrained_dofs, level);
+
+                //add zero boundary coarsest level
+              }
+            }
+        }
+        if (i==0)
+          {
+            time.stop();
+            mf_setup += time.last_wall_time()/sim.parameters.n_timings;
+          }
+      }
 
 
     //Setup GMG transfer
-//    time.restart();
-    {
-      mg_transfer.clear();
-      mg_transfer.initialize_constraints(mg_constrained_dofs);
-      mg_transfer.build(dof_handler_v);
-    }
-//    time.stop();
-//    gmg_transfer += time.last_wall_time();
+    for (unsigned int t=0; t<n_runs; ++t)
+      {
+        if (i==0)
+          time.restart();
+        {
+          mg_transfer.clear();
+          mg_transfer.initialize_constraints(mg_constrained_dofs);
+          mg_transfer.build(dof_handler_v);
+        }
+        if (i==0)
+          {
+            time.stop();
+            gmg_transfer += time.last_wall_time()/sim.parameters.n_timings;
+          }
+      }
 
-//    sim.pcout << std::left
-//              << std::setw(8) << "out:"
-//              << std::setw(15) << "MF-setup"
-//              << std::setw(15) << "dofs"
-//              << std::setw(15) << "mf"
-//              << std::setw(15) << "gmg-transfer"
-//              << std::endl;
-//    sim.pcout << std::left
-//              << std::setw(8) << "out:"
-//              << std::setw(15) << dof_setup+mf_setup+gmg_transfer
-//              << std::setw(15) << dof_setup
-//              << std::setw(15) << mf_setup
-//              << std::setw(15) << gmg_transfer
-//              << std::endl
-//              << std::setw(8) << "out:" << std::endl;
+    if (i==0)
+      {
+        sim.pcout << std::left
+                  << std::setw(8) << "out:"
+                  << std::setw(15) << "MF-setup"
+                  << std::setw(15) << "dofs"
+                  << std::setw(15) << "mf"
+                  << std::setw(15) << "gmg-transfer"
+                  << std::endl;
+        sim.pcout << std::left
+                  << std::setw(8) << "out:"
+                  << std::setw(15) << dof_setup+mf_setup+gmg_transfer
+                  << std::setw(15) << dof_setup
+                  << std::setw(15) << mf_setup
+                  << std::setw(15) << gmg_transfer
+                  << std::endl
+                  << std::setw(8) << "out:" << std::endl;
+      }
 
 
 

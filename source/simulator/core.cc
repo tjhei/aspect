@@ -1395,7 +1395,7 @@ namespace aspect
 
 
     if (stokes_matrix_free)
-      stokes_matrix_free->setup_dofs();
+      stokes_matrix_free->setup_dofs(i);
 
   }
 
