@@ -1,0 +1,5 @@
+MatrixBased, 4 sinkers, 1e4 visc jump
+out:    Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 128; 4096; 148661; 0.118561; 0.702612; 1.09845; 52; 0.0139848; 
+out:    Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 128; 32768; 1134437; 0.291045; 0.977674; 2.10764; 54; 0.0255536; 
+out:    Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 128; 262144; 8861381; 1.17839; 5.42758; 9.99243; 55; 0.125857; 
+out:    Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 128; 2097152; 70045061; 5.98058; 47.8011; 89.8633; 60; 1.01279; 

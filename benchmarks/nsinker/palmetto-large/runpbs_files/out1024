@@ -1,0 +1,218 @@
+Job 4993942.pbs02 started at Thu Jan 31 00:03:37 EST 2019 on node1667.palmetto.clemson.edu using 1024 processors
+
+
+MatrixFree, 4 sinkers, 1e4 visc jump
+out:
+out:    MPI_Ranks      Cells          Deg of freedoms
+out:    1024           262144         8861381        
+out:    
+out:    GMRES iterations 
+out:    26
+out:    
+out:    Average of 4 function calls: 
+out:    Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 1024; 262144; 8861381; 1.05461; 0.0599218; 1.1035; 26; 0.0474778; 
+out:    
+     out: System matrix memory consumption:  1.95 MB
+out:
+out:    MPI_Ranks      Cells          Deg of freedoms
+out:    1024           2097152        70045061       
+out:    
+out:    GMRES iterations 
+out:    27
+out:    
+out:    Average of 4 function calls: 
+out:    Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 1024; 2097152; 70045061; 2.89819; 0.2701; 3.55772; 27; 0.0918888; 
+out:    
+     out: System matrix memory consumption:  14.12 MB
+out:
+out:    MPI_Ranks      Cells          Deg of freedoms
+out:    1024           16777216       556997381      
+out:    
+out:    GMRES iterations 
+out:    27
+out:    
+out:    Average of 4 function calls: 
+out:    Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 1024; 16777216; 556997381; 15.7779; 1.74128; 31.5048; 27; 0.797834; 
+out:    
+     out: System matrix memory consumption:  107.46 MB
+MatrixFree, 4 sinkers, 1e4 visc jump
+out:
+out:    MPI_Ranks      Cells          Deg of freedoms
+out:    1024           64             3041           
+out:    
+out:    GMRES iterations 
+out:    20
+out:    
+out:    Average of 4 function calls: 
+out:    Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 1024; 64; 3041; 0.612422; 0.0145001; 0.339852; 20; 0.0109192; 
+out:    
+out:
+out:    MPI_Ranks      Cells          Deg of freedoms
+out:    1024           106            5198           
+out:    
+out:    GMRES iterations 
+out:    30
+out:    
+out:    Average of 4 function calls: 
+out:    Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 1024; 106; 5198; 0.626725; 0.0140218; 0.812529; 30; 0.0146836; 
+out:    
+out:
+out:    MPI_Ranks      Cells          Deg of freedoms
+out:    1024           204            9594           
+out:    
+out:    GMRES iterations 
+out:    36
+out:    
+out:    Average of 4 function calls: 
+out:    Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 1024; 204; 9594; 0.82429; 0.0405509; 1.52288; 36; 0.0477498; 
+out:    
+out:
+out:    MPI_Ranks      Cells          Deg of freedoms
+out:    1024           526            24843          
+out:    
+out:    GMRES iterations 
+out:    37
+out:    
+out:    Average of 4 function calls: 
+out:    Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 1024; 526; 24843; 1.08046; 0.0493511; 2.17397; 37; 0.0464524; 
+out:    
+out:
+out:    MPI_Ranks      Cells          Deg of freedoms
+out:    1024           1485           67083          
+out:    
+out:    GMRES iterations 
+out:    81
+out:    
+out:    Average of 4 function calls: 
+out:    Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 1024; 1485; 67083; 1.12866; 0.0445487; 5.25834; 81; 0.0902214; 
+out:    
+out:
+out:    MPI_Ranks      Cells          Deg of freedoms
+out:    1024           2948           127244         
+out:    
+out:    GMRES iterations 
+out:    63
+out:    
+out:    Average of 4 function calls: 
+out:    Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 1024; 2948; 127244; 1.08468; 0.068804; 4.85804; 63; 0.0806329; 
+out:    
+out:
+out:    MPI_Ranks      Cells          Deg of freedoms
+out:    1024           3837           163327         
+out:    
+out:    GMRES iterations 
+out:    44
+out:    
+out:    Average of 4 function calls: 
+out:    Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 1024; 3837; 163327; 1.18036; 0.0665848; 4.91257; 44; 0.120673; 
+out:    
+out:
+out:    MPI_Ranks      Cells          Deg of freedoms
+out:    1024           6371           264516         
+out:    
+out:    GMRES iterations 
+out:    40
+out:    
+out:    Average of 4 function calls: 
+out:    Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 1024; 6371; 264516; 1.00944; 0.194061; 4.46492; 40; 0.156095; 
+out:    
+out:
+out:    MPI_Ranks      Cells          Deg of freedoms
+out:    1024           14890          607193         
+out:    
+out:    GMRES iterations 
+out:    27
+out:    
+out:    Average of 4 function calls: 
+out:    Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 1024; 14890; 607193; 1.79635; 0.120365; 4.0495; 27; 0.17111; 
+out:    
+out:
+out:    MPI_Ranks      Cells          Deg of freedoms
+out:    1024           41448          1641668        
+out:    
+out:    GMRES iterations 
+out:    26
+out:    
+out:    Average of 4 function calls: 
+out:    Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 1024; 41448; 1641668; 1.22359; 0.0970231; 4.35544; 26; 0.157717; 
+out:    
+out:
+out:    MPI_Ranks      Cells          Deg of freedoms
+out:    1024           121297         4633152        
+out:    
+out:    GMRES iterations 
+out:    27
+out:    
+out:    Average of 4 function calls: 
+out:    Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 1024; 121297; 4633152; 1.60757; 0.190849; 5.77745; 27; 0.228417; 
+out:    
+out:
+out:    MPI_Ranks      Cells          Deg of freedoms
+out:    1024           372590         13806264       
+out:    
+out:    GMRES iterations 
+out:    27
+out:    
+out:    Average of 4 function calls: 
+out:    Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 1024; 372590; 13806264; 2.28207; 0.194666; 5.97202; 27; 0.235054; 
+out:    
+out:
+out:    MPI_Ranks      Cells          Deg of freedoms
+out:    1024           1137676        40801447       
+out:    
+out:    GMRES iterations 
+out:    27
+out:    
+out:    Average of 4 function calls: 
+out:    Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 1024; 1137676; 40801447; 3.6174; 0.344874; 9.03123; 27; 0.23786; 
+out:    
+out:
+out:    MPI_Ranks      Cells          Deg of freedoms
+out:    1024           3640386        128402978      
+out:    
+out:    GMRES iterations 
+out:    28
+out:    
+out:    Average of 4 function calls: 
+out:    Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 1024; 3640386; 128402978; 6.95302; 0.617944; 23.323; 28; 0.533525; 
+out:    
+out:
+out:    MPI_Ranks      Cells          Deg of freedoms
+out:    1024           11271331       388802004      
+out:    
+out:    GMRES iterations 
+out:    27
+out:    
+out:    Average of 4 function calls: 
+out:    Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 1024; 11271331; 388802004; 16.1347; 1.60007; 42.8689; 27; 1.23691; 
+out:    
+out:
+out:    MPI_Ranks      Cells          Deg of freedoms
+out:    1024           35971524       1228131489     
+out:    
+out:    GMRES iterations 
+out:    27
+out:    
+out:    Average of 4 function calls: 
+out:    Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 1024; 35971524; 1228131489; 45.8653; 4.90751; 125.313; 27; 3.55229; 
+out:    
+out:
+out:    MPI_Ranks      Cells          Deg of freedoms
+out:    1024           110915358      3742986227     
+out:    
+ 
+ 
++------------------------------------------+ 
+| PALMETTO CLUSTER PBS RESOURCES REQUESTED | 
++------------------------------------------+ 
+ 
+mem=3904gb,ncpus=1024,walltime=01:00:00
+ 
+ 
++-------------------------------------+ 
+| PALMETTO CLUSTER PBS RESOURCES USED | 
++-------------------------------------+ 
+ 
+cpupercent=1624,cput=12:01:59,mem=38011936kb,ncpus=1024,vmem=47758404kb,walltime=00:45:38
+ 
+ 

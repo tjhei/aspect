@@ -1,0 +1,4 @@
+Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 128; 2097152; 70045061; 11.034; 1.70319; 20.7758; 27; 0.507434; 
+Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 256; 2097152; 70045061; 6.56107; 0.882058; 12.5031; 27; 0.259771; 
+Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 512; 2097152; 70045061; 4.03338; 0.465964; 6.53555; 27; 0.169498; 
+Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 1024; 2097152; 70045061; 2.8712; 0.25616; 3.5339; 27; 0.0934836; 

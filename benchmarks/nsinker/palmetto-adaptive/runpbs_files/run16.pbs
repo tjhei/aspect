@@ -38,7 +38,7 @@ echo "end" >> temp16a.prm
 current_model="no_output"
 echo "set Output directory = output/${current_model}" >> temp16a.prm
 #echo "Starting ${current_model}"
-mpirun -np $Nproc ./aspect temp16a.prm | grep "out:"
+mpirun -np $Nproc ./aspect temp16a.prm | grep "out:" 
 rm temp16a.prm
 
 
