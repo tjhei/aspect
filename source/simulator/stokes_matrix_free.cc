@@ -1052,6 +1052,7 @@ namespace aspect
                                     QGauss<1>(sim.parameters.stokes_velocity_degree+1), additional_data);
           stokes_matrix.clear();
           stokes_matrix.initialize(stokes_mf_storage);
+
         }
 
         // Mass matrix matrix-free operator...
@@ -1122,6 +1123,10 @@ namespace aspect
         }
         if (i==0)
           {
+            //just foir timings, also called in solve()
+            evaluate_viscosity();
+            correct_stokes_rhs();
+
             time.stop();
             mf_setup += time.last_wall_time()/sim.parameters.n_timings;
           }
