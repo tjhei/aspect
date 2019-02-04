@@ -1,0 +1,60 @@
+#!/bin/bash                                                                                                      
+#PBS -l select=64:ncpus=16:mpiprocs=16:chip_type=e5-2665:interconnect=fdr:mem=61gb                                   
+#PBS -l walltime=1:00:00                                                                                            
+#PBS -j oe                                                                                                          
+#PBS -N test                                                                                                        
+##PBS -q compmath                                                                                                   
+
+# load profile and modules:                                                                                         
+source /etc/profile.d/modules.sh
+source ~/.bash_profile
+source /home/heister/shared-dealii/modules_9.0.0pre1
+
+ulimit -c 0
+
+# compute processor count and print it:                                                                             
+Nproc=`qstat -xf $PBS_JOBID | grep List.ncpus | sed 's/^.\{26\}//'`
+cd $PBS_O_WORKDIR
+echo "Job $PBS_JOBID started at `date` on `hostname` using $Nproc processors"
+echo
+echo
+
+cd ../../
+
+echo "MatrixFree, 4 sinkers, 1e4 visc jump"
+for refinement in 6 7 8; do # 4 5 6 7
+  cp nsinker_mf.prm temp1024.prm
+
+  echo "subsection Mesh refinement" >> temp1024.prm
+  echo "  set Initial global refinement = $refinement" >> temp1024.prm
+  echo "end" >> temp1024.prm
+        
+  echo "subsection Postprocess" >> temp1024.prm
+  echo "  set List of postprocessors = memory statistics" >> temp1024.prm
+  echo "end" >> temp1024.prm
+
+  mpirun -np $Nproc ./aspect temp1024.prm | grep "out:"
+  rm temp1024.prm
+done
+
+echo "MatrixFree, 4 sinkers, 1e4 visc jump"
+cp adaptive_mf.prm temp1024a.prm
+
+echo "subsection Mesh refinement" >> temp1024a.prm
+echo "  set Initial global refinement = 2" >> temp1024a.prm
+echo "  set Initial adaptive refinement = 20" >> temp1024a.prm
+echo "  set Adapt by fraction of cells = true" >> temp1024.prm
+echo "  set Strategy = velocity" >> temp1024.prm
+echo "  set Run postprocessors on initial refinement = true" >> temp1024.prm
+echo "  set Coarsening fraction       = 0.0" >> temp1024.prm
+echo "  set Refinement fraction       = 0.14285714285" >> temp1024.prm
+echo "end" >> temp1024a.prm
+
+echo "subsection Postprocess" >> temp1024a.prm
+echo "  set List of postprocessors = memory statistics" >> temp1024.prm
+echo "end" >> temp1024a.prm
+
+mpirun -np $Nproc ./aspect temp1024a.prm | grep "out:"
+rm temp1024a.prm
+
+
