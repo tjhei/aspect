@@ -30,14 +30,12 @@ for refinement in 4 5 6; do # 4 5 6 7
   echo "end" >> temp16.prm
         
   echo "subsection Postprocess" >> temp16.prm
-  echo "  subsection Visualization" >> temp16.prm
-  echo "    set Time between graphical output = 2147483647" >> temp16.prm
-  echo "  end" >> temp16.prm
+  echo "  set List of postprocessors = memory statistics" >> temp16.prm
   echo "end" >> temp16.prm
 
   #current_model="mb/harmonic/nsinkers${nsinkers}_viscosity${viscosity}_refinement${refinement}"
   current_model="no_output"
-  echo "set Output directory = output/${current_model}" >> temp16.prm
+  echo "set Output directory = output/global-mf-16" >> temp16.prm
   #echo "Starting ${current_model}"
   mpirun -np $Nproc ./aspect temp16.prm | grep "out:"
   rm temp16.prm
@@ -53,14 +51,12 @@ for refinement in 4 5 6; do # 4 5 6 7
   echo "end" >> temp16.prm
         
   echo "subsection Postprocess" >> temp16.prm
-  echo "  subsection Visualization" >> temp16.prm
-  echo "    set Time between graphical output = 2147483647" >> temp16.prm
-  echo "  end" >> temp16.prm
+  echo "  set List of postprocessors = memory statistics" >> temp16.prm
   echo "end" >> temp16.prm
 
   #current_model="mb/harmonic/nsinkers${nsinkers}_viscosity${viscosity}_refinement${refinement}"
   current_model="no_output"
-  echo "set Output directory = output/${current_model}" >> temp16.prm
+  echo "set Output directory = output/global-mb-16" >> temp16.prm
   #echo "Starting ${current_model}"
   mpirun -np $Nproc ./aspect temp16.prm | grep "out:"
   rm temp16.prm

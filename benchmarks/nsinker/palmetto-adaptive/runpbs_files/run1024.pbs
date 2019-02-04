@@ -22,39 +22,40 @@ echo
 cd ../../
 
 echo "MatrixFree, 4 sinkers, 1e4 visc jump"
-for refinement in 6 7 8; do # 4 5 6 7
-  cp nsinker_mf.prm temp1024.prm
-
-  echo "subsection Mesh refinement" >> temp1024.prm
-  echo "  set Initial global refinement = $refinement" >> temp1024.prm
-  echo "end" >> temp1024.prm
-        
-  echo "subsection Postprocess" >> temp1024.prm
-  echo "  set List of postprocessors = memory statistics" >> temp1024.prm
-  echo "end" >> temp1024.prm
-
-  mpirun -np $Nproc ./aspect temp1024.prm | grep "out:"
-  rm temp1024.prm
-done
-
-echo "MatrixFree, 4 sinkers, 1e4 visc jump"
 cp adaptive_mf.prm temp1024a.prm
 
 echo "subsection Mesh refinement" >> temp1024a.prm
 echo "  set Initial global refinement = 2" >> temp1024a.prm
-echo "  set Initial adaptive refinement = 20" >> temp1024a.prm
-echo "  set Adapt by fraction of cells = true" >> temp1024.prm
-echo "  set Strategy = velocity" >> temp1024.prm
-echo "  set Run postprocessors on initial refinement = true" >> temp1024.prm
-echo "  set Coarsening fraction       = 0.0" >> temp1024.prm
-echo "  set Refinement fraction       = 0.14285714285" >> temp1024.prm
+echo "  set Initial adaptive refinement = 12" >> temp1024a.prm 
 echo "end" >> temp1024a.prm
-
+        
 echo "subsection Postprocess" >> temp1024a.prm
-echo "  set List of postprocessors = memory statistics" >> temp1024.prm
+echo "  set List of postprocessors = memory statistics" >> temp1024a.prm
 echo "end" >> temp1024a.prm
 
+current_model="no_output"
+echo "set Output directory = output/adaptive-mf-1024" >> temp1024a.prm
+#echo "Starting ${current_model}"
 mpirun -np $Nproc ./aspect temp1024a.prm | grep "out:"
 rm temp1024a.prm
 
+
+
+echo "MatrixBased, 4 sinkers, 1e4 visc jump"
+cp adaptive_mb.prm temp1024a.prm
+
+echo "subsection Mesh refinement" >> temp1024a.prm
+echo "  set Initial global refinement = 2" >> temp1024a.prm
+echo "  set Initial adaptive refinement = 12" >> temp1024a.prm  
+echo "end" >> temp1024a.prm
+        
+echo "subsection Postprocess" >> temp1024a.prm
+echo "  set List of postprocessors = memory statistics" >> temp1024a.prm
+echo "end" >> temp1024a.prm
+
+current_model="no_output"
+echo "set Output directory = output/adaptive-mb-1024" >> temp1024a.prm
+#echo "Starting ${current_model}"
+mpirun -np $Nproc ./aspect temp1024a.prm | grep "out:"
+rm temp1024a.prm
 

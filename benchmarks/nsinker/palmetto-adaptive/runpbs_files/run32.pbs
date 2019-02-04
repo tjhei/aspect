@@ -30,13 +30,11 @@ echo "  set Initial adaptive refinement = 10" >> temp32a.prm
 echo "end" >> temp32a.prm
         
 echo "subsection Postprocess" >> temp32a.prm
-echo "  subsection Visualization" >> temp32a.prm
-echo "    set Time between graphical output = 2147483647" >> temp32a.prm
-echo "  end" >> temp32a.prm
+echo "  set List of postprocessors = memory statistics" >> temp32a.prm
 echo "end" >> temp32a.prm
 
 current_model="no_output"
-echo "set Output directory = output/${current_model}" >> temp32a.prm
+echo "set Output directory = output/adaptive-mf-32" >> temp32a.prm
 #echo "Starting ${current_model}"
 mpirun -np $Nproc ./aspect temp32a.prm | grep "out:"
 rm temp32a.prm
@@ -52,13 +50,11 @@ echo "  set Initial adaptive refinement = 10" >> temp32a.prm
 echo "end" >> temp32a.prm
         
 echo "subsection Postprocess" >> temp32a.prm
-echo "  subsection Visualization" >> temp32a.prm
-echo "    set Time between graphical output = 2147483647" >> temp32a.prm
-echo "  end" >> temp32a.prm
+echo "  set List of postprocessors = memory statistics" >> temp32a.prm
 echo "end" >> temp32a.prm
 
 current_model="no_output"
-echo "set Output directory = output/${current_model}" >> temp32a.prm
+echo "set Output directory = output/adaptive-mb-32" >> temp32a.prm
 #echo "Starting ${current_model}"
 mpirun -np $Nproc ./aspect temp32a.prm | grep "out:"
 rm temp32a.prm
