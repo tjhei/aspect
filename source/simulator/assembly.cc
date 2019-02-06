@@ -423,7 +423,7 @@ namespace aspect
 
   template <int dim>
   void
-  Simulator<dim>::build_stokes_preconditioner ()
+  Simulator<dim>::build_stokes_preconditioner (const unsigned int i)
   {
     if (rebuild_stokes_preconditioner == false)
       return;
@@ -444,96 +444,118 @@ namespace aspect
     pcout << "   Rebuilding Stokes preconditioner..." << std::flush;
 
     // first assemble the raw matrices necessary for the preconditioner
-    assemble_stokes_preconditioner ();
 
-    // then extract the other information necessary to build the
-    // AMG preconditioners for the A and M blocks
-    std::vector<std::vector<bool> > constant_modes;
-    DoFTools::extract_constant_modes (dof_handler,
-                                      introspection.component_masks.velocities,
-                                      constant_modes);
+    //Timings for: Assemble prec matrix
+    Timer time(triangulation.get_communicator(),true);
+    {
+      if (i!=0)
+        assemble_prec_matrix[i-1] = 0.0;
+      time.restart();
+      assemble_stokes_preconditioner ();
+      time.stop();
+      if (i!=0)
+        assemble_prec_matrix[i-1] += time.last_wall_time();
+    }
 
-    if (parameters.include_melt_transport)
-      Mp_preconditioner.reset (new LinearAlgebra::PreconditionAMG());
-    else
-      Mp_preconditioner.reset (new LinearAlgebra::PreconditionILU());
+    //Timings for: AMG setup
+    {
+      if (i!=0)
+        setup_amg[i-1] = 0.0;
+      time.restart();
 
-    Amg_preconditioner.reset (new LinearAlgebra::PreconditionAMG());
+      // then extract the other information necessary to build the
+      // AMG preconditioners for the A and M blocks
+      std::vector<std::vector<bool> > constant_modes;
+      DoFTools::extract_constant_modes (dof_handler,
+                                        introspection.component_masks.velocities,
+                                        constant_modes);
 
-    LinearAlgebra::PreconditionAMG::AdditionalData Amg_data;
+      if (parameters.include_melt_transport)
+        Mp_preconditioner.reset (new LinearAlgebra::PreconditionAMG());
+      else
+        Mp_preconditioner.reset (new LinearAlgebra::PreconditionILU());
+
+      Amg_preconditioner.reset (new LinearAlgebra::PreconditionAMG());
+
+      LinearAlgebra::PreconditionAMG::AdditionalData Amg_data;
 #ifdef ASPECT_USE_PETSC
-    Amg_data.symmetric_operator = false;
+      Amg_data.symmetric_operator = false;
 #else
-    Amg_data.constant_modes = constant_modes;
-    Amg_data.elliptic = true;
-    Amg_data.higher_order_elements = true;
+      Amg_data.constant_modes = constant_modes;
+      Amg_data.elliptic = true;
+      Amg_data.higher_order_elements = true;
 
-    // set the AMG parameters in a way that minimizes the run
-    // time. compared to some of the deal.II tutorial programs, we
-    // found that it pays off to set the aggregation threshold to
-    // zero, especially for ill-conditioned problems with large
-    // variations in the viscosity
-    //
-    // for extensive benchmarking of various settings of these
-    // parameters and others, see
-    // https://github.com/geodynamics/aspect/pull/234
-    Amg_data.smoother_type = parameters.AMG_smoother_type.c_str();
-    Amg_data.smoother_sweeps = parameters.AMG_smoother_sweeps;
-    Amg_data.aggregation_threshold = parameters.AMG_aggregation_threshold;
-    Amg_data.output_details = parameters.AMG_output_details;
+      // set the AMG parameters in a way that minimizes the run
+      // time. compared to some of the deal.II tutorial programs, we
+      // found that it pays off to set the aggregation threshold to
+      // zero, especially for ill-conditioned problems with large
+      // variations in the viscosity
+      //
+      // for extensive benchmarking of various settings of these
+      // parameters and others, see
+      // https://github.com/geodynamics/aspect/pull/234
+      Amg_data.smoother_type = parameters.AMG_smoother_type.c_str();
+      Amg_data.smoother_sweeps = parameters.AMG_smoother_sweeps;
+      Amg_data.aggregation_threshold = parameters.AMG_aggregation_threshold;
+      Amg_data.output_details = parameters.AMG_output_details;
 #endif
 
-    /*  The stabilization term for the free surface (Kaus et. al., 2010)
-     *  makes changes to the system matrix which are of the same form as
-     *  boundary stresses. If these stresses are not also added to the
-     *  system_preconditioner_matrix, then it fails to be very good as a
-     *  preconditioner. Instead, we just pass the system_matrix to the
-     *  AMG precondition initialization so that it builds the preconditioner
-     *  directly from that. However, we still need the mass matrix for the
-     *  pressure block which is assembled in the preconditioner matrix.
-     *  So rather than build a different preconditioner matrix which only
-     *  does the mass matrix, we just reuse the same system_preconditioner_matrix
-     *  for the Mp_preconditioner block.  Maybe a bit messy*/
+      /*  The stabilization term for the free surface (Kaus et. al., 2010)
+       *  makes changes to the system matrix which are of the same form as
+       *  boundary stresses. If these stresses are not also added to the
+       *  system_preconditioner_matrix, then it fails to be very good as a
+       *  preconditioner. Instead, we just pass the system_matrix to the
+       *  AMG precondition initialization so that it builds the preconditioner
+       *  directly from that. However, we still need the mass matrix for the
+       *  pressure block which is assembled in the preconditioner matrix.
+       *  So rather than build a different preconditioner matrix which only
+       *  does the mass matrix, we just reuse the same system_preconditioner_matrix
+       *  for the Mp_preconditioner block.  Maybe a bit messy*/
 
-    if (parameters.include_melt_transport == false)
-      {
-        LinearAlgebra::PreconditionILU *Mp_preconditioner_ILU
-          = dynamic_cast<LinearAlgebra::PreconditionILU *> (Mp_preconditioner.get());
-        Mp_preconditioner_ILU->initialize (system_preconditioner_matrix.block(1,1));
-      }
-    else
-      {
-        // in the case of melt transport we have an AMG preconditioner for the lower right block.
-        LinearAlgebra::PreconditionAMG::AdditionalData Amg_data;
+      if (parameters.include_melt_transport == false)
+        {
+          LinearAlgebra::PreconditionILU *Mp_preconditioner_ILU
+            = dynamic_cast<LinearAlgebra::PreconditionILU *> (Mp_preconditioner.get());
+          Mp_preconditioner_ILU->initialize (system_preconditioner_matrix.block(1,1));
+        }
+      else
+        {
+          // in the case of melt transport we have an AMG preconditioner for the lower right block.
+          LinearAlgebra::PreconditionAMG::AdditionalData Amg_data;
 #ifdef ASPECT_USE_PETSC
-        Amg_data.symmetric_operator = false;
+          Amg_data.symmetric_operator = false;
 #else
-        std::vector<std::vector<bool> > constant_modes;
-        dealii::ComponentMask cm_pressure = introspection.component_masks.pressure;
-        if (parameters.include_melt_transport)
-          cm_pressure = cm_pressure | introspection.variable("compaction pressure").component_mask;
-        DoFTools::extract_constant_modes (dof_handler,
-                                          cm_pressure,
-                                          constant_modes);
+          std::vector<std::vector<bool> > constant_modes;
+          dealii::ComponentMask cm_pressure = introspection.component_masks.pressure;
+          if (parameters.include_melt_transport)
+            cm_pressure = cm_pressure | introspection.variable("compaction pressure").component_mask;
+          DoFTools::extract_constant_modes (dof_handler,
+                                            cm_pressure,
+                                            constant_modes);
 
-        Amg_data.elliptic = true;
-        Amg_data.higher_order_elements = false;
+          Amg_data.elliptic = true;
+          Amg_data.higher_order_elements = false;
 
-        Amg_data.smoother_sweeps = 2;
-        Amg_data.coarse_type = "symmetric Gauss-Seidel";
+          Amg_data.smoother_sweeps = 2;
+          Amg_data.coarse_type = "symmetric Gauss-Seidel";
 #endif
 
-        LinearAlgebra::PreconditionAMG *Mp_preconditioner_AMG
-          = dynamic_cast<LinearAlgebra::PreconditionAMG *> (Mp_preconditioner.get());
-        Mp_preconditioner_AMG->initialize (system_preconditioner_matrix.block(1,1), Amg_data);
-      }
+          LinearAlgebra::PreconditionAMG *Mp_preconditioner_AMG
+            = dynamic_cast<LinearAlgebra::PreconditionAMG *> (Mp_preconditioner.get());
+          Mp_preconditioner_AMG->initialize (system_preconditioner_matrix.block(1,1), Amg_data);
+        }
 
-    if (parameters.free_surface_enabled || parameters.include_melt_transport || parameters.use_full_A_block_preconditioner)
-      Amg_preconditioner->initialize (system_matrix.block(0,0),
-                                      Amg_data);
-    else
-      Amg_preconditioner->initialize (system_preconditioner_matrix.block(0,0),
-                                      Amg_data);
+      if (parameters.free_surface_enabled || parameters.include_melt_transport || parameters.use_full_A_block_preconditioner)
+        Amg_preconditioner->initialize (system_matrix.block(0,0),
+                                        Amg_data);
+      else
+        Amg_preconditioner->initialize (system_preconditioner_matrix.block(0,0),
+                                        Amg_data);
+
+      time.stop();
+      if (i!=0)
+        setup_amg[i-1] += time.last_wall_time();
+    }
 
     rebuild_stokes_preconditioner = false;
 
@@ -689,7 +711,7 @@ namespace aspect
   {
     if (stokes_matrix_free)
       {
-        pcout << "assemble_stokes_system (): Matrix-free, so just assembling RHS..." << std::endl;
+        //pcout << "assemble_stokes_system (): Matrix-free, so just assembling RHS..." << std::endl;
         rebuild_stokes_matrix = false;
       }
     TimerOutput::Scope timer (computing_timer,
@@ -1222,7 +1244,7 @@ namespace aspect
   template void Simulator<dim>::copy_local_to_global_stokes_preconditioner ( \
                                                                              const internal::Assembly::CopyData::StokesPreconditioner<dim> &data); \
   template void Simulator<dim>::assemble_stokes_preconditioner (); \
-  template void Simulator<dim>::build_stokes_preconditioner (); \
+  template void Simulator<dim>::build_stokes_preconditioner (const unsigned int i); \
   template void Simulator<dim>::local_assemble_stokes_system ( \
                                                                const DoFHandler<dim>::active_cell_iterator &cell, \
                                                                internal::Assembly::Scratch::StokesSystem<dim>  &scratch, \

@@ -47,9 +47,8 @@ namespace aspect
   Parameters<dim>::
   declare_parameters (ParameterHandler &prm)
   {
-    prm.declare_entry ("Number of timings","0",Patterns::Integer (0,20),
-                       "Number of times to run each function for timing purposes in sinker and inclusion."
-                       "A value of \"0\" represents 1 run, no timings.");
+    prm.declare_entry ("Number of timings","1",Patterns::Integer (0,20),
+                       "Number of times to run each function for timing purposes in sinker and inclusion.");
 
     prm.declare_entry ("Dimension", "2",
                        Patterns::Integer (2,3),

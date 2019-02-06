@@ -27,6 +27,9 @@
 
 #include <deal.II/numerics/vector_tools.h>
 
+#include <aspect/stokes_matrix_free.h>
+
+
 namespace aspect
 {
 
@@ -279,33 +282,81 @@ namespace aspect
         compute_current_constraints();
         if (rebuild_sparsity_and_matrices)
           {
-            setup_system_matrix (introspection.index_sets.system_partitioning);
-            setup_system_preconditioner (introspection.index_sets.system_partitioning);
+            // Timings for: sparsity pattern
+            Timer time(triangulation.get_communicator(),true);
+            for (unsigned int i=0; i<parameters.n_timings+1; ++i)
+              {
+                if (i!=0)
+                  setup_sparsity_pattern[i-1] = 0.0;
+                time.restart();
+                setup_system_matrix (introspection.index_sets.system_partitioning);
+                setup_system_preconditioner (introspection.index_sets.system_partitioning);
+                time.stop();
+                if (i!=0)
+                  {
+                    setup_sparsity_pattern[i-1] += time.last_wall_time();
+                    total_setup_time[i-1] += setup_sparsity_pattern[i-1];
+                  }
+              }
 
             rebuild_stokes_matrix = rebuild_stokes_preconditioner = true;
           }
       }
 
-
-    assemble_time = 0;
+    //Timings for: assembly
     {
-      Timer time(triangulation.get_communicator(),true);
+      Timer time_out(triangulation.get_communicator(),true);
+      Timer time_in(triangulation.get_communicator(),true);
+      bool need_rebuild = rebuild_stokes_matrix;
+      bool need_rebuild_prec = rebuild_stokes_preconditioner;
       for (unsigned int i=0; i<parameters.n_timings+1; ++i)
         {
-          time.restart();
-
-          rebuild_stokes_matrix = true;
-          assemble_stokes_system ();
-
-          rebuild_stokes_preconditioner = true;
-          build_stokes_preconditioner();
-
-          time.stop();
           if (i!=0)
-            assemble_time += time.last_wall_time();
+            total_assemble_time[i-1] = 0.0;
+          time_out.restart();
+
+          //Timings for: assemble stokes
+          {
+            if (i!=0)
+              assemble_system_matrix_rhs[i-1] = 0.0;
+            time_in.restart();
+            assemble_stokes_system ();
+            time_in.stop();
+            if (i!=0)
+              assemble_system_matrix_rhs[i-1] += time_in.last_wall_time();
+
+            if (need_rebuild)
+              rebuild_stokes_matrix = true;
+          }
+
+
+          //Timings for: Update coefficients and add correction to system rhs
+          if (stokes_matrix_free)
+            {
+              if (i!=0)
+                coefficient_transfer[i-1] = 0.0;
+              time_in.restart();
+              stokes_matrix_free->evaluate_viscosity();
+              stokes_matrix_free->correct_stokes_rhs();
+              time_in.stop();
+              if (i!=0)
+                coefficient_transfer[i-1] += time_in.last_wall_time();
+            }
+
+
+          //Timings for: assemble preconditioner (inside function)
+          if (!stokes_matrix_free)
+            {
+              build_stokes_preconditioner(i);
+              if (need_rebuild_prec)
+                rebuild_stokes_preconditioner = true;
+            }
+          time_out.stop();
+          if (i!=0)
+            total_assemble_time[i-1] += time_out.last_wall_time();
         }
-      if (parameters.n_timings != 0)
-        assemble_time /= (1.0*parameters.n_timings);
+      rebuild_stokes_matrix = false;
+      rebuild_stokes_preconditioner = false;
     }
 
 
@@ -317,21 +368,11 @@ namespace aspect
 
 
     double res = 0;
-    solve_time = 0;
     {
-      Timer time(triangulation.get_communicator(),true);
       for (unsigned int i=0; i<parameters.n_timings+1; ++i)
         {
-          time.restart();
-
           res = solve_stokes(i).first;
-
-          time.stop();
-          if (i!=0)
-            solve_time += time.last_wall_time();
         }
-      if (parameters.n_timings != 0)
-        solve_time /= (1.0*parameters.n_timings);
     }
 
     const double current_nonlinear_residual = res;

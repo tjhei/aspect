@@ -809,30 +809,22 @@ namespace aspect
                                     parameters.linear_solver_S_block_tolerance,
                                     triangulation.get_communicator());
 
+// Timings for: vcycle
+        {
+          LinearAlgebra::BlockVector tmp_dst = distributed_stokes_solution;
+          LinearAlgebra::BlockVector tmp_scr = distributed_stokes_rhs;
+          if (i!=0)
+            vcycle_time[i-1] = 0.0;
+          Timer time(triangulation.get_communicator(),true);
+          time.restart();
+          preconditioner_cheap.vmult(tmp_dst, tmp_scr);
+          time.stop();
+          if (i!=0)
+            vcycle_time[i-1] += time.last_wall_time();
+        }
 
-        if (parameters.n_timings==0)
-          vcycle_time =0;
-        else if (i==0)
-          {
-            vcycle_time = 0;
-            LinearAlgebra::BlockVector tmp_dst = distributed_stokes_solution;
-            LinearAlgebra::BlockVector tmp_scr = distributed_stokes_rhs;
-            Timer time(triangulation.get_communicator(),true);
-            for (unsigned int i=0; i<parameters.n_timings+1; ++i)
-              {
-                time.restart();
 
-                preconditioner_cheap.vmult(tmp_dst, tmp_scr);
 
-                time.stop();
-                if (i!=0)
-                  vcycle_time += time.last_wall_time();
-
-                tmp_scr = tmp_dst;
-              }
-            if (parameters.n_timings != 0)
-              vcycle_time /= (1.0*parameters.n_timings);
-          }
 
 
 
@@ -849,115 +841,127 @@ namespace aspect
 
         // step 1a: try if the simple and fast solver
         // succeeds in n_cheap_stokes_solver_steps steps or less.
-        gmres_iterations = 0;
-        try
-          {
-            // if this cheaper solver is not desired, then simply short-cut
-            // the attempt at solving with the cheaper preconditioner
-            if (parameters.n_cheap_stokes_solver_steps == 0)
-              throw SolverControl::NoConvergence(0,0);
+        {
+          Timer time(triangulation.get_communicator(),true);
+          gmres_iterations = 0;
 
-            SolverFGMRES<LinearAlgebra::BlockVector>
-            solver(solver_control_cheap, mem,
-                   SolverFGMRES<LinearAlgebra::BlockVector>::
-                   AdditionalData(parameters.stokes_gmres_restart_length));
+          //Timings for: solve
+          if (i!=0)
+            solve_time[i-1] = 0.0;
+          time.restart();
+          try
+            {
+              // if this cheaper solver is not desired, then simply short-cut
+              // the attempt at solving with the cheaper preconditioner
+              if (parameters.n_cheap_stokes_solver_steps == 0)
+                throw SolverControl::NoConvergence(0,0);
 
-            solver.solve (stokes_block,
-                          distributed_stokes_solution,
-                          distributed_stokes_rhs,
-                          preconditioner_cheap);
+              SolverFGMRES<LinearAlgebra::BlockVector>
+              solver(solver_control_cheap, mem,
+                     SolverFGMRES<LinearAlgebra::BlockVector>::
+                     AdditionalData(parameters.stokes_gmres_restart_length));
 
-            final_linear_residual = solver_control_cheap.last_value();
-          }
+              solver.solve (stokes_block,
+                            distributed_stokes_solution,
+                            distributed_stokes_rhs,
+                            preconditioner_cheap);
 
-        // step 1b: take the stronger solver in case
-        // the simple solver failed and attempt solving
-        // it in n_expensive_stokes_solver_steps steps or less.
-        catch (const SolverControl::NoConvergence &)
-          {
-            // use the value defined by the user
-            // OR
-            // at least a restart length of 100 for melt models
-            const unsigned int number_of_temporary_vectors = (parameters.include_melt_transport == false ?
-                                                              parameters.stokes_gmres_restart_length :
-                                                              std::max(parameters.stokes_gmres_restart_length, 100U));
+              final_linear_residual = solver_control_cheap.last_value();
+            }
 
-            SolverFGMRES<LinearAlgebra::BlockVector>
-            solver(solver_control_expensive, mem,
-                   SolverFGMRES<LinearAlgebra::BlockVector>::
-                   AdditionalData(number_of_temporary_vectors));
+          // step 1b: take the stronger solver in case
+          // the simple solver failed and attempt solving
+          // it in n_expensive_stokes_solver_steps steps or less.
+          catch (const SolverControl::NoConvergence &)
+            {
+              // use the value defined by the user
+              // OR
+              // at least a restart length of 100 for melt models
+              const unsigned int number_of_temporary_vectors = (parameters.include_melt_transport == false ?
+                                                                parameters.stokes_gmres_restart_length :
+                                                                std::max(parameters.stokes_gmres_restart_length, 100U));
 
-            try
-              {
-                solver.solve(stokes_block,
-                             distributed_stokes_solution,
-                             distributed_stokes_rhs,
-                             preconditioner_expensive);
+              SolverFGMRES<LinearAlgebra::BlockVector>
+              solver(solver_control_expensive, mem,
+                     SolverFGMRES<LinearAlgebra::BlockVector>::
+                     AdditionalData(number_of_temporary_vectors));
 
-                final_linear_residual = solver_control_expensive.last_value();
-              }
-            // if the solver fails, report the error from processor 0 with some additional
-            // information about its location, and throw a quiet exception on all other
-            // processors
-            catch (const std::exception &exc)
-              {
-                signals.post_stokes_solver(*this,
-                                           preconditioner_cheap.n_iterations_S() + preconditioner_expensive.n_iterations_S(),
-                                           preconditioner_cheap.n_iterations_A() + preconditioner_expensive.n_iterations_A(),
-                                           solver_control_cheap,
-                                           solver_control_expensive);
+              try
+                {
+                  solver.solve(stokes_block,
+                               distributed_stokes_solution,
+                               distributed_stokes_rhs,
+                               preconditioner_expensive);
 
-                if (Utilities::MPI::this_mpi_process(mpi_communicator) == 0)
-                  {
-                    // output solver history
-                    std::ofstream f((parameters.output_directory+"solver_history.txt").c_str());
+                  final_linear_residual = solver_control_expensive.last_value();
+                }
+              // if the solver fails, report the error from processor 0 with some additional
+              // information about its location, and throw a quiet exception on all other
+              // processors
+              catch (const std::exception &exc)
+                {
+                  signals.post_stokes_solver(*this,
+                                             preconditioner_cheap.n_iterations_S() + preconditioner_expensive.n_iterations_S(),
+                                             preconditioner_cheap.n_iterations_A() + preconditioner_expensive.n_iterations_A(),
+                                             solver_control_cheap,
+                                             solver_control_expensive);
 
-                    // Only request the solver history if a history has actually been created
-                    if (parameters.n_cheap_stokes_solver_steps > 0)
-                      {
-                        for (unsigned int i=0; i<solver_control_cheap.get_history_data().size(); ++i)
-                          f << i << " " << solver_control_cheap.get_history_data()[i] << "\n";
+                  if (Utilities::MPI::this_mpi_process(mpi_communicator) == 0)
+                    {
+                      // output solver history
+                      std::ofstream f((parameters.output_directory+"solver_history.txt").c_str());
 
-                        f << "\n";
-                      }
+                      // Only request the solver history if a history has actually been created
+                      if (parameters.n_cheap_stokes_solver_steps > 0)
+                        {
+                          for (unsigned int i=0; i<solver_control_cheap.get_history_data().size(); ++i)
+                            f << i << " " << solver_control_cheap.get_history_data()[i] << "\n";
+
+                          f << "\n";
+                        }
 
 
-                    for (unsigned int i=0; i<solver_control_expensive.get_history_data().size(); ++i)
-                      f << i << " " << solver_control_expensive.get_history_data()[i] << "\n";
+                      for (unsigned int i=0; i<solver_control_expensive.get_history_data().size(); ++i)
+                        f << i << " " << solver_control_expensive.get_history_data()[i] << "\n";
 
-                    f.close();
+                      f.close();
 
-                    // avoid a deadlock that was fixed after deal.II 8.5.0
+                      // avoid a deadlock that was fixed after deal.II 8.5.0
 #if DEAL_II_VERSION_GTE(9,0,0)
-                    AssertThrow (false,
-                                 ExcMessage (std::string("The iterative Stokes solver "
-                                                         "did not converge. It reported the following error:\n\n")
-                                             +
-                                             exc.what()
-                                             + "\n See " + parameters.output_directory+"solver_history.txt"
-                                             + " for convergence history."));
+                      AssertThrow (false,
+                                   ExcMessage (std::string("The iterative Stokes solver "
+                                                           "did not converge. It reported the following error:\n\n")
+                                               +
+                                               exc.what()
+                                               + "\n See " + parameters.output_directory+"solver_history.txt"
+                                               + " for convergence history."));
 #else
-                    std::cerr << "The iterative Stokes solver "
-                              << "did not converge. It reported the following error:\n\n"
-                              << exc.what()
-                              << "\n See "
-                              << parameters.output_directory
-                              << "solver_history.txt for convergence history."
-                              << std::endl;
-                    std::abort();
+                      std::cerr << "The iterative Stokes solver "
+                                << "did not converge. It reported the following error:\n\n"
+                                << exc.what()
+                                << "\n See "
+                                << parameters.output_directory
+                                << "solver_history.txt for convergence history."
+                                << std::endl;
+                      std::abort();
 #endif
-                  }
-                else
-                  {
+                    }
+                  else
+                    {
 #if DEAL_II_VERSION_GTE(9,0,0)
-                    throw QuietException();
+                      throw QuietException();
 #else
-                    std::abort();
+                      std::abort();
 #endif
-                  }
-              }
-          }
-        gmres_iterations = solver_control_cheap.last_step() + solver_control_expensive.last_step();
+                    }
+                }
+            }
+          time.stop();
+          if (i!=0)
+            solve_time[i-1] += time.last_wall_time();
+
+          gmres_iterations = solver_control_cheap.last_step() + solver_control_expensive.last_step();
+        }
 
 
         // signal successful solver

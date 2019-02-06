@@ -18,7 +18,6 @@
   <http://www.gnu.org/licenses/>.
 */
 
-
 #include <aspect/simulator.h>
 #include <aspect/global.h>
 #include <aspect/utilities.h>
@@ -227,7 +226,23 @@ namespace aspect
     rebuild_stokes_matrix (true),
     assemble_newton_stokes_matrix (true),
     assemble_newton_stokes_system (parameters.nonlinear_solver == NonlinearSolver::iterated_Advection_and_Newton_Stokes ? true : false),
-    rebuild_stokes_preconditioner (true)
+    rebuild_stokes_preconditioner (true),
+
+
+    stokes_timer(mpi_communicator),
+
+    //timing vectors
+    total_time(parameters.n_timings),total_time_no_setup(parameters.n_timings),
+    // Setup timings
+    total_setup_time(parameters.n_timings),
+    distribute_system_dofs(parameters.n_timings),distribute_mf_dofs(parameters.n_timings),distribute_mg_dofs(parameters.n_timings),
+    setup_mf_operators(parameters.n_timings),setup_mg_transfer(parameters.n_timings),setup_sparsity_pattern(parameters.n_timings),
+    // Assemble timings
+    total_assemble_time(parameters.n_timings),
+    assemble_system_matrix_rhs(parameters.n_timings),assemble_prec_matrix(parameters.n_timings),
+    setup_amg(parameters.n_timings),coefficient_transfer(parameters.n_timings),
+    // Solve/Prec timings
+    solve_time(parameters.n_timings), vcycle_time(parameters.n_timings)
   {
     if (Utilities::MPI::this_mpi_process(mpi_communicator) == 0)
       {
@@ -668,8 +683,24 @@ namespace aspect
     if (rebuild_sparsity_and_matrices)
       {
         rebuild_sparsity_and_matrices = false;
-        setup_system_matrix (introspection.index_sets.system_partitioning);
-        setup_system_preconditioner (introspection.index_sets.system_partitioning);
+
+        // Timings for: sparsity pattern
+        Timer time(triangulation.get_communicator(),true);
+        for (unsigned int i=0; i<parameters.n_timings+1; ++i)
+          {
+            if (i!=0)
+              setup_sparsity_pattern[i-1] = 0.0;
+            time.restart();
+            setup_system_matrix (introspection.index_sets.system_partitioning);
+            setup_system_preconditioner (introspection.index_sets.system_partitioning);
+            time.stop();
+            if (i!=0)
+              {
+                setup_sparsity_pattern[i-1] += time.last_wall_time();
+                total_setup_time[i-1] += setup_sparsity_pattern[i];
+              }
+          }
+
         rebuild_stokes_matrix = rebuild_stokes_preconditioner = true;
       }
 
@@ -1267,110 +1298,105 @@ namespace aspect
 
     TimerOutput::Scope timer (computing_timer, "Setup dof systems");
 
-    dof_handler.distribute_dofs(finite_element);
-
-    // Renumber the DoFs hierarchical so that we get the
-    // same numbering if we resume the computation. This
-    // is because the numbering depends on the order the
-    // cells are created.
-    DoFRenumbering::hierarchical (dof_handler);
-    DoFRenumbering::component_wise (dof_handler,
-                                    introspection.get_components_to_blocks());
-
-    // set up the introspection object that stores all sorts of
-    // information about components of the finite element, component
-    // masks, etc
-    setup_introspection();
-
-    // print dof numbers. Do so with 1000s separator since they are frequently
-    // large
+    Timer time (triangulation.get_communicator(),true);
+    if (i!=0)
+      distribute_system_dofs[i-1] = 0.0;
+    //Timings for: DOF/CONSTRAINTS
+    time.restart();
     {
-      std::locale s = pcout.get_stream().getloc();
-      // Creating std::locale with an empty string previously caused problems
-      // on some platforms, so the functionality to catch the exception and ignore
-      // is kept here, even though explicitly setting a facet should always work.
-      try
-        {
-          pcout.get_stream().imbue(std::locale(std::locale(), new aspect::Utilities::ThousandSep));
-        }
-      catch (const std::runtime_error &e)
-        {
-          // If the locale doesn't work, just give up
-        }
+      dof_handler.distribute_dofs(finite_element);
 
-      pcout << "Number of active cells: "
-            << triangulation.n_global_active_cells()
-            << " (on "
-            << triangulation.n_global_levels()
-            << " levels)"
-            << std::endl
-            << "Number of degrees of freedom: "
-            << dof_handler.n_dofs()
-            << " ("
-            << introspection.system_dofs_per_block[0];
-      for (unsigned int b=1; b<introspection.system_dofs_per_block.size(); ++b)
-        pcout << '+' << introspection.system_dofs_per_block[b];
-      pcout <<')'
-            << std::endl
-            << std::endl;
+      // Renumber the DoFs hierarchical so that we get the
+      // same numbering if we resume the computation. This
+      // is because the numbering depends on the order the
+      // cells are created.
+      DoFRenumbering::hierarchical (dof_handler);
+      DoFRenumbering::component_wise (dof_handler,
+                                      introspection.get_components_to_blocks());
 
-      pcout.get_stream().imbue(s);
-    }
+      // set up the introspection object that stores all sorts of
+      // information about components of the finite element, component
+      // masks, etc
+      setup_introspection();
 
-    if (i==0)
+      // print dof numbers. Do so with 1000s separator since they are frequently
+      // large
       {
-        pcout << std::left
-              << "out:" << std::endl
-              << std::setw(8) << "out:"
-              << std::setw(15) << "MPI_Ranks"
-              << std::setw(15) << "Cells"
-              << std::setw(15) << "Deg of freedoms"
-              << std::endl;
-        pcout << std::left
-              << std::setw(8) << "out:"
-              << std::setw(15) << Utilities::MPI::n_mpi_processes(triangulation.get_communicator())
-              << std::setw(15) << triangulation.n_global_active_cells()
-              << std::setw(15) << dof_handler.n_dofs()
-              << std::endl
-              << std::setw(8) << "out:" << std::endl;
+        std::locale s = pcout.get_stream().getloc();
+        // Creating std::locale with an empty string previously caused problems
+        // on some platforms, so the functionality to catch the exception and ignore
+        // is kept here, even though explicitly setting a facet should always work.
+        try
+          {
+            pcout.get_stream().imbue(std::locale(std::locale(), new aspect::Utilities::ThousandSep));
+          }
+        catch (const std::runtime_error &e)
+          {
+            // If the locale doesn't work, just give up
+          }
 
+        if (i==0)
+          {
+            pcout << "Number of active cells: "
+                  << triangulation.n_global_active_cells()
+                  << " (on "
+                  << triangulation.n_global_levels()
+                  << " levels)"
+                  << std::endl
+                  << "Number of degrees of freedom: "
+                  << dof_handler.n_dofs()
+                  << " ("
+                  << introspection.system_dofs_per_block[0];
+            for (unsigned int b=1; b<introspection.system_dofs_per_block.size(); ++b)
+              pcout << '+' << introspection.system_dofs_per_block[b];
+            pcout <<')'
+                  << std::endl
+                  << std::endl;
+
+            pcout.get_stream().imbue(s);
+          }
       }
 
 
-    // We need to setup the free surface degrees of freedom first if there is a free
-    // surface active, since the mapping must be in place before applying boundary
-    // conditions that rely on it (such as no flux BCs).
-    if (parameters.free_surface_enabled)
-      free_surface->setup_dofs();
+      // We need to setup the free surface degrees of freedom first if there is a free
+      // surface active, since the mapping must be in place before applying boundary
+      // conditions that rely on it (such as no flux BCs).
+      if (parameters.free_surface_enabled)
+        free_surface->setup_dofs();
 
 
-    // reinit the constraints matrix and make hanging node constraints
-    constraints.clear();
-    constraints.reinit(introspection.index_sets.system_relevant_set);
+      // reinit the constraints matrix and make hanging node constraints
+      constraints.clear();
+      constraints.reinit(introspection.index_sets.system_relevant_set);
 
-    DoFTools::make_hanging_node_constraints (dof_handler,
-                                             constraints);
+      DoFTools::make_hanging_node_constraints (dof_handler,
+                                               constraints);
 
-    // Now set up the constraints for periodic boundary conditions
-    {
-      typedef std::set< std::pair< std::pair< types::boundary_id, types::boundary_id>, unsigned int> >
-      periodic_boundary_set;
-      periodic_boundary_set pbs = geometry_model->get_periodic_boundary_pairs();
+      // Now set up the constraints for periodic boundary conditions
+      {
+        typedef std::set< std::pair< std::pair< types::boundary_id, types::boundary_id>, unsigned int> >
+        periodic_boundary_set;
+        periodic_boundary_set pbs = geometry_model->get_periodic_boundary_pairs();
 
-      for (periodic_boundary_set::iterator p = pbs.begin(); p != pbs.end(); ++p)
-        {
-          DoFTools::make_periodicity_constraints(dof_handler,
-                                                 (*p).first.first,  // first boundary id
-                                                 (*p).first.second, // second boundary id
-                                                 (*p).second,       // cartesian direction for translational symmetry
-                                                 constraints);
-        }
+        for (periodic_boundary_set::iterator p = pbs.begin(); p != pbs.end(); ++p)
+          {
+            DoFTools::make_periodicity_constraints(dof_handler,
+                                                   (*p).first.first,  // first boundary id
+                                                   (*p).first.second, // second boundary id
+                                                   (*p).second,       // cartesian direction for translational symmetry
+                                                   constraints);
+          }
 
+
+      }
+
+      compute_initial_velocity_boundary_constraints(constraints);
+      constraints.close();
 
     }
-
-    compute_initial_velocity_boundary_constraints(constraints);
-    constraints.close();
+    time.stop();
+    if (i!=0)
+      distribute_system_dofs[i-1] += time.last_wall_time();
 
     signals.post_compute_no_normal_flux_constraints(triangulation);
 
@@ -1602,21 +1628,23 @@ namespace aspect
       triangulation.execute_coarsening_and_refinement ();
     } // leave the timed section
 
-    setup_time = 0;
+    //Timings for: setup_dofs
     {
-      Timer time(triangulation.get_communicator(),true);
+      //Timer time(triangulation.get_communicator(),true);
+
       for (unsigned int i=0; i<parameters.n_timings+1; ++i)
         {
-          time.restart();
-
+          stokes_timer.enter_subsection("setup_dofs");
+//          if (i!=0)
+//            total_setup_time[i-1] = 0.0;
+          //  time.restart();
           setup_dofs(i);
-
-          time.stop();
-          if (i!=0)
-            setup_time += time.last_wall_time();
+          // time.stop();
+//          if (i!=0)
+//            total_setup_time[i-1] += time.last_wall_time();
+          stokes_timer.leave_subsection("setup_dofs");
         }
-      if (parameters.n_timings != 0)
-        setup_time /= (1.0*parameters.n_timings);
+
     }
 
     {
@@ -1826,22 +1854,24 @@ namespace aspect
             triangulation.execute_coarsening_and_refinement();
           }
 
-        setup_time = 0;
+        //Timings for: setup_dofs
         {
-          Timer time(triangulation.get_communicator(),true);
+          //Timer time(triangulation.get_communicator(),true);
+
           for (unsigned int i=0; i<parameters.n_timings+1; ++i)
             {
-              time.restart();
-
+              stokes_timer.enter_subsection("setup_dofs");
+              //          if (i!=0)
+              //            total_setup_time[i-1] = 0.0;
+              //  time.restart();
               setup_dofs(i);
-
-              time.stop();
-              if (i!=0)
-                setup_time += time.last_wall_time();
+              // time.stop();
+              //          if (i!=0)
+              //            total_setup_time[i-1] += time.last_wall_time();
+              stokes_timer.leave_subsection("setup_dofs");
             }
-          if (parameters.n_timings != 0)
-            setup_time /= (1.0*parameters.n_timings);
         }
+
 
         global_volume = GridTools::volume (triangulation, *mapping);
       }
@@ -1887,21 +1917,146 @@ namespace aspect
             // then do the core work: assemble systems and solve
             solve_timestep ();
           }
-        pcout << std::left
-              << std::setw(8) << "out:"
-              << "Average of " << parameters.n_timings << " function calls: " << std::endl
-              << std::setw(8) << "out:"
-              << "Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; "
-              << Utilities::MPI::n_mpi_processes(mpi_communicator) << "; "
-              << triangulation.n_global_active_cells() << "; "
-              << dof_handler.n_dofs() << "; "
-              << setup_time << "; "
-              << assemble_time << "; "
-              << solve_time << "; "
-              << gmres_iterations << "; "
-              << vcycle_time << "; "
-              << std::endl
-              << std::setw(8) << "out:" << std::endl;
+
+
+        std::map<std::string, std::vector<double> > output = stokes_timer.get_all_times();
+        std::vector<double> setup_times = output["setup_dofs"];
+        for (unsigned int i=0; i<parameters.n_timings; ++i)
+          {
+            pcout << setup_times[i] << std::endl;
+          }
+
+
+        // Output timings
+        if (0)
+          {
+            //setup
+            pcout << std::left
+                  << std::setw(25) << "total setup time:"
+                  << "min; avg; max; "
+                  << *std::min_element(total_setup_time.begin(), total_setup_time.end()) << "; "
+                  << std::accumulate(total_setup_time.begin(), total_setup_time.end(), 0.0)/(1.0*parameters.n_timings) << "; "
+                  << *std::max_element(total_setup_time.begin(), total_setup_time.end()) << "; "
+                  << std::endl;
+            pcout << std::left
+                  << std::setw(25) << "dof sys"
+                  << "min; avg; max; "
+                  << *std::min_element(distribute_system_dofs.begin(), distribute_system_dofs.end()) << "; "
+                  << std::accumulate(distribute_system_dofs.begin(), distribute_system_dofs.end(), 0.0)/(1.0*parameters.n_timings) << "; "
+                  << *std::max_element(distribute_system_dofs.begin(), distribute_system_dofs.end()) << "; "
+                  << std::endl;
+            if (stokes_matrix_free)
+              {
+                pcout << std::left
+                      << std::setw(25) << "dof mf:"
+                      << "min; avg; max; "
+                      << *std::min_element(distribute_mf_dofs.begin(), distribute_mf_dofs.end()) << "; "
+                      << std::accumulate(distribute_mf_dofs.begin(), distribute_mf_dofs.end(), 0.0)/(1.0*parameters.n_timings) << "; "
+                      << *std::max_element(distribute_mf_dofs.begin(), distribute_mf_dofs.end()) << "; "
+                      << std::endl;
+                pcout << std::left
+                      << std::setw(25) << "dof mg:"
+                      << *std::min_element(distribute_mg_dofs.begin(), distribute_mg_dofs.end()) << "; "
+                      << std::accumulate(distribute_mg_dofs.begin(), distribute_mg_dofs.end(), 0.0)/(1.0*parameters.n_timings) << "; "
+                      << *std::max_element(distribute_mg_dofs.begin(), distribute_mg_dofs.end()) << "; "
+                      << std::endl;
+                pcout << std::left
+                      << std::setw(25) << "mf op:"
+                      << *std::min_element(setup_mf_operators.begin(), setup_mf_operators.end()) << "; "
+                      << std::accumulate(setup_mf_operators.begin(), setup_mf_operators.end(), 0.0)/(1.0*parameters.n_timings) << "; "
+                      << *std::max_element(setup_mf_operators.begin(), setup_mf_operators.end()) << "; "
+                      << std::endl;
+                pcout << std::left
+                      << std::setw(25) << "mg transf:"
+                      << *std::min_element(setup_mg_transfer.begin(), setup_mg_transfer.end()) << "; "
+                      << std::accumulate(setup_mg_transfer.begin(), setup_mg_transfer.end(), 0.0)/(1.0*parameters.n_timings) << "; "
+                      << *std::max_element(setup_mg_transfer.begin(), setup_mg_transfer.end()) << "; "
+                      << std::endl;
+              }
+            else
+              {
+                pcout << std::left
+                      << std::setw(25) << "sparsity:"
+                      << *std::min_element(setup_sparsity_pattern.begin(), setup_sparsity_pattern.end()) << "; "
+                      << std::accumulate(setup_sparsity_pattern.begin(), setup_sparsity_pattern.end(), 0.0)/(1.0*parameters.n_timings) << "; "
+                      << *std::max_element(setup_sparsity_pattern.begin(), setup_sparsity_pattern.end()) << "; "
+                      << std::endl;
+              }
+
+            //assemble
+            pcout << std::left
+                  << std::setw(25) << "total assemble time:"
+                  << *std::min_element(total_assemble_time.begin(), total_assemble_time.end()) << "; "
+                  << std::accumulate(total_assemble_time.begin(), total_assemble_time.end(), 0.0)/(1.0*parameters.n_timings) << "; "
+                  << *std::max_element(total_assemble_time.begin(), total_assemble_time.end()) << "; "
+                  << std::endl;
+            pcout << std::left
+                  << std::setw(25) << "assemble sys"
+                  << *std::min_element(assemble_system_matrix_rhs.begin(), assemble_system_matrix_rhs.end()) << "; "
+                  << std::accumulate(assemble_system_matrix_rhs.begin(), assemble_system_matrix_rhs.end(), 0.0)/(1.0*parameters.n_timings) << "; "
+                  << *std::max_element(assemble_system_matrix_rhs.begin(), assemble_system_matrix_rhs.end()) << "; "
+                  << std::endl;
+            if (stokes_matrix_free)
+              {
+                pcout << std::left
+                      << std::setw(25) << "mf coeff transf:"
+                      << *std::min_element(coefficient_transfer.begin(), coefficient_transfer.end()) << "; "
+                      << std::accumulate(coefficient_transfer.begin(), coefficient_transfer.end(), 0.0)/(1.0*parameters.n_timings) << "; "
+                      << *std::max_element(coefficient_transfer.begin(), coefficient_transfer.end()) << "; "
+                      << std::endl;
+              }
+            else
+              {
+                pcout << std::left
+                      << std::setw(25) << "assemble prec:"
+                      << *std::min_element(assemble_prec_matrix.begin(), assemble_prec_matrix.end()) << "; "
+                      << std::accumulate(assemble_prec_matrix.begin(), assemble_prec_matrix.end(), 0.0)/(1.0*parameters.n_timings) << "; "
+                      << *std::max_element(assemble_prec_matrix.begin(), assemble_prec_matrix.end()) << "; "
+                      << std::endl;
+                pcout << std::left
+                      << std::setw(25) << "amg:"
+                      << *std::min_element(setup_amg.begin(), setup_amg.end()) << "; "
+                      << std::accumulate(setup_amg.begin(), setup_amg.end(), 0.0)/(1.0*parameters.n_timings) << "; "
+                      << *std::max_element(setup_amg.begin(), setup_amg.end()) << "; "
+                      << std::endl;
+              }
+
+            //solve
+            pcout << std::left
+                  << std::setw(25) << "solve time:"
+                  << *std::min_element(solve_time.begin(), solve_time.end()) << "; "
+                  << std::accumulate(solve_time.begin(), solve_time.end(), 0.0)/(1.0*parameters.n_timings) << "; "
+                  << *std::max_element(solve_time.begin(), solve_time.end()) << "; "
+                  << std::endl;
+            pcout << std::left
+                  << std::setw(25) << "prec-vmult time:"
+                  << *std::min_element(vcycle_time.begin(), vcycle_time.end()) << "; "
+                  << std::accumulate(vcycle_time.begin(), vcycle_time.end(), 0.0)/(1.0*parameters.n_timings) << "; "
+                  << *std::max_element(vcycle_time.begin(), vcycle_time.end()) << "; "
+                  << std::endl;
+
+            for (unsigned int i=0; i<parameters.n_timings; ++i)
+              {
+                total_time[i] = 0.0;
+                total_time_no_setup[i] = 0.0;
+                total_time[i] = total_setup_time[i] + total_assemble_time[i] + solve_time[i];
+                total_time_no_setup[i] = total_assemble_time[i] + solve_time[i];
+              }
+            pcout << std::left
+                  << std::setw(25) << "total time:"
+                  << *std::min_element(total_time.begin(), total_time.end()) << "; "
+                  << std::accumulate(total_time.begin(), total_time.end(), 0.0)/(1.0*parameters.n_timings) << "; "
+                  << *std::max_element(total_time.begin(), total_time.end()) << "; "
+                  << std::endl;
+            pcout << std::left
+                  << std::setw(25) << "total time: (no setup)"
+                  << *std::min_element(total_time_no_setup.begin(), total_time_no_setup.end()) << "; "
+                  << std::accumulate(total_time_no_setup.begin(), total_time_no_setup.end(), 0.0)/(1.0*parameters.n_timings) << "; "
+                  << *std::max_element(total_time_no_setup.begin(), total_time_no_setup.end()) << "; "
+                  << std::endl;
+            pcout << std::endl << std::endl;
+          }
+
 
 
         // see if we have to start over with a new adaptive refinement cycle

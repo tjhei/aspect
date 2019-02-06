@@ -27,6 +27,9 @@
 #include <deal.II/base/conditional_ostream.h>
 #include <deal.II/base/symmetric_tensor.h>
 
+
+
+
 DEAL_II_DISABLE_EXTRA_DIAGNOSTICS
 
 #include <deal.II/distributed/tria.h>
@@ -44,6 +47,7 @@ DEAL_II_ENABLE_EXTRA_DIAGNOSTICS
 #else
 #  include <deal.II/lac/affine_constraints.h>
 #endif
+
 
 #include <aspect/global.h>
 #include <aspect/simulator_access.h>
@@ -67,6 +71,10 @@ DEAL_II_ENABLE_EXTRA_DIAGNOSTICS
 #include <aspect/termination_criteria/interface.h>
 #include <aspect/postprocess/interface.h>
 #include <aspect/adiabatic_conditions/interface.h>
+
+#include <aspect/timer_output.h>
+
+
 
 #include <boost/iostreams/tee.hpp>
 #include <boost/iostreams/stream.hpp>
@@ -102,6 +110,7 @@ namespace aspect
 
   namespace internal
   {
+
     namespace Assembly
     {
       namespace Scratch
@@ -567,7 +576,7 @@ namespace aspect
        * This function is implemented in
        * <code>source/simulator/assembly.cc</code>.
        */
-      void build_stokes_preconditioner ();
+      void build_stokes_preconditioner (const unsigned int i=0);
 
       /**
        * Initialize the preconditioner for the advection equation of field
@@ -1802,7 +1811,23 @@ namespace aspect
 
 
 
-      mutable double setup_time, assemble_time, solve_time, vcycle_time;
+
+
+
+
+      MyTimerOutput stokes_timer;
+
+      std::vector<double> total_time, total_time_no_setup;
+      // Setup timings
+      std::vector<double> total_setup_time;
+      std::vector<double> distribute_system_dofs,distribute_mf_dofs,distribute_mg_dofs,
+          setup_mf_operators,setup_mg_transfer,setup_sparsity_pattern;
+      // Assemble timings
+      std::vector<double> total_assemble_time;
+      std::vector<double> assemble_system_matrix_rhs,assemble_prec_matrix,setup_amg,coefficient_transfer;
+      // Solve/Prec timings
+      std::vector<double> solve_time, vcycle_time;
+
       mutable unsigned int gmres_iterations;
 
       /**
