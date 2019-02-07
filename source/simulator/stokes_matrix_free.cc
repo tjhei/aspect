@@ -165,7 +165,6 @@ namespace aspect
         const double S_block_tolerance;
     };
 
-
     template <class StokesMatrixType, class MassMatrixType, class PreconditionerMp,class PreconditionerA>
     BlockSchurPreconditioner<StokesMatrixType, MassMatrixType, PreconditionerMp, PreconditionerA>::
     BlockSchurPreconditioner (const StokesMatrixType  &S,
@@ -553,13 +552,8 @@ namespace aspect
   template <int dim>
   std::pair<double,double> StokesMatrixFreeHandler<dim>::solve(unsigned int i)
   {
-    sim.pcout << "solve() "
-              << std::endl;
-
-    //Update coefficients and add correction to system rhs
-    evaluate_viscosity();
-    correct_stokes_rhs();
-
+//    sim.pcout << "solve() "
+//              << std::endl;
 
     double initial_nonlinear_residual = numbers::signaling_nan<double>();
     double final_linear_residual      = numbers::signaling_nan<double>();
@@ -810,7 +804,6 @@ namespace aspect
     }
 
 
-
     // TODO: doesn't make a difference
     //solution_copy = 0.;
 
@@ -945,7 +938,6 @@ namespace aspect
 
         DoFRenumbering::hierarchical(dof_handler_projection);
 
-
         constraints_projection.clear();
         IndexSet locally_relevant_dofs;
         DoFTools::extract_locally_relevant_dofs (dof_handler_projection,
@@ -962,7 +954,6 @@ namespace aspect
       }
     }
     sim.stokes_timer.leave_subsection("distribute_mf_dofs");
-
 
     sim.stokes_timer.enter_subsection("distribute_mg_dofs");
     {
@@ -1042,7 +1033,6 @@ namespace aspect
             level_constraints.reinit(relevant_dofs);
             level_constraints.add_lines(mg_constrained_dofs.get_boundary_indices(level));
             level_constraints.close();
-
             {
               typename MatrixFree<dim,double>::AdditionalData additional_data;
               additional_data.tasks_parallel_scheme =
@@ -1065,7 +1055,6 @@ namespace aspect
       }
     }
     sim.stokes_timer.leave_subsection("setup_mf_operators");
-
 
     //Setup GMG transfer
     sim.stokes_timer.enter_subsection("setup_tranfer_mf");
