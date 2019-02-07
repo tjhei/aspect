@@ -7,7 +7,7 @@
 
 set Additional shared libraries            = ./libnsinker.so
 
-set Number of timings = 4
+set Number of timings = 5
 set Timing output directory = timings/
 
 set Dimension                              = 3

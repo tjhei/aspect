@@ -35,7 +35,7 @@ for refinement in 6 7 8; do # 4 5 6 7
 
   echo "set Output directory = output/large-global-1024" >> temp1024.prm
 
-  mpirun -np $Nproc ./aspect temp1024.prm | grep "out:"
+  mpirun -np $Nproc ./aspect temp1024.prm
   rm temp1024.prm
 done
 
@@ -58,7 +58,7 @@ echo "end" >> temp1024a.prm
 
 echo "set Output directory = output/large-adaptive-1024" >> temp1024.prm
 
-mpirun -np $Nproc ./aspect temp1024a.prm | grep "out:"
+mpirun -np $Nproc ./aspect temp1024a.prm
 rm temp1024a.prm
 
 

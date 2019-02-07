@@ -36,7 +36,7 @@ echo "end" >> temp128a.prm
 current_model="no_output"
 echo "set Output directory = output/adaptive-mf-128" >> temp128a.prm
 #echo "Starting ${current_model}"
-mpirun -np $Nproc ./aspect temp128a.prm | grep "out:"
+mpirun -np $Nproc ./aspect temp128a.prm 
 rm temp128a.prm
 
 
@@ -56,6 +56,6 @@ echo "end" >> temp128a.prm
 current_model="no_output"
 echo "set Output directory = output/adaptive-mb-128" >> temp128a.prm
 #echo "Starting ${current_model}"
-mpirun -np $Nproc ./aspect temp128a.prm | grep "out:"
+mpirun -np $Nproc ./aspect temp128a.prm 
 rm temp128a.prm
 

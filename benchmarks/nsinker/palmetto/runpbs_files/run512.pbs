@@ -37,7 +37,7 @@ for refinement in 5 6 7; do # 4 5 6 7
   current_model="no_output"
   echo "set Output directory = output/global-mf-512" >> temp512.prm
   #echo "Starting ${current_model}"
-  mpirun -np $Nproc ./aspect temp512.prm | grep "out:"
+  mpirun -np $Nproc ./aspect temp512.prm
   rm temp512.prm
 done
 
@@ -58,7 +58,7 @@ for refinement in 5 6 7; do # 4 5 6 7
   current_model="no_output"
   echo "set Output directory = output/global-mb-512" >> temp512.prm
   #echo "Starting ${current_model}"
-  mpirun -np $Nproc ./aspect temp512.prm | grep "out:"
+  mpirun -np $Nproc ./aspect temp512.prm
   rm temp512.prm
 done
 
