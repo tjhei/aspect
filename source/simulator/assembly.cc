@@ -454,7 +454,7 @@ namespace aspect
 
     //Timings for: AMG setup
     {
-      stokes_timer.enter_subsection("setup_amg");
+      stokes_timer.enter_subsection("assemble_amg");
 
       // then extract the other information necessary to build the
       // AMG preconditioners for the A and M blocks
@@ -545,7 +545,7 @@ namespace aspect
         Amg_preconditioner->initialize (system_preconditioner_matrix.block(0,0),
                                         Amg_data);
 
-      stokes_timer.leave_subsection("setup_amg");
+      stokes_timer.leave_subsection("assemble_amg");
     }
 
     rebuild_stokes_preconditioner = false;

@@ -285,12 +285,12 @@ namespace aspect
             // Timings for: sparsity pattern
             for (unsigned int i=0; i<parameters.n_timings+1; ++i)
               {
-                stokes_timer.enter_subsection("total_setup_dofs",true);
-                stokes_timer.enter_subsection("setup_sparsity_patterns");
+                stokes_timer.enter_subsection("total_setup_dofs");
+                stokes_timer.enter_subsection("setup_sparsity");
                 setup_system_matrix (introspection.index_sets.system_partitioning);
                 setup_system_preconditioner (introspection.index_sets.system_partitioning);
-                stokes_timer.leave_subsection("setup_sparsity_patterns");
-                stokes_timer.leave_subsection("total_setup_dofs",true);
+                stokes_timer.leave_subsection("setup_sparsity");
+                stokes_timer.leave_subsection("total_setup_dofs");
               }
 
             rebuild_stokes_matrix = rebuild_stokes_preconditioner = true;
@@ -307,9 +307,9 @@ namespace aspect
 
           //Timings for: assemble stokes
           {
-            stokes_timer.enter_subsection("assemble_system_mat_and_rhs");
+            stokes_timer.enter_subsection("assemble_sys_mat_rhs");
             assemble_stokes_system ();
-            stokes_timer.leave_subsection("assemble_system_mat_and_rhs");
+            stokes_timer.leave_subsection("assemble_sys_mat_rhs");
 
             if (need_rebuild)
               rebuild_stokes_matrix = true;
@@ -319,10 +319,10 @@ namespace aspect
           //Timings for: Update coefficients and add correction to system rhs
           if (stokes_matrix_free)
             {
-              stokes_timer.enter_subsection("mf_visc_and_rhs_correct");
+              stokes_timer.enter_subsection("assemble_mf_coef_rhs");
               stokes_matrix_free->evaluate_viscosity();
               stokes_matrix_free->correct_stokes_rhs();
-              stokes_timer.leave_subsection("mf_visc_and_rhs_correct");
+              stokes_timer.leave_subsection("assemble_mf_coef_rhs");
             }
 
 

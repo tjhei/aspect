@@ -49,6 +49,8 @@ namespace aspect
   {
     prm.declare_entry ("Number of timings","1",Patterns::Integer (0,20),
                        "Number of times to run each function for timing purposes in sinker and inclusion.");
+    prm.declare_entry ("Timing output directory","",Patterns::DirectoryName(),
+                       "Directory where timing information should be output.");
 
     prm.declare_entry ("Dimension", "2",
                        Patterns::Integer (2,3),
@@ -1139,6 +1141,15 @@ namespace aspect
                  ExcInternalError());
 
     n_timings  =  prm.get_integer("Number of timings");
+    timings_directory = prm.get("Timing output directory");
+    if (timings_directory.size() == 0)
+      timings_directory = "./";
+    else if (timings_directory[timings_directory.size()-1] != '/')
+      timings_directory += "/";
+
+    Utilities::create_directory (timings_directory,
+                                 mpi_communicator,
+                                 false);
 
     CFL_number              = prm.get_double ("CFL number");
     use_conduction_timestep = prm.get_bool ("Use conduction timestep");

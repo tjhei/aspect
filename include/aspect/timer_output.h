@@ -25,19 +25,27 @@ namespace aspect
   class MyTimerOutput
   {
     public:
-      MyTimerOutput (const MPI_Comm               mpi_comm);
+      MyTimerOutput (const MPI_Comm               mpi_comm,
+                     const unsigned int           n_timings);
 
       MyTimerOutput (const MPI_Comm               mpi_comm,
+                     const unsigned int           n_timings,
                      const bool                   ignore_first);
 
-      void enter_subsection (const std::string &section_name, const bool continue_timer=false);
-      void leave_subsection (const std::string &section_name = std::string(), const bool continue_timer=false);
+      void initialize_sections ();
+
+      void enter_subsection (const std::string &section_name);
+      void leave_subsection (const std::string &section_name = std::string());
 
       std::map<std::string, std::vector<double> > get_all_times () const;
       std::map<std::string, std::vector<double> > get_min_avg_max () const;
 
       void print_data_screen () const;
-      void print_data_file (const std::string &filename_and_path) const;
+      void print_data_file (const std::string  &filename_and_path,
+                            const std::string  &problem_type,
+                            const unsigned int cells,
+                            const unsigned int dofs,
+                            const unsigned int procs);
 
       void reset ();
 
@@ -57,6 +65,7 @@ namespace aspect
       std::list<std::string> active_sections;
 
       MPI_Comm            mpi_communicator;
+      unsigned int n_timings;
       bool ignore_first;
   };
 

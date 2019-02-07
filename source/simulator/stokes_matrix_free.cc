@@ -897,8 +897,9 @@ namespace aspect
   template <int dim>
   void StokesMatrixFreeHandler<dim>::setup_dofs()
   {
-    sim.stokes_timer.enter_subsection("distribute_mf_dofs");
+    sim.stokes_timer.enter_subsection("setup_mf_dofs");
     {
+      // Velocity DoFHandler
       {
         dof_handler_v.clear();
         dof_handler_v.distribute_dofs(fe_v);
@@ -916,6 +917,7 @@ namespace aspect
         constraints_v.close ();
       }
 
+      // Pressure DoFHandler
       {
         dof_handler_p.clear();
         dof_handler_p.distribute_dofs(fe_p);
@@ -938,27 +940,14 @@ namespace aspect
 
         DoFRenumbering::hierarchical(dof_handler_projection);
 
-        constraints_projection.clear();
-        IndexSet locally_relevant_dofs;
-        DoFTools::extract_locally_relevant_dofs (dof_handler_projection,
-                                                 locally_relevant_dofs);
-        constraints_projection.reinit(locally_relevant_dofs);
-        DoFTools::make_hanging_node_constraints (dof_handler_projection, constraints_projection);
-        // TODO: boundary constraints if not DG(0)?
-        constraints_projection.close ();
-
-        mg_constrained_dofs_projection.clear();
-        mg_constrained_dofs_projection.initialize(dof_handler_projection);
-
         active_coef_dof_vec.reinit(dof_handler_projection.locally_owned_dofs(), sim.triangulation.get_communicator());
       }
     }
-    sim.stokes_timer.leave_subsection("distribute_mf_dofs");
+    sim.stokes_timer.leave_subsection("setup_mf_dofs");
 
-    sim.stokes_timer.enter_subsection("distribute_mg_dofs");
+    sim.stokes_timer.enter_subsection("setup_mg_dofs");
     {
       dof_handler_v.distribute_mg_dofs();
-      dof_handler_projection.distribute_mg_dofs();
 
       mg_constrained_dofs.clear();
       std::set<types::boundary_id> dirichlet_boundary = sim.boundary_velocity_manager.get_zero_boundary_velocity_indicators();
@@ -972,11 +961,13 @@ namespace aspect
         }
       mg_constrained_dofs.initialize(dof_handler_v);
       mg_constrained_dofs.make_zero_boundary_constraints(dof_handler_v, dirichlet_boundary);
+
+      dof_handler_projection.distribute_mg_dofs();
     }
-    sim.stokes_timer.leave_subsection("distribute_mg_dofs");
+    sim.stokes_timer.leave_subsection("setup_mg_dofs");
 
 
-    sim.stokes_timer.enter_subsection("setup_mf_operators");
+    sim.stokes_timer.enter_subsection("setup_mf_ops");
     {
       // Stokes matrix...
       {
@@ -1054,16 +1045,15 @@ namespace aspect
           }
       }
     }
-    sim.stokes_timer.leave_subsection("setup_mf_operators");
+    sim.stokes_timer.leave_subsection("setup_mf_ops");
 
-    //Setup GMG transfer
-    sim.stokes_timer.enter_subsection("setup_tranfer_mf");
+    sim.stokes_timer.enter_subsection("setup_mg_transfer");
     {
       mg_transfer.clear();
       mg_transfer.initialize_constraints(mg_constrained_dofs);
       mg_transfer.build(dof_handler_v);
     }
-    sim.stokes_timer.leave_subsection("setup_tranfer_mf");
+    sim.stokes_timer.leave_subsection("setup_mg_transfer");
   }
 
 }

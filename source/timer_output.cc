@@ -4,22 +4,49 @@
 
 namespace aspect
 {
-  MyTimerOutput::MyTimerOutput (const MPI_Comm      mpi_comm)
+  MyTimerOutput::MyTimerOutput (const MPI_Comm      mpi_comm,
+                                const unsigned int  n_timings)
     :
     mpi_communicator (mpi_comm),
+    n_timings(n_timings),
     ignore_first(true)
   {}
 
 
   MyTimerOutput::MyTimerOutput (const MPI_Comm      mpi_comm,
+                                const unsigned int  n_timings,
                                 const bool ignore_first)
     :
     mpi_communicator (mpi_comm),
+    n_timings(n_timings),
     ignore_first(ignore_first)
   {}
 
+  void MyTimerOutput::initialize_sections()
+  {
+    sections.clear();
+    active_sections.clear();
+
+    std::vector<std::string> possible_sections {"total_setup", "total_assembly", "gmres_solve", "preconditioner_vmult",
+                                                "setup_sys_dofs", "setup_mf_dofs", "setup_mg_dofs", "setup_mf_ops", "setup_mg_transfer",
+                                                "setup_sparsity", "assemble_sys_mat_rhs", "assemble_mf_coef_rhs", "assemble_prec_mat",
+                                                "assemble_amg"
+                                               };
+
+    for (const auto section_name : possible_sections)
+      {
+        sections[section_name].timer = Timer(mpi_communicator, true);
+
+        sections[section_name].time_vec.clear();
+        sections[section_name].time_vec.resize(n_timings,0.0);
+
+        sections[section_name].n_calls = 0;
+      }
+
+  }
+
   void
-  MyTimerOutput::enter_subsection (const std::string &section_name, const bool continue_timer)
+  MyTimerOutput::enter_subsection (const std::string &section_name)
   {
     Assert (section_name.empty() == false,
             ExcMessage ("Section string is empty."));
@@ -31,6 +58,8 @@ namespace aspect
 
     if (sections.find (section_name) == sections.end())
       {
+        Assert (false, ExcMessage("All sections should be loaded in the initialize function"));
+
         if (mpi_communicator != MPI_COMM_SELF)
           {
             // create a new timer for this section. the second argument
@@ -42,8 +71,8 @@ namespace aspect
             // among all processes inside mpi_communicator.
             sections[section_name].timer = Timer(mpi_communicator, true);
 
-            if (!continue_timer)
-              sections[section_name].time_vec.clear();
+            sections[section_name].time_vec.clear();
+            sections[section_name].time_vec.resize(n_timings,0.0);
           }
 
         sections[section_name].n_calls = 0;
@@ -56,7 +85,7 @@ namespace aspect
   }
 
   void
-  MyTimerOutput::leave_subsection (const std::string &section_name, const bool continue_timer)
+  MyTimerOutput::leave_subsection (const std::string &section_name)
   {
     Assert (!active_sections.empty(),
             ExcMessage("Cannot exit any section because none has been entered!"));
@@ -77,20 +106,11 @@ namespace aspect
                                              section_name);
     sections[actual_section_name].timer.stop();
 
-
-    if (!ignore_first)
+    if (!(ignore_first && sections[actual_section_name].n_calls == 1))
       {
-        if (!continue_timer)
-          sections[actual_section_name].time_vec.push_back(sections[actual_section_name].timer.last_wall_time());
-        else
-          sections[actual_section_name].time_vec[sections[actual_section_name].n_calls-1] += sections[actual_section_name].timer.last_wall_time();
-      }
-    else if (sections[actual_section_name].n_calls != 1)
-      {
-        if (!continue_timer)
-          sections[actual_section_name].time_vec.push_back(sections[actual_section_name].timer.last_wall_time());
-        else
-          sections[actual_section_name].time_vec[sections[actual_section_name].n_calls-2] += sections[actual_section_name].timer.last_wall_time();
+        // if we are doing 5 timings, and we hit a 6th timing, assume it should be added to the 1st timing
+        const unsigned int indx = (ignore_first ? sections[actual_section_name].n_calls-2 : sections[actual_section_name].n_calls-1)%n_timings;
+        sections[actual_section_name].time_vec[indx] += sections[actual_section_name].timer.last_wall_time();
       }
 
 
@@ -111,10 +131,34 @@ namespace aspect
   }
 
   void
-  MyTimerOutput::print_data_file(const std::string &filename_and_path) const
+  MyTimerOutput::print_data_file(const std::string  &filename_and_path,
+                                 const std::string  &problem_type,
+                                 const unsigned int cells,
+                                 const unsigned int dofs,
+                                 const unsigned int procs)
   {
     std::ofstream out;
     out.open(filename_and_path);
+
+
+    std::vector<std::string> possible_sections {"total_setup", "total_assembly", "gmres_solve", "preconditioner_vmult",
+                                                "setup_sys_dofs", "setup_mf_dofs", "setup_mg_dofs", "setup_mf_ops", "setup_mg_transfer",
+                                                "setup_sparsity", "assemble_sys_mat_rhs", "assemble_mf_coef_rhs", "assemble_prec_mat",
+                                                "assemble_amg"
+                                               };
+
+    out << "type: " << problem_type << " Cells: " << cells << " DoFs: " << dofs << " Procs: " << procs << " ";
+
+    for (const auto section_name : possible_sections)
+      {
+        out << section_name << ": ";
+
+        std::sort(sections[section_name].time_vec.begin(), sections[section_name].time_vec.end());
+        for (unsigned int i=0; i<n_timings; ++i)
+          out << sections[section_name].time_vec[i] << " ";
+      }
+
+
 
     out.close();
   }

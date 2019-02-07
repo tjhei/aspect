@@ -230,6 +230,7 @@ namespace aspect
 
 
     stokes_timer(mpi_communicator,
+                 parameters.n_timings,
                  (parameters.n_timings>0 ? true : false))
   {
     if (Utilities::MPI::this_mpi_process(mpi_communicator) == 0)
@@ -675,12 +676,12 @@ namespace aspect
         // Timings for: sparsity pattern
         for (unsigned int i=0; i<parameters.n_timings+1; ++i)
           {
-            stokes_timer.enter_subsection("total_setup_dofs",true);
-            stokes_timer.enter_subsection("setup_sparsity_patterns");
+            stokes_timer.enter_subsection("total_setup");
+            stokes_timer.enter_subsection("setup_sparsity");
             setup_system_matrix (introspection.index_sets.system_partitioning);
             setup_system_preconditioner (introspection.index_sets.system_partitioning);
-            stokes_timer.leave_subsection("setup_sparsity_patterns");
-            stokes_timer.leave_subsection("total_setup_dofs",true);
+            stokes_timer.leave_subsection("setup_sparsity");
+            stokes_timer.leave_subsection("total_setup");
           }
 
         rebuild_stokes_matrix = rebuild_stokes_preconditioner = true;
@@ -1281,7 +1282,7 @@ namespace aspect
     TimerOutput::Scope timer (computing_timer, "Setup dof systems");
 
     //Timings for: DOF/CONSTRAINTS
-    stokes_timer.enter_subsection("distribute_system_dofs");
+    stokes_timer.enter_subsection("setup_sys_dofs");
     {
       dof_handler.distribute_dofs(finite_element);
 
@@ -1372,7 +1373,7 @@ namespace aspect
       compute_initial_velocity_boundary_constraints(constraints);
       constraints.close();
     }
-    stokes_timer.leave_subsection("distribute_system_dofs");
+    stokes_timer.leave_subsection("setup_sys_dofs");
 
 
     signals.post_compute_no_normal_flux_constraints(triangulation);
@@ -1608,9 +1609,9 @@ namespace aspect
     //Timings for: setup_dofs
     for (unsigned int i=0; i<parameters.n_timings+1; ++i)
       {
-        stokes_timer.enter_subsection("total_setup_dofs");
+        stokes_timer.enter_subsection("total_setup");
         setup_dofs(i);
-        stokes_timer.leave_subsection("total_setup_dofs");
+        stokes_timer.leave_subsection("total_setup");
       }
 
     {
@@ -1777,6 +1778,10 @@ namespace aspect
   template <int dim>
   void Simulator<dim>::run ()
   {
+
+    //Start section timing object
+    stokes_timer.initialize_sections();
+
     CitationInfo::print_info_block(pcout);
 
     unsigned int max_refinement_level = parameters.initial_global_refinement +
@@ -1823,9 +1828,9 @@ namespace aspect
         //Timings for: setup_dofs
         for (unsigned int i=0; i<parameters.n_timings+1; ++i)
           {
-            stokes_timer.enter_subsection("total_setup_dofs");
+            stokes_timer.enter_subsection("total_setup");
             setup_dofs(i);
-            stokes_timer.leave_subsection("total_setup_dofs");
+            stokes_timer.leave_subsection("total_setup");
           }
 
 
@@ -1875,144 +1880,17 @@ namespace aspect
           }
 
 
-        std::map<std::string, std::vector<double> > output = stokes_timer.get_all_times();
-        std::vector<double> setup_times = output["setup_dofs"];
-        for (unsigned int i=0; i<parameters.n_timings; ++i)
-          {
-            pcout << setup_times[i] << std::endl;
-          }
+        std::string problem_type = std::string(parameters.stokes_solver_type == Parameters<dim>::StokesSolverType::block_gmg ? "mf-" : "mb-") +
+                                   std::string(parameters.initial_adaptive_refinement==0 ? "global" : "adaptive");
+        const unsigned int nprocs = dealii::Utilities::MPI::n_mpi_processes(mpi_communicator);
+        stokes_timer.print_data_file(parameters.timings_directory +
+                                     problem_type + "-" +
+                                     dealii::Utilities::int_to_string(triangulation.n_global_levels()) + "ref-" +
+                                     dealii::Utilities::int_to_string(nprocs) + "procs.dat",
+                                     problem_type,
+                                     triangulation.n_global_active_cells(), dof_handler.n_dofs(), nprocs);
 
-
-        // Output timings
-        if (0)
-          {
-            //setup
-            pcout << std::left
-                  << std::setw(25) << "total setup time:"
-                  << "min; avg; max; "
-                  << *std::min_element(total_setup_time.begin(), total_setup_time.end()) << "; "
-                  << std::accumulate(total_setup_time.begin(), total_setup_time.end(), 0.0)/(1.0*parameters.n_timings) << "; "
-                  << *std::max_element(total_setup_time.begin(), total_setup_time.end()) << "; "
-                  << std::endl;
-            pcout << std::left
-                  << std::setw(25) << "dof sys"
-                  << "min; avg; max; "
-                  << *std::min_element(distribute_system_dofs.begin(), distribute_system_dofs.end()) << "; "
-                  << std::accumulate(distribute_system_dofs.begin(), distribute_system_dofs.end(), 0.0)/(1.0*parameters.n_timings) << "; "
-                  << *std::max_element(distribute_system_dofs.begin(), distribute_system_dofs.end()) << "; "
-                  << std::endl;
-            if (stokes_matrix_free)
-              {
-                pcout << std::left
-                      << std::setw(25) << "dof mf:"
-                      << "min; avg; max; "
-                      << *std::min_element(distribute_mf_dofs.begin(), distribute_mf_dofs.end()) << "; "
-                      << std::accumulate(distribute_mf_dofs.begin(), distribute_mf_dofs.end(), 0.0)/(1.0*parameters.n_timings) << "; "
-                      << *std::max_element(distribute_mf_dofs.begin(), distribute_mf_dofs.end()) << "; "
-                      << std::endl;
-                pcout << std::left
-                      << std::setw(25) << "dof mg:"
-                      << *std::min_element(distribute_mg_dofs.begin(), distribute_mg_dofs.end()) << "; "
-                      << std::accumulate(distribute_mg_dofs.begin(), distribute_mg_dofs.end(), 0.0)/(1.0*parameters.n_timings) << "; "
-                      << *std::max_element(distribute_mg_dofs.begin(), distribute_mg_dofs.end()) << "; "
-                      << std::endl;
-                pcout << std::left
-                      << std::setw(25) << "mf op:"
-                      << *std::min_element(setup_mf_operators.begin(), setup_mf_operators.end()) << "; "
-                      << std::accumulate(setup_mf_operators.begin(), setup_mf_operators.end(), 0.0)/(1.0*parameters.n_timings) << "; "
-                      << *std::max_element(setup_mf_operators.begin(), setup_mf_operators.end()) << "; "
-                      << std::endl;
-                pcout << std::left
-                      << std::setw(25) << "mg transf:"
-                      << *std::min_element(setup_mg_transfer.begin(), setup_mg_transfer.end()) << "; "
-                      << std::accumulate(setup_mg_transfer.begin(), setup_mg_transfer.end(), 0.0)/(1.0*parameters.n_timings) << "; "
-                      << *std::max_element(setup_mg_transfer.begin(), setup_mg_transfer.end()) << "; "
-                      << std::endl;
-              }
-            else
-              {
-                pcout << std::left
-                      << std::setw(25) << "sparsity:"
-                      << *std::min_element(setup_sparsity_pattern.begin(), setup_sparsity_pattern.end()) << "; "
-                      << std::accumulate(setup_sparsity_pattern.begin(), setup_sparsity_pattern.end(), 0.0)/(1.0*parameters.n_timings) << "; "
-                      << *std::max_element(setup_sparsity_pattern.begin(), setup_sparsity_pattern.end()) << "; "
-                      << std::endl;
-              }
-
-            //assemble
-            pcout << std::left
-                  << std::setw(25) << "total assemble time:"
-                  << *std::min_element(total_assemble_time.begin(), total_assemble_time.end()) << "; "
-                  << std::accumulate(total_assemble_time.begin(), total_assemble_time.end(), 0.0)/(1.0*parameters.n_timings) << "; "
-                  << *std::max_element(total_assemble_time.begin(), total_assemble_time.end()) << "; "
-                  << std::endl;
-            pcout << std::left
-                  << std::setw(25) << "assemble sys"
-                  << *std::min_element(assemble_system_matrix_rhs.begin(), assemble_system_matrix_rhs.end()) << "; "
-                  << std::accumulate(assemble_system_matrix_rhs.begin(), assemble_system_matrix_rhs.end(), 0.0)/(1.0*parameters.n_timings) << "; "
-                  << *std::max_element(assemble_system_matrix_rhs.begin(), assemble_system_matrix_rhs.end()) << "; "
-                  << std::endl;
-            if (stokes_matrix_free)
-              {
-                pcout << std::left
-                      << std::setw(25) << "mf coeff transf:"
-                      << *std::min_element(coefficient_transfer.begin(), coefficient_transfer.end()) << "; "
-                      << std::accumulate(coefficient_transfer.begin(), coefficient_transfer.end(), 0.0)/(1.0*parameters.n_timings) << "; "
-                      << *std::max_element(coefficient_transfer.begin(), coefficient_transfer.end()) << "; "
-                      << std::endl;
-              }
-            else
-              {
-                pcout << std::left
-                      << std::setw(25) << "assemble prec:"
-                      << *std::min_element(assemble_prec_matrix.begin(), assemble_prec_matrix.end()) << "; "
-                      << std::accumulate(assemble_prec_matrix.begin(), assemble_prec_matrix.end(), 0.0)/(1.0*parameters.n_timings) << "; "
-                      << *std::max_element(assemble_prec_matrix.begin(), assemble_prec_matrix.end()) << "; "
-                      << std::endl;
-                pcout << std::left
-                      << std::setw(25) << "amg:"
-                      << *std::min_element(setup_amg.begin(), setup_amg.end()) << "; "
-                      << std::accumulate(setup_amg.begin(), setup_amg.end(), 0.0)/(1.0*parameters.n_timings) << "; "
-                      << *std::max_element(setup_amg.begin(), setup_amg.end()) << "; "
-                      << std::endl;
-              }
-
-            //solve
-            pcout << std::left
-                  << std::setw(25) << "solve time:"
-                  << *std::min_element(solve_time.begin(), solve_time.end()) << "; "
-                  << std::accumulate(solve_time.begin(), solve_time.end(), 0.0)/(1.0*parameters.n_timings) << "; "
-                  << *std::max_element(solve_time.begin(), solve_time.end()) << "; "
-                  << std::endl;
-            pcout << std::left
-                  << std::setw(25) << "prec-vmult time:"
-                  << *std::min_element(vcycle_time.begin(), vcycle_time.end()) << "; "
-                  << std::accumulate(vcycle_time.begin(), vcycle_time.end(), 0.0)/(1.0*parameters.n_timings) << "; "
-                  << *std::max_element(vcycle_time.begin(), vcycle_time.end()) << "; "
-                  << std::endl;
-
-            for (unsigned int i=0; i<parameters.n_timings; ++i)
-              {
-                total_time[i] = 0.0;
-                total_time_no_setup[i] = 0.0;
-                total_time[i] = total_setup_time[i] + total_assemble_time[i] + solve_time[i];
-                total_time_no_setup[i] = total_assemble_time[i] + solve_time[i];
-              }
-            pcout << std::left
-                  << std::setw(25) << "total time:"
-                  << *std::min_element(total_time.begin(), total_time.end()) << "; "
-                  << std::accumulate(total_time.begin(), total_time.end(), 0.0)/(1.0*parameters.n_timings) << "; "
-                  << *std::max_element(total_time.begin(), total_time.end()) << "; "
-                  << std::endl;
-            pcout << std::left
-                  << std::setw(25) << "total time: (no setup)"
-                  << *std::min_element(total_time_no_setup.begin(), total_time_no_setup.end()) << "; "
-                  << std::accumulate(total_time_no_setup.begin(), total_time_no_setup.end(), 0.0)/(1.0*parameters.n_timings) << "; "
-                  << *std::max_element(total_time_no_setup.begin(), total_time_no_setup.end()) << "; "
-                  << std::endl;
-            pcout << std::endl << std::endl;
-          }
-
+        stokes_timer.initialize_sections();
 
 
         // see if we have to start over with a new adaptive refinement cycle
