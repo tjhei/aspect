@@ -19,7 +19,7 @@ namespace aspect
   {}
 
   void
-  MyTimerOutput::enter_subsection (const std::string &section_name)
+  MyTimerOutput::enter_subsection (const std::string &section_name, const bool continue_timer)
   {
     Assert (section_name.empty() == false,
             ExcMessage ("Section string is empty."));
@@ -42,10 +42,10 @@ namespace aspect
             // among all processes inside mpi_communicator.
             sections[section_name].timer = Timer(mpi_communicator, true);
 
-            sections[section_name].time_vec.clear();
+            if (!continue_timer)
+              sections[section_name].time_vec.clear();
           }
 
-        sections[section_name].total_wall_time = 0;
         sections[section_name].n_calls = 0;
       }
 
@@ -56,7 +56,7 @@ namespace aspect
   }
 
   void
-  MyTimerOutput::leave_subsection (const std::string &section_name)
+  MyTimerOutput::leave_subsection (const std::string &section_name, const bool continue_timer)
   {
     Assert (!active_sections.empty(),
             ExcMessage("Cannot exit any section because none has been entered!"));
@@ -75,14 +75,24 @@ namespace aspect
     const std::string actual_section_name = (section_name == "" ?
                                              active_sections.back () :
                                              section_name);
-
     sections[actual_section_name].timer.stop();
-    if (ignore_first && sections[actual_section_name].n_calls != 1)
-      {
-        sections[actual_section_name].total_wall_time += sections[actual_section_name].timer.last_wall_time();
 
-        sections[actual_section_name].time_vec.push_back(sections[actual_section_name].timer.last_wall_time());
+
+    if (!ignore_first)
+      {
+        if (!continue_timer)
+          sections[actual_section_name].time_vec.push_back(sections[actual_section_name].timer.last_wall_time());
+        else
+          sections[actual_section_name].time_vec[sections[actual_section_name].n_calls-1] += sections[actual_section_name].timer.last_wall_time();
       }
+    else if (sections[actual_section_name].n_calls != 1)
+      {
+        if (!continue_timer)
+          sections[actual_section_name].time_vec.push_back(sections[actual_section_name].timer.last_wall_time());
+        else
+          sections[actual_section_name].time_vec[sections[actual_section_name].n_calls-2] += sections[actual_section_name].timer.last_wall_time();
+      }
+
 
     // delete the index from the list of
     // active ones
@@ -99,6 +109,18 @@ namespace aspect
 
     return output;
   }
+
+  void
+  MyTimerOutput::print_data_file(const std::string &filename_and_path) const
+  {
+    std::ofstream out;
+    out.open(filename_and_path);
+
+    out.close();
+  }
+
+
+
 
   void
   MyTimerOutput::reset ()

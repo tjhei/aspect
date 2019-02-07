@@ -423,7 +423,7 @@ namespace aspect
 
   template <int dim>
   void
-  Simulator<dim>::build_stokes_preconditioner (const unsigned int i)
+  Simulator<dim>::build_stokes_preconditioner ()
   {
     if (rebuild_stokes_preconditioner == false)
       return;
@@ -446,22 +446,15 @@ namespace aspect
     // first assemble the raw matrices necessary for the preconditioner
 
     //Timings for: Assemble prec matrix
-    Timer time(triangulation.get_communicator(),true);
     {
-      if (i!=0)
-        assemble_prec_matrix[i-1] = 0.0;
-      time.restart();
+      stokes_timer.enter_subsection("assemble_prec_mat");
       assemble_stokes_preconditioner ();
-      time.stop();
-      if (i!=0)
-        assemble_prec_matrix[i-1] += time.last_wall_time();
+      stokes_timer.leave_subsection("assemble_prec_mat");
     }
 
     //Timings for: AMG setup
     {
-      if (i!=0)
-        setup_amg[i-1] = 0.0;
-      time.restart();
+      stokes_timer.enter_subsection("setup_amg");
 
       // then extract the other information necessary to build the
       // AMG preconditioners for the A and M blocks
@@ -552,9 +545,7 @@ namespace aspect
         Amg_preconditioner->initialize (system_preconditioner_matrix.block(0,0),
                                         Amg_data);
 
-      time.stop();
-      if (i!=0)
-        setup_amg[i-1] += time.last_wall_time();
+      stokes_timer.leave_subsection("setup_amg");
     }
 
     rebuild_stokes_preconditioner = false;
@@ -1244,7 +1235,7 @@ namespace aspect
   template void Simulator<dim>::copy_local_to_global_stokes_preconditioner ( \
                                                                              const internal::Assembly::CopyData::StokesPreconditioner<dim> &data); \
   template void Simulator<dim>::assemble_stokes_preconditioner (); \
-  template void Simulator<dim>::build_stokes_preconditioner (const unsigned int i); \
+  template void Simulator<dim>::build_stokes_preconditioner (); \
   template void Simulator<dim>::local_assemble_stokes_system ( \
                                                                const DoFHandler<dim>::active_cell_iterator &cell, \
                                                                internal::Assembly::Scratch::StokesSystem<dim>  &scratch, \

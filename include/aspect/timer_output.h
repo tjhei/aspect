@@ -28,17 +28,16 @@ namespace aspect
       MyTimerOutput (const MPI_Comm               mpi_comm);
 
       MyTimerOutput (const MPI_Comm               mpi_comm,
-                     const bool                     ignore_first);
+                     const bool                   ignore_first);
 
-      void enter_subsection (const std::string &section_name);
-
-      void leave_subsection (const std::string &section_name = std::string());
+      void enter_subsection (const std::string &section_name, const bool continue_timer=false);
+      void leave_subsection (const std::string &section_name = std::string(), const bool continue_timer=false);
 
       std::map<std::string, std::vector<double> > get_all_times () const;
       std::map<std::string, std::vector<double> > get_min_avg_max () const;
 
       void print_data_screen () const;
-      void print_data_file () const;
+      void print_data_file (const std::string &filename_and_path) const;
 
       void reset ();
 

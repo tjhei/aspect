@@ -133,8 +133,7 @@ namespace aspect
                                   const PreconditionerA                      &Apreconditioner,
                                   const bool                                  do_solve_A,
                                   const double                                A_block_tolerance,
-                                  const double                                S_block_tolerance,
-                                  const MPI_Comm                         mpi_comm);
+                                  const double                                S_block_tolerance);
 
         /**
                    * Matrix vector product with this preconditioner object.
@@ -144,9 +143,6 @@ namespace aspect
 
         unsigned int n_iterations_A() const;
         unsigned int n_iterations_S() const;
-
-        std::vector<double> return_times() const;
-
 
 
       private:
@@ -167,11 +163,6 @@ namespace aspect
         mutable unsigned int n_iterations_S_;
         const double A_block_tolerance;
         const double S_block_tolerance;
-
-        mutable Timer time;
-        mutable double a_prec_time;
-        mutable double mass_solve_time;
-        mutable double Bt_time;
     };
 
 
@@ -183,8 +174,7 @@ namespace aspect
                               const PreconditionerA                      &Apreconditioner,
                               const bool                                  do_solve_A,
                               const double                                A_block_tolerance,
-                              const double                                S_block_tolerance,
-                              const MPI_Comm                              mpi_comm)
+                              const double                                S_block_tolerance)
       :
       stokes_matrix     (S),
       mass_matrix     (Mass),
@@ -194,10 +184,7 @@ namespace aspect
       n_iterations_A_(0),
       n_iterations_S_(0),
       A_block_tolerance(A_block_tolerance),
-      S_block_tolerance(S_block_tolerance),
-
-      time(mpi_comm,true),
-      a_prec_time(0.0), mass_solve_time(0.0), Bt_time(0.0)
+      S_block_tolerance(S_block_tolerance)
     {}
 
     template <class StokesMatrixType, class MassMatrixType, class PreconditionerMp,class PreconditionerA>
@@ -217,15 +204,6 @@ namespace aspect
     }
 
     template <class StokesMatrixType, class MassMatrixType, class PreconditionerMp,class PreconditionerA>
-    std::vector<double>
-    BlockSchurPreconditioner<StokesMatrixType, MassMatrixType, PreconditionerMp, PreconditionerA>::
-    return_times() const
-    {
-      std::vector<double> return_vec {a_prec_time, mass_solve_time, Bt_time};
-      return return_vec;
-    }
-
-    template <class StokesMatrixType, class MassMatrixType, class PreconditionerMp,class PreconditionerA>
     void
     BlockSchurPreconditioner<StokesMatrixType, MassMatrixType, PreconditionerMp, PreconditionerA>::
     vmult (dealii::LinearAlgebra::distributed::BlockVector<double>       &dst,
@@ -235,7 +213,6 @@ namespace aspect
 
       // first solve with the bottom left block, which we have built
       // as a mass matrix with the inverse of the viscosity
-      //time.restart();
       {
         SolverControl solver_control(1000, src.block(1).l2_norm() * S_block_tolerance,true);
 
@@ -275,11 +252,7 @@ namespace aspect
           }
         dst.block(1) *= -1.0;
       }
-      //time.stop();
-      //mass_solve_time += time.last_wall_time();
 
-      // apply the top right block
-      //time.restart();
       {
         // TODO: figure out how to just multiply the top right block
         dealii::LinearAlgebra::distributed::BlockVector<double>  dst_tmp(dst);
@@ -288,8 +261,6 @@ namespace aspect
         utmp.block(0) *= -1.0;
         utmp.block(0) += src.block(0);
       }
-      //time.stop();
-      //Bt_time += time.last_wall_time();
 
       // now either solve with the top left block (if do_solve_A==true)
       // or just apply one preconditioner sweep (for the first few
@@ -327,11 +298,8 @@ namespace aspect
         }
       else
         {
-          //time.restart();
           a_preconditioner.vmult (dst.block(0), utmp.block(0));
           n_iterations_A_ += 1;
-          //time.stop();
-          //a_prec_time += time.last_wall_time();
         }
     }
   }
@@ -821,8 +789,7 @@ namespace aspect
                           prec_S, prec_A,
                           false,
                           sim.parameters.linear_solver_A_block_tolerance,
-                          sim.parameters.linear_solver_S_block_tolerance,
-                          sim.triangulation.get_communicator());
+                          sim.parameters.linear_solver_S_block_tolerance);
 
     dealii::LinearAlgebra::distributed::BlockVector<double> solution_copy(2);
     dealii::LinearAlgebra::distributed::BlockVector<double> rhs_copy(2);
@@ -834,41 +801,22 @@ namespace aspect
     internal::ChangeVectorTypes::copy(rhs_copy,distributed_stokes_rhs);
     solution_copy.update_ghost_values();
 
+    {
+      dealii::LinearAlgebra::distributed::BlockVector<double> tmp_dst = solution_copy;
+      dealii::LinearAlgebra::distributed::BlockVector<double> tmp_scr = rhs_copy;
+      sim.stokes_timer.enter_subsection("preconditioner_vmult");
+      preconditioner_cheap.vmult(tmp_dst, tmp_scr);
+      sim.stokes_timer.leave_subsection("preconditioner_vmult");
+    }
 
-    if (sim.parameters.n_timings==0)
-      sim.vcycle_time =0;
-    else if (i==0)
-      {
-        sim.vcycle_time = 0;
-        dealii::LinearAlgebra::distributed::BlockVector<double> tmp_dst = solution_copy;
-        dealii::LinearAlgebra::distributed::BlockVector<double> tmp_scr = rhs_copy;
-        Timer time(sim.triangulation.get_communicator(),true);
-        for (unsigned int i=0; i<sim.parameters.n_timings+1; ++i)
-          {
-            time.restart();
-
-            preconditioner_cheap.vmult(tmp_dst, tmp_scr);
-
-            time.stop();
-            if (i!=0)
-              sim.vcycle_time += time.last_wall_time();
-
-            tmp_scr = tmp_dst;
-          }
-        if (sim.parameters.n_timings != 0)
-          sim.vcycle_time /= (1.0*sim.parameters.n_timings);
-      }
 
 
     // TODO: doesn't make a difference
     //solution_copy = 0.;
 
-//    deallog.depth_console(10);
-//    std::ofstream solve_data("/hdscratch/tcleven/aspect-git/aspect/benchmarks/nsinker/solve_data.log");
-//    deallog.attach(solve_data);
-
-
     sim.gmres_iterations = 0;
+
+    sim.stokes_timer.enter_subsection("gmres_solve");
     try
       {
         SolverFGMRES<dealii::LinearAlgebra::distributed::BlockVector<double> >
@@ -893,6 +841,8 @@ namespace aspect
 
         //Assert(false,ExcNotImplemented());
       }
+    sim.stokes_timer.leave_subsection("gmres_solve");
+
     sim.gmres_iterations = solver_control_cheap.last_step();
 
 
@@ -952,225 +902,179 @@ namespace aspect
 
 
   template <int dim>
-  void StokesMatrixFreeHandler<dim>::setup_dofs(const unsigned int i)
+  void StokesMatrixFreeHandler<dim>::setup_dofs()
   {
-
-    Timer time(sim.triangulation.get_communicator(),true);
-    double dof_setup = 0.0, mf_setup = 0.0, gmg_transfer = 0.0;
-    unsigned int n_runs = (i==0 ? 1/*sim.parameters.n_timings*/ : 1);
-
-    for (unsigned int t=0; t<n_runs; ++t)
+    sim.stokes_timer.enter_subsection("distribute_mf_dofs");
+    {
       {
-        if (i==0)
-          time.restart();
-        {
-          dof_handler_v.clear();
-          dof_handler_v.distribute_dofs(fe_v);
-          dof_handler_v.distribute_mg_dofs();
+        dof_handler_v.clear();
+        dof_handler_v.distribute_dofs(fe_v);
 
-          DoFRenumbering::hierarchical(dof_handler_v);
+        DoFRenumbering::hierarchical(dof_handler_v);
 
-          constraints_v.clear();
-          IndexSet locally_relevant_dofs;
-          DoFTools::extract_locally_relevant_dofs (dof_handler_v,
-                                                   locally_relevant_dofs);
-          constraints_v.reinit(locally_relevant_dofs);
-          DoFTools::make_hanging_node_constraints (dof_handler_v, constraints_v);
-          sim.compute_initial_velocity_boundary_constraints(constraints_v);
-          sim.compute_current_velocity_boundary_constraints(constraints_v);
-          constraints_v.close ();
-        }
-
-        {
-          dof_handler_p.clear();
-          dof_handler_p.distribute_dofs(fe_p);
-
-          DoFRenumbering::hierarchical(dof_handler_p);
-
-          constraints_p.clear();
-          IndexSet locally_relevant_dofs;
-          DoFTools::extract_locally_relevant_dofs (dof_handler_p,
-                                                   locally_relevant_dofs);
-          constraints_p.reinit(locally_relevant_dofs);
-          DoFTools::make_hanging_node_constraints (dof_handler_p, constraints_p);
-          constraints_p.close();
-        }
-
-        // Coefficient transfer objects
-        {
-          dof_handler_projection.clear();
-          dof_handler_projection.distribute_dofs(fe_projection);
-          dof_handler_projection.distribute_mg_dofs();
-
-          DoFRenumbering::hierarchical(dof_handler_projection);
-
-
-          constraints_projection.clear();
-          IndexSet locally_relevant_dofs;
-          DoFTools::extract_locally_relevant_dofs (dof_handler_projection,
-                                                   locally_relevant_dofs);
-          constraints_projection.reinit(locally_relevant_dofs);
-          DoFTools::make_hanging_node_constraints (dof_handler_projection, constraints_projection);
-          // TODO: boundary constraints if not DG(0)?
-          constraints_projection.close ();
-
-          mg_constrained_dofs_projection.clear();
-          mg_constrained_dofs_projection.initialize(dof_handler_projection);
-
-          active_coef_dof_vec.reinit(dof_handler_projection.locally_owned_dofs(), sim.triangulation.get_communicator());
-        }
-        if (i==0)
-          {
-            time.stop();
-            dof_setup += time.last_wall_time()/sim.parameters.n_timings;
-          }
+        constraints_v.clear();
+        IndexSet locally_relevant_dofs;
+        DoFTools::extract_locally_relevant_dofs (dof_handler_v,
+                                                 locally_relevant_dofs);
+        constraints_v.reinit(locally_relevant_dofs);
+        DoFTools::make_hanging_node_constraints (dof_handler_v, constraints_v);
+        sim.compute_initial_velocity_boundary_constraints(constraints_v);
+        sim.compute_current_velocity_boundary_constraints(constraints_v);
+        constraints_v.close ();
       }
 
-
-    for (unsigned int t=0; t<n_runs; ++t)
       {
-        if (i==0)
-          time.restart();
-        // Stokes matrix stuff...
+        dof_handler_p.clear();
+        dof_handler_p.distribute_dofs(fe_p);
+
+        DoFRenumbering::hierarchical(dof_handler_p);
+
+        constraints_p.clear();
+        IndexSet locally_relevant_dofs;
+        DoFTools::extract_locally_relevant_dofs (dof_handler_p,
+                                                 locally_relevant_dofs);
+        constraints_p.reinit(locally_relevant_dofs);
+        DoFTools::make_hanging_node_constraints (dof_handler_p, constraints_p);
+        constraints_p.close();
+      }
+
+      // Coefficient transfer objects
+      {
+        dof_handler_projection.clear();
+        dof_handler_projection.distribute_dofs(fe_projection);
+
+        DoFRenumbering::hierarchical(dof_handler_projection);
+
+
+        constraints_projection.clear();
+        IndexSet locally_relevant_dofs;
+        DoFTools::extract_locally_relevant_dofs (dof_handler_projection,
+                                                 locally_relevant_dofs);
+        constraints_projection.reinit(locally_relevant_dofs);
+        DoFTools::make_hanging_node_constraints (dof_handler_projection, constraints_projection);
+        // TODO: boundary constraints if not DG(0)?
+        constraints_projection.close ();
+
+        mg_constrained_dofs_projection.clear();
+        mg_constrained_dofs_projection.initialize(dof_handler_projection);
+
+        active_coef_dof_vec.reinit(dof_handler_projection.locally_owned_dofs(), sim.triangulation.get_communicator());
+      }
+    }
+    sim.stokes_timer.leave_subsection("distribute_mf_dofs");
+
+
+    sim.stokes_timer.enter_subsection("distribute_mg_dofs");
+    {
+      dof_handler_v.distribute_mg_dofs();
+      dof_handler_projection.distribute_mg_dofs();
+
+      mg_constrained_dofs.clear();
+      std::set<types::boundary_id> dirichlet_boundary = sim.boundary_velocity_manager.get_zero_boundary_velocity_indicators();
+      //TODO: Assert no tangetial boundary
+      for (auto it: sim.boundary_velocity_manager.get_active_boundary_velocity_names())
         {
-          typename MatrixFree<dim,double>::AdditionalData additional_data;
-          additional_data.tasks_parallel_scheme =
-            MatrixFree<dim,double>::AdditionalData::none;
-          additional_data.mapping_update_flags = (update_values | update_gradients |
-                                                  update_JxW_values | update_quadrature_points);
-
-          std::vector<const DoFHandler<dim>*> stokes_dofs;
-          stokes_dofs.push_back(&dof_handler_v);
-          stokes_dofs.push_back(&dof_handler_p);
-          std::vector<const ConstraintMatrix *> stokes_constraints;
-          stokes_constraints.push_back(&constraints_v);
-          stokes_constraints.push_back(&constraints_p);
-
-          std::shared_ptr<MatrixFree<dim,double> >
-          stokes_mf_storage(new MatrixFree<dim,double>());
-          stokes_mf_storage->reinit(stokes_dofs, stokes_constraints,
-                                    QGauss<1>(sim.parameters.stokes_velocity_degree+1), additional_data);
-          stokes_matrix.clear();
-          stokes_matrix.initialize(stokes_mf_storage);
-
+          int bdryid = it.first;
+          std::string component=it.second.first;
+          Assert(component=="", ExcNotImplemented());
+          dirichlet_boundary.insert(bdryid);
         }
+      mg_constrained_dofs.initialize(dof_handler_v);
+      mg_constrained_dofs.make_zero_boundary_constraints(dof_handler_v, dirichlet_boundary);
+    }
+    sim.stokes_timer.leave_subsection("distribute_mg_dofs");
 
-        // Mass matrix matrix-free operator...
-        {
-          typename MatrixFree<dim,double>::AdditionalData additional_data;
-          additional_data.tasks_parallel_scheme =
-            MatrixFree<dim,double>::AdditionalData::none;
-          additional_data.mapping_update_flags = (update_values | update_JxW_values |
-                                                  update_quadrature_points);
-          std::shared_ptr<MatrixFree<dim,double> >
-          mass_mf_storage(new MatrixFree<dim,double>());
-          mass_mf_storage->reinit(dof_handler_p, constraints_p,
+
+    sim.stokes_timer.enter_subsection("setup_mf_operators");
+    {
+      // Stokes matrix...
+      {
+        typename MatrixFree<dim,double>::AdditionalData additional_data;
+        additional_data.tasks_parallel_scheme =
+          MatrixFree<dim,double>::AdditionalData::none;
+        additional_data.mapping_update_flags = (update_values | update_gradients |
+                                                update_JxW_values | update_quadrature_points);
+
+        std::vector<const DoFHandler<dim>*> stokes_dofs;
+        stokes_dofs.push_back(&dof_handler_v);
+        stokes_dofs.push_back(&dof_handler_p);
+        std::vector<const ConstraintMatrix *> stokes_constraints;
+        stokes_constraints.push_back(&constraints_v);
+        stokes_constraints.push_back(&constraints_p);
+
+        std::shared_ptr<MatrixFree<dim,double> >
+        stokes_mf_storage(new MatrixFree<dim,double>());
+        stokes_mf_storage->reinit(stokes_dofs, stokes_constraints,
                                   QGauss<1>(sim.parameters.stokes_velocity_degree+1), additional_data);
+        stokes_matrix.clear();
+        stokes_matrix.initialize(stokes_mf_storage);
 
-          mass_matrix.clear();
-          mass_matrix.initialize(mass_mf_storage);
-        }
+      }
 
-        // GMG Matrix-free operators
-        {
-          const unsigned int n_levels = sim.triangulation.n_global_levels();
-          mg_matrices.clear_elements();
-          // TODO: minlevel != 0
-          mg_matrices.resize(0, n_levels-1);
+      // Mass matrix...
+      {
+        typename MatrixFree<dim,double>::AdditionalData additional_data;
+        additional_data.tasks_parallel_scheme =
+          MatrixFree<dim,double>::AdditionalData::none;
+        additional_data.mapping_update_flags = (update_values | update_JxW_values |
+                                                update_quadrature_points);
+        std::shared_ptr<MatrixFree<dim,double> >
+        mass_mf_storage(new MatrixFree<dim,double>());
+        mass_mf_storage->reinit(dof_handler_p, constraints_p,
+                                QGauss<1>(sim.parameters.stokes_velocity_degree+1), additional_data);
 
-          mg_constrained_dofs.clear();
-          std::set<types::boundary_id> dirichlet_boundary = sim.boundary_velocity_manager.get_zero_boundary_velocity_indicators();
-          //TODO: Assert no tangetial boundary
-          for (auto it: sim.boundary_velocity_manager.get_active_boundary_velocity_names())
-            {
-              int bdryid = it.first;
-              std::string component=it.second.first;
-              Assert(component=="", ExcNotImplemented());
-              dirichlet_boundary.insert(bdryid);
-            }
+        mass_matrix.clear();
+        mass_matrix.initialize(mass_mf_storage);
+      }
 
-          mg_constrained_dofs.initialize(dof_handler_v);
-          mg_constrained_dofs.make_zero_boundary_constraints(dof_handler_v, dirichlet_boundary);
+      // GMG matrices...
+      {
+        const unsigned int n_levels = sim.triangulation.n_global_levels();
+        mg_matrices.clear_elements();
+        // TODO: minlevel != 0
+        mg_matrices.resize(0, n_levels-1);
 
-          for (unsigned int level=0; level<n_levels; ++level)
-            {
-              IndexSet relevant_dofs;
-              DoFTools::extract_locally_relevant_level_dofs(dof_handler_v, level, relevant_dofs);
-              ConstraintMatrix level_constraints;
-              level_constraints.reinit(relevant_dofs);
-              level_constraints.add_lines(mg_constrained_dofs.get_boundary_indices(level));
-              level_constraints.close();
-
-              {
-                typename MatrixFree<dim,double>::AdditionalData additional_data;
-                additional_data.tasks_parallel_scheme =
-                  MatrixFree<dim,double>::AdditionalData::none;
-                additional_data.mapping_update_flags = (update_gradients | update_JxW_values |
-                                                        update_quadrature_points);
-                additional_data.level_mg_handler = level;
-                std::shared_ptr<MatrixFree<dim,double> >
-                mg_mf_storage_level(new MatrixFree<dim,double>());
-                mg_mf_storage_level->reinit(dof_handler_v, level_constraints,
-                                            QGauss<1>(sim.parameters.stokes_velocity_degree+1),
-                                            additional_data);
-
-                mg_matrices[level].clear();
-                mg_matrices[level].initialize(mg_mf_storage_level, mg_constrained_dofs, level);
-
-                //add zero boundary coarsest level
-              }
-            }
-        }
-        if (i==0)
+        for (unsigned int level=0; level<n_levels; ++level)
           {
-            //just foir timings, also called in solve()
-            evaluate_viscosity();
-            correct_stokes_rhs();
+            IndexSet relevant_dofs;
+            DoFTools::extract_locally_relevant_level_dofs(dof_handler_v, level, relevant_dofs);
+            ConstraintMatrix level_constraints;
+            level_constraints.reinit(relevant_dofs);
+            level_constraints.add_lines(mg_constrained_dofs.get_boundary_indices(level));
+            level_constraints.close();
 
-            time.stop();
-            mf_setup += time.last_wall_time()/sim.parameters.n_timings;
+            {
+              typename MatrixFree<dim,double>::AdditionalData additional_data;
+              additional_data.tasks_parallel_scheme =
+                MatrixFree<dim,double>::AdditionalData::none;
+              additional_data.mapping_update_flags = (update_gradients | update_JxW_values |
+                                                      update_quadrature_points);
+              additional_data.level_mg_handler = level;
+              std::shared_ptr<MatrixFree<dim,double> >
+              mg_mf_storage_level(new MatrixFree<dim,double>());
+              mg_mf_storage_level->reinit(dof_handler_v, level_constraints,
+                                          QGauss<1>(sim.parameters.stokes_velocity_degree+1),
+                                          additional_data);
+
+              mg_matrices[level].clear();
+              mg_matrices[level].initialize(mg_mf_storage_level, mg_constrained_dofs, level);
+
+              //add zero boundary coarsest level
+            }
           }
       }
+    }
+    sim.stokes_timer.leave_subsection("setup_mf_operators");
 
 
     //Setup GMG transfer
-    for (unsigned int t=0; t<n_runs; ++t)
-      {
-        if (i==0)
-          time.restart();
-        {
-          mg_transfer.clear();
-          mg_transfer.initialize_constraints(mg_constrained_dofs);
-          mg_transfer.build(dof_handler_v);
-        }
-        if (i==0)
-          {
-            time.stop();
-            gmg_transfer += time.last_wall_time()/sim.parameters.n_timings;
-          }
-      }
-
-    if (i==0)
-      {
-        sim.pcout << std::left
-                  << std::setw(8) << "out:"
-                  << std::setw(15) << "MF-setup"
-                  << std::setw(15) << "dofs"
-                  << std::setw(15) << "mf"
-                  << std::setw(15) << "gmg-transfer"
-                  << std::endl;
-        sim.pcout << std::left
-                  << std::setw(8) << "out:"
-                  << std::setw(15) << dof_setup+mf_setup+gmg_transfer
-                  << std::setw(15) << dof_setup
-                  << std::setw(15) << mf_setup
-                  << std::setw(15) << gmg_transfer
-                  << std::endl
-                  << std::setw(8) << "out:" << std::endl;
-      }
-
-
-
+    sim.stokes_timer.enter_subsection("setup_tranfer_mf");
+    {
+      mg_transfer.clear();
+      mg_transfer.initialize_constraints(mg_constrained_dofs);
+      mg_transfer.build(dof_handler_v);
+    }
+    sim.stokes_timer.leave_subsection("setup_tranfer_mf");
   }
 
 }

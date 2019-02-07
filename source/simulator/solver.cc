@@ -200,8 +200,7 @@ namespace aspect
                                   const PreconditionerA                      &Apreconditioner,
                                   const bool                                  do_solve_A,
                                   const double                                A_block_tolerance,
-                                  const double                                S_block_tolerance,
-                                  const MPI_Comm                            mpi_comm);
+                                  const double                                S_block_tolerance);
 
         /**
          * Matrix vector product with this preconditioner object.
@@ -211,8 +210,6 @@ namespace aspect
 
         unsigned int n_iterations_A() const;
         unsigned int n_iterations_S() const;
-
-        std::vector<double> return_times() const;
 
       private:
         /**
@@ -232,12 +229,6 @@ namespace aspect
         mutable unsigned int n_iterations_S_;
         const double A_block_tolerance;
         const double S_block_tolerance;
-
-
-        mutable Timer time;
-        mutable double a_prec_time;
-        mutable double mass_solve_time;
-        mutable double Bt_time;
     };
 
 
@@ -249,8 +240,7 @@ namespace aspect
                               const PreconditionerA                      &Apreconditioner,
                               const bool                                  do_solve_A,
                               const double                                A_block_tolerance,
-                              const double                                S_block_tolerance,
-                              const MPI_Comm                              mpi_comm)
+                              const double                                S_block_tolerance)
       :
       stokes_matrix     (S),
       stokes_preconditioner_matrix     (Spre),
@@ -260,10 +250,7 @@ namespace aspect
       n_iterations_A_(0),
       n_iterations_S_(0),
       A_block_tolerance(A_block_tolerance),
-      S_block_tolerance(S_block_tolerance),
-
-      time(mpi_comm,true),
-      a_prec_time(0.0), mass_solve_time(0.0), Bt_time(0.0)
+      S_block_tolerance(S_block_tolerance)
     {}
 
     template <class PreconditionerA, class PreconditionerMp>
@@ -282,15 +269,6 @@ namespace aspect
       return n_iterations_S_;
     }
 
-    template <class PreconditionerA, class PreconditionerMp>
-    std::vector<double>
-    BlockSchurPreconditioner<PreconditionerA, PreconditionerMp>::
-    return_times() const
-    {
-      std::vector<double> return_vec {a_prec_time, mass_solve_time, Bt_time};
-      return return_vec;
-    }
-
 
     template <class PreconditionerA, class PreconditionerMp>
     void
@@ -302,7 +280,6 @@ namespace aspect
 
       // first solve with the bottom left block, which we have built
       // as a mass matrix with the inverse of the viscosity
-      //time.restart();
       {
         SolverControl solver_control(1000, src.block(1).l2_norm() * S_block_tolerance);
 
@@ -347,18 +324,13 @@ namespace aspect
 
         dst.block(1) *= -1.0;
       }
-      //time.stop();
-      //mass_solve_time += time.last_wall_time();
 
-      // apply the top right block
-      //time.restart();
       {
         stokes_matrix.block(0,1).vmult(utmp, dst.block(1)); // B^T or J^{up}
         utmp *= -1.0;
         utmp += src.block(0);
       }
-      //time.stop();
-      //Bt_time += time.last_wall_time();
+
 
       // now either solve with the top left block (if do_solve_A==true)
       // or just apply one preconditioner sweep (for the first few
@@ -397,11 +369,8 @@ namespace aspect
         }
       else
         {
-          //time.restart();
           a_preconditioner.vmult (dst.block(0), utmp);
           n_iterations_A_ += 1;
-          //time.stop();
-          //a_prec_time += time.last_wall_time();
         }
     }
 
@@ -806,21 +775,15 @@ namespace aspect
                                     *Mp_preconditioner, *Amg_preconditioner,
                                     false,
                                     parameters.linear_solver_A_block_tolerance,
-                                    parameters.linear_solver_S_block_tolerance,
-                                    triangulation.get_communicator());
+                                    parameters.linear_solver_S_block_tolerance);
 
 // Timings for: vcycle
         {
           LinearAlgebra::BlockVector tmp_dst = distributed_stokes_solution;
           LinearAlgebra::BlockVector tmp_scr = distributed_stokes_rhs;
-          if (i!=0)
-            vcycle_time[i-1] = 0.0;
-          Timer time(triangulation.get_communicator(),true);
-          time.restart();
+          stokes_timer.enter_subsection("preconditioner_vmult");
           preconditioner_cheap.vmult(tmp_dst, tmp_scr);
-          time.stop();
-          if (i!=0)
-            vcycle_time[i-1] += time.last_wall_time();
+          stokes_timer.leave_subsection("preconditioner_vmult");
         }
 
 
@@ -836,19 +799,15 @@ namespace aspect
                                         *Mp_preconditioner, *Amg_preconditioner,
                                         true,
                                         parameters.linear_solver_A_block_tolerance,
-                                        parameters.linear_solver_S_block_tolerance,
-                                        triangulation.get_communicator());
+                                        parameters.linear_solver_S_block_tolerance);
 
         // step 1a: try if the simple and fast solver
         // succeeds in n_cheap_stokes_solver_steps steps or less.
         {
-          Timer time(triangulation.get_communicator(),true);
           gmres_iterations = 0;
 
           //Timings for: solve
-          if (i!=0)
-            solve_time[i-1] = 0.0;
-          time.restart();
+          stokes_timer.enter_subsection("gmres_solve");
           try
             {
               // if this cheaper solver is not desired, then simply short-cut
@@ -956,9 +915,7 @@ namespace aspect
                     }
                 }
             }
-          time.stop();
-          if (i!=0)
-            solve_time[i-1] += time.last_wall_time();
+          stokes_timer.leave_subsection("gmres_solve");
 
           gmres_iterations = solver_control_cheap.last_step() + solver_control_expensive.last_step();
         }

@@ -283,20 +283,14 @@ namespace aspect
         if (rebuild_sparsity_and_matrices)
           {
             // Timings for: sparsity pattern
-            Timer time(triangulation.get_communicator(),true);
             for (unsigned int i=0; i<parameters.n_timings+1; ++i)
               {
-                if (i!=0)
-                  setup_sparsity_pattern[i-1] = 0.0;
-                time.restart();
+                stokes_timer.enter_subsection("total_setup_dofs",true);
+                stokes_timer.enter_subsection("setup_sparsity_patterns");
                 setup_system_matrix (introspection.index_sets.system_partitioning);
                 setup_system_preconditioner (introspection.index_sets.system_partitioning);
-                time.stop();
-                if (i!=0)
-                  {
-                    setup_sparsity_pattern[i-1] += time.last_wall_time();
-                    total_setup_time[i-1] += setup_sparsity_pattern[i-1];
-                  }
+                stokes_timer.leave_subsection("setup_sparsity_patterns");
+                stokes_timer.leave_subsection("total_setup_dofs",true);
               }
 
             rebuild_stokes_matrix = rebuild_stokes_preconditioner = true;
@@ -305,25 +299,17 @@ namespace aspect
 
     //Timings for: assembly
     {
-      Timer time_out(triangulation.get_communicator(),true);
-      Timer time_in(triangulation.get_communicator(),true);
       bool need_rebuild = rebuild_stokes_matrix;
       bool need_rebuild_prec = rebuild_stokes_preconditioner;
       for (unsigned int i=0; i<parameters.n_timings+1; ++i)
         {
-          if (i!=0)
-            total_assemble_time[i-1] = 0.0;
-          time_out.restart();
+          stokes_timer.enter_subsection("total_assembly");
 
           //Timings for: assemble stokes
           {
-            if (i!=0)
-              assemble_system_matrix_rhs[i-1] = 0.0;
-            time_in.restart();
+            stokes_timer.enter_subsection("assemble_system_mat_and_rhs");
             assemble_stokes_system ();
-            time_in.stop();
-            if (i!=0)
-              assemble_system_matrix_rhs[i-1] += time_in.last_wall_time();
+            stokes_timer.leave_subsection("assemble_system_mat_and_rhs");
 
             if (need_rebuild)
               rebuild_stokes_matrix = true;
@@ -333,27 +319,22 @@ namespace aspect
           //Timings for: Update coefficients and add correction to system rhs
           if (stokes_matrix_free)
             {
-              if (i!=0)
-                coefficient_transfer[i-1] = 0.0;
-              time_in.restart();
+              stokes_timer.enter_subsection("mf_visc_and_rhs_correct");
               stokes_matrix_free->evaluate_viscosity();
               stokes_matrix_free->correct_stokes_rhs();
-              time_in.stop();
-              if (i!=0)
-                coefficient_transfer[i-1] += time_in.last_wall_time();
+              stokes_timer.leave_subsection("mf_visc_and_rhs_correct");
             }
 
 
           //Timings for: assemble preconditioner (inside function)
           if (!stokes_matrix_free)
             {
-              build_stokes_preconditioner(i);
+              build_stokes_preconditioner();
               if (need_rebuild_prec)
                 rebuild_stokes_preconditioner = true;
             }
-          time_out.stop();
-          if (i!=0)
-            total_assemble_time[i-1] += time_out.last_wall_time();
+
+          stokes_timer.leave_subsection("total_assembly");
         }
       rebuild_stokes_matrix = false;
       rebuild_stokes_preconditioner = false;

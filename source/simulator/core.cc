@@ -229,20 +229,8 @@ namespace aspect
     rebuild_stokes_preconditioner (true),
 
 
-    stokes_timer(mpi_communicator),
-
-    //timing vectors
-    total_time(parameters.n_timings),total_time_no_setup(parameters.n_timings),
-    // Setup timings
-    total_setup_time(parameters.n_timings),
-    distribute_system_dofs(parameters.n_timings),distribute_mf_dofs(parameters.n_timings),distribute_mg_dofs(parameters.n_timings),
-    setup_mf_operators(parameters.n_timings),setup_mg_transfer(parameters.n_timings),setup_sparsity_pattern(parameters.n_timings),
-    // Assemble timings
-    total_assemble_time(parameters.n_timings),
-    assemble_system_matrix_rhs(parameters.n_timings),assemble_prec_matrix(parameters.n_timings),
-    setup_amg(parameters.n_timings),coefficient_transfer(parameters.n_timings),
-    // Solve/Prec timings
-    solve_time(parameters.n_timings), vcycle_time(parameters.n_timings)
+    stokes_timer(mpi_communicator,
+                 (parameters.n_timings>0 ? true : false))
   {
     if (Utilities::MPI::this_mpi_process(mpi_communicator) == 0)
       {
@@ -685,20 +673,14 @@ namespace aspect
         rebuild_sparsity_and_matrices = false;
 
         // Timings for: sparsity pattern
-        Timer time(triangulation.get_communicator(),true);
         for (unsigned int i=0; i<parameters.n_timings+1; ++i)
           {
-            if (i!=0)
-              setup_sparsity_pattern[i-1] = 0.0;
-            time.restart();
+            stokes_timer.enter_subsection("total_setup_dofs",true);
+            stokes_timer.enter_subsection("setup_sparsity_patterns");
             setup_system_matrix (introspection.index_sets.system_partitioning);
             setup_system_preconditioner (introspection.index_sets.system_partitioning);
-            time.stop();
-            if (i!=0)
-              {
-                setup_sparsity_pattern[i-1] += time.last_wall_time();
-                total_setup_time[i-1] += setup_sparsity_pattern[i];
-              }
+            stokes_timer.leave_subsection("setup_sparsity_patterns");
+            stokes_timer.leave_subsection("total_setup_dofs",true);
           }
 
         rebuild_stokes_matrix = rebuild_stokes_preconditioner = true;
@@ -1298,11 +1280,8 @@ namespace aspect
 
     TimerOutput::Scope timer (computing_timer, "Setup dof systems");
 
-    Timer time (triangulation.get_communicator(),true);
-    if (i!=0)
-      distribute_system_dofs[i-1] = 0.0;
     //Timings for: DOF/CONSTRAINTS
-    time.restart();
+    stokes_timer.enter_subsection("distribute_system_dofs");
     {
       dof_handler.distribute_dofs(finite_element);
 
@@ -1392,11 +1371,9 @@ namespace aspect
 
       compute_initial_velocity_boundary_constraints(constraints);
       constraints.close();
-
     }
-    time.stop();
-    if (i!=0)
-      distribute_system_dofs[i-1] += time.last_wall_time();
+    stokes_timer.leave_subsection("distribute_system_dofs");
+
 
     signals.post_compute_no_normal_flux_constraints(triangulation);
 
@@ -1421,7 +1398,7 @@ namespace aspect
 
 
     if (stokes_matrix_free)
-      stokes_matrix_free->setup_dofs(i);
+      stokes_matrix_free->setup_dofs();
 
   }
 
@@ -1629,23 +1606,12 @@ namespace aspect
     } // leave the timed section
 
     //Timings for: setup_dofs
-    {
-      //Timer time(triangulation.get_communicator(),true);
-
-      for (unsigned int i=0; i<parameters.n_timings+1; ++i)
-        {
-          stokes_timer.enter_subsection("setup_dofs");
-//          if (i!=0)
-//            total_setup_time[i-1] = 0.0;
-          //  time.restart();
-          setup_dofs(i);
-          // time.stop();
-//          if (i!=0)
-//            total_setup_time[i-1] += time.last_wall_time();
-          stokes_timer.leave_subsection("setup_dofs");
-        }
-
-    }
+    for (unsigned int i=0; i<parameters.n_timings+1; ++i)
+      {
+        stokes_timer.enter_subsection("total_setup_dofs");
+        setup_dofs(i);
+        stokes_timer.leave_subsection("total_setup_dofs");
+      }
 
     {
       TimerOutput::Scope timer (computing_timer, "Refine mesh structure, part 2");
@@ -1855,22 +1821,12 @@ namespace aspect
           }
 
         //Timings for: setup_dofs
-        {
-          //Timer time(triangulation.get_communicator(),true);
-
-          for (unsigned int i=0; i<parameters.n_timings+1; ++i)
-            {
-              stokes_timer.enter_subsection("setup_dofs");
-              //          if (i!=0)
-              //            total_setup_time[i-1] = 0.0;
-              //  time.restart();
-              setup_dofs(i);
-              // time.stop();
-              //          if (i!=0)
-              //            total_setup_time[i-1] += time.last_wall_time();
-              stokes_timer.leave_subsection("setup_dofs");
-            }
-        }
+        for (unsigned int i=0; i<parameters.n_timings+1; ++i)
+          {
+            stokes_timer.enter_subsection("total_setup_dofs");
+            setup_dofs(i);
+            stokes_timer.leave_subsection("total_setup_dofs");
+          }
 
 
         global_volume = GridTools::volume (triangulation, *mapping);

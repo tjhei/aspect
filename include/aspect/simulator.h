@@ -576,7 +576,7 @@ namespace aspect
        * This function is implemented in
        * <code>source/simulator/assembly.cc</code>.
        */
-      void build_stokes_preconditioner (const unsigned int i=0);
+      void build_stokes_preconditioner ();
 
       /**
        * Initialize the preconditioner for the advection equation of field

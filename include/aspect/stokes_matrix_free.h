@@ -634,7 +634,7 @@ namespace aspect
                  * Allocates and sets up the members of the FreeSurfaceHandler. This
                  * is called by Simulator<dim>::setup_dofs()
                  */
-      void setup_dofs(const unsigned int i=0);
+      void setup_dofs();
 
       /**
              * Evalute the MaterialModel to query for the viscosity on the active cells
