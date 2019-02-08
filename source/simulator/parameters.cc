@@ -49,7 +49,7 @@ namespace aspect
   {
     prm.declare_entry ("Number of timings","1",Patterns::Integer (0,20),
                        "Number of times to run each function for timing purposes in sinker and inclusion.");
-    prm.declare_entry ("Timing output directory","",Patterns::DirectoryName(),
+    prm.declare_entry ("Timing output directory","timings-tmp/",Patterns::DirectoryName(),
                        "Directory where timing information should be output.");
 
     prm.declare_entry ("Dimension", "2",

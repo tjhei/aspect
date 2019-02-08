@@ -39,6 +39,55 @@ namespace aspect
 {
   namespace internal
   {
+
+    namespace TangentialBoundaryFunctions
+    {
+      template <int dim>
+      void make_no_normal_flux_constraints (const DoFHandler<dim>    &dof,
+                                            const types::boundary_id  bid,
+                                            MGConstrainedDoFs         &mg_constrained_dofs)
+      {
+        // For a given boundary id, find which vector component is on the boundary
+        // and set a zero boundary constraint for those degrees of freedom.
+        std::set<types::boundary_id> bid_set;
+        bid_set.insert(bid);
+
+        ComponentMask comp_mask(dim, false);
+        typename Triangulation<dim>::face_iterator
+        face = dof.get_triangulation().begin_face(),
+        endf = dof.get_triangulation().end_face();
+        for (; face != endf; ++face)
+          if (face->boundary_id() == bid)
+            for (unsigned int d = 0; d < dim; ++d)
+              {
+                Tensor<1, dim, double> unit_vec;
+                unit_vec[d] = 1.0;
+
+                Tensor<1, dim> normal_vec =
+                  face->get_manifold().normal_vector(face, face->center());
+
+                if (std::abs(std::abs(unit_vec * normal_vec) - 1.0) < 1e-10)
+                  comp_mask.set(d, true);
+                else
+                  Assert(std::abs(unit_vec * normal_vec) < 1e-10,
+                         ExcMessage("Sorry, only aligned faces are supported!"));
+              }
+
+        Assert(comp_mask.n_selected_components() == 1,
+               ExcMessage(
+                 "We can currently only support no normal flux conditions "
+                 "for a specific boundary id if all faces are a) facing in "
+                 "the same direction and b) are normal to the x, y, or z axis. "
+                 "This can be fixed by setting colorize=true during mesh "
+                 "generation and calling make_no_normal_flux_constraints() "
+                 "for each boundary id associated with no normal flux conditions."));
+
+        mg_constrained_dofs.make_zero_boundary_constraints(dof, bid_set, comp_mask);
+      }
+    }
+
+
+
     namespace ChangeVectorTypes
     {
       void import(TrilinosWrappers::MPI::Vector &out,
@@ -914,6 +963,14 @@ namespace aspect
         DoFTools::make_hanging_node_constraints (dof_handler_v, constraints_v);
         sim.compute_initial_velocity_boundary_constraints(constraints_v);
         sim.compute_current_velocity_boundary_constraints(constraints_v);
+
+
+        VectorTools::compute_no_normal_flux_constraints (dof_handler_v,
+                                                         /* first_vector_component= */
+                                                         0,
+                                                         sim.boundary_velocity_manager.get_tangential_boundary_velocity_indicators(),
+                                                         constraints_v,
+                                                         *sim.mapping);
         constraints_v.close ();
       }
 
@@ -950,8 +1007,9 @@ namespace aspect
       dof_handler_v.distribute_mg_dofs();
 
       mg_constrained_dofs.clear();
+      mg_constrained_dofs.initialize(dof_handler_v);
+
       std::set<types::boundary_id> dirichlet_boundary = sim.boundary_velocity_manager.get_zero_boundary_velocity_indicators();
-      //TODO: Assert no tangetial boundary
       for (auto it: sim.boundary_velocity_manager.get_active_boundary_velocity_names())
         {
           int bdryid = it.first;
@@ -959,8 +1017,14 @@ namespace aspect
           Assert(component=="", ExcNotImplemented());
           dirichlet_boundary.insert(bdryid);
         }
-      mg_constrained_dofs.initialize(dof_handler_v);
       mg_constrained_dofs.make_zero_boundary_constraints(dof_handler_v, dirichlet_boundary);
+
+      std::set<types::boundary_id> no_flux_boundary = sim.boundary_velocity_manager.get_tangential_boundary_velocity_indicators();
+      Assert(no_flux_boundary.empty() || !sim.geometry_model->has_curved_elements(),
+             ExcMessage("Tangential boundary only for Box as of now."))
+      for (auto &bid : no_flux_boundary)
+        internal::TangentialBoundaryFunctions::make_no_normal_flux_constraints(dof_handler_v,bid,mg_constrained_dofs);
+
 
       dof_handler_projection.distribute_mg_dofs();
     }
@@ -986,7 +1050,7 @@ namespace aspect
 
         std::shared_ptr<MatrixFree<dim,double> >
         stokes_mf_storage(new MatrixFree<dim,double>());
-        stokes_mf_storage->reinit(stokes_dofs, stokes_constraints,
+        stokes_mf_storage->reinit(*sim.mapping,stokes_dofs, stokes_constraints,
                                   QGauss<1>(sim.parameters.stokes_velocity_degree+1), additional_data);
         stokes_matrix.clear();
         stokes_matrix.initialize(stokes_mf_storage);
@@ -1002,7 +1066,7 @@ namespace aspect
                                                 update_quadrature_points);
         std::shared_ptr<MatrixFree<dim,double> >
         mass_mf_storage(new MatrixFree<dim,double>());
-        mass_mf_storage->reinit(dof_handler_p, constraints_p,
+        mass_mf_storage->reinit(*sim.mapping,dof_handler_p, constraints_p,
                                 QGauss<1>(sim.parameters.stokes_velocity_degree+1), additional_data);
 
         mass_matrix.clear();
@@ -1033,7 +1097,7 @@ namespace aspect
               additional_data.level_mg_handler = level;
               std::shared_ptr<MatrixFree<dim,double> >
               mg_mf_storage_level(new MatrixFree<dim,double>());
-              mg_mf_storage_level->reinit(dof_handler_v, level_constraints,
+              mg_mf_storage_level->reinit(*sim.mapping, dof_handler_v, level_constraints,
                                           QGauss<1>(sim.parameters.stokes_velocity_degree+1),
                                           additional_data);
 

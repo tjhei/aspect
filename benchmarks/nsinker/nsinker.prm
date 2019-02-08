@@ -7,7 +7,7 @@
 
 set Additional shared libraries            = ./libnsinker.so
 
-set Dimension                              = 3
+set Dimension                              = 2
 set End time                               = 0
 set Pressure normalization                 = volume
 set Nonlinear solver scheme                = no Advection, iterated Stokes
@@ -18,7 +18,7 @@ set Use years in output instead of seconds = false
 subsection Solver parameters
   subsection Stokes solver parameters
     set Use full A block as preconditioner              = true
-    set Number of cheap Stokes solver steps             = 0
+    set Number of cheap Stokes solver steps             = 200
     set Maximum number of expensive Stokes solver steps = 1000
     set Linear solver tolerance                         = 1e-6
     set GMRES solver restart length                     = 100
@@ -27,7 +27,7 @@ end
 
 
 subsection Discretization
-  set Use locally conservative discretization = true
+  set Use locally conservative discretization = false
 end
 
 
@@ -37,22 +37,26 @@ subsection Geometry model
   subsection Box
     set X extent = 1
     set Y extent = 1
-    set Z extent = 1
+    #set Z extent = 1
   end
 end
 
 
 subsection Boundary velocity model
-  set Tangential velocity boundary indicators = left,right,bottom,front,back
+  set Tangential velocity boundary indicators = left,right,bottom,top #,front,back
 end
+
+#subsection Boundary velocity model
+#  set Zero velocity boundary indicators = left,right,bottom,top #,front,back
+#end
 
 
 subsection Material model
   set Model name = nsinker
-  set Material averaging = none
+  set Material averaging = harmonic average
 
   subsection NSinker
-    set Number of sinkers = 1
+    set Number of sinkers = 4
     set Dynamic viscosity ratio = 1e4
   end
 end
@@ -74,7 +78,14 @@ end
 
 subsection Mesh refinement
   set Initial global refinement                = 4
-  set Initial adaptive refinement              = 0
+  set Initial adaptive refinement              = 5
+
+  set Adapt by fraction of cells = true
+
+  set Strategy = velocity
+  set Run postprocessors on initial refinement = true
+  set Coarsening fraction                      = 0.0
+  set Refinement fraction                      = 0.333
 end
 
 
@@ -85,3 +96,5 @@ subsection Postprocess
     set List of output variables = material properties
   end
 end
+
+set Output directory = output/mb/adaptive/
