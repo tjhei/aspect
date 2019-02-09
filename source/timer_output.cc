@@ -133,6 +133,7 @@ namespace aspect
   void
   MyTimerOutput::print_data_file(const std::string  &filename_and_path,
                                  const std::string  &problem_type,
+                                 const unsigned int refinement_level,
                                  const unsigned int cells,
                                  const unsigned int dofs,
                                  const unsigned int procs)
@@ -147,7 +148,9 @@ namespace aspect
                                                 "assemble_amg"
                                                };
 
-    out << "type: " << problem_type << " Cells: " << cells << " DoFs: " << dofs << " Procs: " << procs << " ";
+    out << "type: " << problem_type << " Levels: " << refinement_level
+        << " Cells: " << cells << " DoFs: " << dofs
+        << " Procs: " << procs << " ";
 
     for (const auto section_name : possible_sections)
       {

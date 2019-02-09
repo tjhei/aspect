@@ -1888,7 +1888,10 @@ namespace aspect
                                      dealii::Utilities::int_to_string(triangulation.n_global_levels()) + "ref-" +
                                      dealii::Utilities::int_to_string(nprocs) + "procs.dat",
                                      problem_type,
-                                     triangulation.n_global_active_cells(), dof_handler.n_dofs(), nprocs);
+                                     triangulation.n_global_levels(),
+                                     triangulation.n_global_active_cells(),
+                                     dof_handler.n_dofs(),
+                                     nprocs);
 
         stokes_timer.initialize_sections();
 
