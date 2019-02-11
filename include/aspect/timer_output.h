@@ -46,7 +46,8 @@ namespace aspect
                             const unsigned int refinement_level,
                             const unsigned int cells,
                             const unsigned int dofs,
-                            const unsigned int procs);
+                            const unsigned int procs,
+                            const double workload_imbalance);
 
       void reset ();
 

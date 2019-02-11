@@ -136,7 +136,8 @@ namespace aspect
                                  const unsigned int refinement_level,
                                  const unsigned int cells,
                                  const unsigned int dofs,
-                                 const unsigned int procs)
+                                 const unsigned int procs,
+                                 const double workload_imbalance)
   {
     std::ofstream out;
     out.open(filename_and_path);
@@ -160,6 +161,8 @@ namespace aspect
         for (unsigned int i=0; i<n_timings; ++i)
           out << sections[section_name].time_vec[i] << " ";
       }
+
+    out << "Workload_imbalance: " << workload_imbalance << " ";
 
 
 

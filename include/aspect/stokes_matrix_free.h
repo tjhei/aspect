@@ -643,6 +643,11 @@ namespace aspect
       void evaluate_viscosity();
 
       /**
+       * Get the workload impalance of the p4est distribution
+       */
+      double get_workload_imbalance();
+
+      /**
              * Add correction to system RHS
              */
       void correct_stokes_rhs();

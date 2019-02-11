@@ -16,7 +16,7 @@ for averaging in "harmonic average"; do # arithmetic/geometric/harmonic average
 
           echo "subsection Mesh refinement" >> temp.prm
           echo "  set Initial global refinement = $refinement" >> temp.prm
-          echo "  set Initial adaptive refinement = 0" >> temp.prm
+          echo "  set Initial adaptive refinement = 10" >> temp.prm
           echo "end" >> temp.prm
         
 	  echo "subsection Postprocess" >> temp.prm

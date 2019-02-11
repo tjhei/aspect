@@ -1883,6 +1883,7 @@ namespace aspect
         std::string problem_type = std::string(parameters.stokes_solver_type == Parameters<dim>::StokesSolverType::block_gmg ? "mf-" : "mb-") +
                                    std::string(parameters.initial_adaptive_refinement==0 ? "global" : "adaptive");
         const unsigned int nprocs = dealii::Utilities::MPI::n_mpi_processes(mpi_communicator);
+        const double workload_imbalance = stokes_matrix_free->get_workload_imbalance();
         stokes_timer.print_data_file(parameters.timings_directory +
                                      problem_type + "-" +
                                      dealii::Utilities::int_to_string(triangulation.n_global_levels()) + "ref-" +
@@ -1891,7 +1892,8 @@ namespace aspect
                                      triangulation.n_global_levels(),
                                      triangulation.n_global_active_cells(),
                                      dof_handler.n_dofs(),
-                                     nprocs);
+                                     nprocs,
+                                     workload_imbalance);
 
         stokes_timer.initialize_sections();
 

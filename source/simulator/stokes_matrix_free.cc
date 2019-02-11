@@ -39,50 +39,62 @@ namespace aspect
 {
   namespace internal
   {
-
     namespace TangentialBoundaryFunctions
     {
       template <int dim>
       void make_no_normal_flux_constraints (const DoFHandler<dim>    &dof,
                                             const types::boundary_id  bid,
+                                            const unsigned int first_vector_component,
                                             MGConstrainedDoFs         &mg_constrained_dofs)
       {
-        // For a given boundary id, find which vector component is on the boundary
-        // and set a zero boundary constraint for those degrees of freedom.
-        std::set<types::boundary_id> bid_set;
-        bid_set.insert(bid);
+          // For a given boundary id, find which vector component is on the boundary
+          // and set a zero boundary constraint for those degrees of freedom.
+          std::set<types::boundary_id> bid_set;
+          bid_set.insert(bid);
 
-        ComponentMask comp_mask(dim, false);
-        typename Triangulation<dim>::face_iterator
-        face = dof.get_triangulation().begin_face(),
-        endf = dof.get_triangulation().end_face();
-        for (; face != endf; ++face)
-          if (face->boundary_id() == bid)
-            for (unsigned int d = 0; d < dim; ++d)
-              {
-                Tensor<1, dim, double> unit_vec;
-                unit_vec[d] = 1.0;
+          const unsigned int n_components = dof.get_fe_collection().n_components();
+          Assert(first_vector_component + dim <= n_components,
+                 ExcIndexRange(first_vector_component, 0, n_components - dim + 1));
 
-                Tensor<1, dim> normal_vec =
-                  face->get_manifold().normal_vector(face, face->center());
+          ComponentMask comp_mask(n_components, false);
 
-                if (std::abs(std::abs(unit_vec * normal_vec) - 1.0) < 1e-10)
-                  comp_mask.set(d, true);
-                else
-                  Assert(std::abs(unit_vec * normal_vec) < 1e-10,
-                         ExcMessage("Sorry, only aligned faces are supported!"));
-              }
 
-        Assert(comp_mask.n_selected_components() == 1,
-               ExcMessage(
-                 "We can currently only support no normal flux conditions "
-                 "for a specific boundary id if all faces are a) facing in "
-                 "the same direction and b) are normal to the x, y, or z axis. "
-                 "This can be fixed by setting colorize=true during mesh "
-                 "generation and calling make_no_normal_flux_constraints() "
-                 "for each boundary id associated with no normal flux conditions."));
+          typename Triangulation<dim>::face_iterator
+            face = dof.get_triangulation().begin_face(),
+            endf = dof.get_triangulation().end_face();
+          for (; face != endf; ++face)
+            if (face->boundary_id() == bid)
+              for (unsigned int d = 0; d < dim; ++d)
+                {
+                  Tensor<1, dim, double> unit_vec;
+                  unit_vec[d] = 1.0;
 
-        mg_constrained_dofs.make_zero_boundary_constraints(dof, bid_set, comp_mask);
+                  Tensor<1, dim> normal_vec =
+                    face->get_manifold().normal_vector(face, face->center());
+
+                  if (std::abs(std::abs(unit_vec * normal_vec) - 1.0) < 1e-10)
+                    comp_mask.set(d + first_vector_component, true);
+                  else
+                    Assert(
+                      std::abs(unit_vec * normal_vec) < 1e-10,
+                      ExcMessage(
+                        "We can currently only support no normal flux conditions "
+                        "for a specific boundary id if all faces are normal to the "
+                        "x, y, or z axis."));
+                }
+
+          Assert(comp_mask.n_selected_components() == 1,
+                 ExcMessage(
+                   "We can currently only support no normal flux conditions "
+                   "for a specific boundary id if all faces are facing in the "
+                   "same direction, i.e., a boundary normal to the x-axis must "
+                   "have a different boundary id than a boundary normal to the "
+                   "y- or z-axis and so on. If the mesh here was produced using "
+                   "GridGenerator::..., setting colorize=true during mesh generation "
+                   "and calling make_no_normal_flux_constraints() for each no normal "
+                   "flux boundary will fulfill the condition."));
+
+          mg_constrained_dofs.make_zero_boundary_constraints(dof, bid_set, comp_mask);
       }
     }
 
@@ -418,6 +430,51 @@ namespace aspect
   StokesMatrixFreeHandler<dim>::~StokesMatrixFreeHandler ()
   {
   }
+
+
+  template <int dim>
+  double StokesMatrixFreeHandler<dim>::get_workload_imbalance ()
+  {
+    unsigned int n_proc = Utilities::MPI::n_mpi_processes(sim.triangulation.get_communicator());
+    unsigned int n_global_levels = sim.triangulation.n_global_levels();
+
+    unsigned long long int work_estimate = 0;
+    unsigned long long int total_cells_in_hierarchy = 0;
+
+    for (int lvl=n_global_levels-1; lvl>=0; --lvl)
+      {
+        unsigned long long int work_estimate_this_level;
+        unsigned long long int total_cells_on_lvl;
+        unsigned long long int n_owned_cells_on_lvl = 0;
+
+        typename Triangulation<dim>::cell_iterator
+        cell = sim.triangulation.begin(lvl),
+        endc = sim.triangulation.end(lvl);
+        for (; cell!=endc; ++cell)
+          if (cell->is_locally_owned_on_level())
+            n_owned_cells_on_lvl += 1;
+
+        work_estimate_this_level = dealii::Utilities::MPI::max(n_owned_cells_on_lvl,sim.triangulation.get_communicator());
+//      MPI_Reduce(&n_owned_cells_on_lvl, &work_estimate_this_level, 1,
+//                 MPI_UNSIGNED_LONG_LONG, MPI_MAX, 0,
+//                 MPI_COMM_WORLD);
+
+        //Work estimated by summing up max number of cells on each level
+        work_estimate += work_estimate_this_level;
+
+        total_cells_on_lvl = dealii::Utilities::MPI::sum(n_owned_cells_on_lvl,sim.triangulation.get_communicator());
+//      MPI_Reduce(&n_owned_cells_on_lvl, &total_cells_on_lvl, 1,
+//                 MPI_UNSIGNED_LONG_LONG, MPI_SUM, 0,
+//                 MPI_COMM_WORLD);
+
+        total_cells_in_hierarchy += total_cells_on_lvl;
+      }
+    double ideal_work = total_cells_in_hierarchy / (double)n_proc;
+    double workload_imbalance_ratio = work_estimate / ideal_work; // maybe 1 over
+
+    return workload_imbalance_ratio;
+  }
+
 
   template <int dim>
   void StokesMatrixFreeHandler<dim>::evaluate_viscosity ()
@@ -1022,8 +1079,8 @@ namespace aspect
       std::set<types::boundary_id> no_flux_boundary = sim.boundary_velocity_manager.get_tangential_boundary_velocity_indicators();
       Assert(no_flux_boundary.empty() || !sim.geometry_model->has_curved_elements(),
              ExcMessage("Tangential boundary only for Box as of now."))
-      for (auto &bid : no_flux_boundary)
-        internal::TangentialBoundaryFunctions::make_no_normal_flux_constraints(dof_handler_v,bid,mg_constrained_dofs);
+      for (auto bid : no_flux_boundary)
+        internal::TangentialBoundaryFunctions::make_no_normal_flux_constraints(dof_handler_v,bid,0,mg_constrained_dofs);
 
 
       dof_handler_projection.distribute_mg_dofs();
