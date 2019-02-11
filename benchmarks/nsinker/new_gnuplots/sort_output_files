@@ -1,0 +1,27 @@
+#!/bin/bash
+
+for i in {5..8};
+do 
+    grep -rh "mf-global" ../timings-on-palmetto/ | grep "Levels: ${i}" | sort -n -k 10 > mf/mf-global-${i}ref 
+done
+
+
+
+for i in {5..8};
+do 
+    grep -rh "mb-global" ../timings-on-palmetto/ | grep "Levels: ${i}" | sort -n -k 10 > mb/mb-global-${i}ref 
+done
+
+
+
+for i in {3..10};
+do 
+    grep -rh "mf-adaptive" ../timings-on-palmetto/ | grep "Levels: ${i}" | sort -n -k 10 > mf/mf-adaptive-${i}ref 
+done
+
+
+
+for i in {3..10};
+do 
+    grep -rh "mb-adaptive" ../timings-on-palmetto/ | grep "Levels: ${i}" | sort -n -k 10 > mb/mb-adaptive-${i}ref 
+done
