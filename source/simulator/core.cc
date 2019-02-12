@@ -1781,6 +1781,7 @@ namespace aspect
 
     //Start section timing object
     stokes_timer.initialize_sections();
+    unsigned int step_number = 0;
 
     CitationInfo::print_info_block(pcout);
 
@@ -1882,20 +1883,25 @@ namespace aspect
 
         std::string problem_type = std::string(parameters.stokes_solver_type == Parameters<dim>::StokesSolverType::block_gmg ? "mf-" : "mb-") +
                                    std::string(parameters.initial_adaptive_refinement==0 ? "global" : "adaptive");
-        const unsigned int nprocs = dealii::Utilities::MPI::n_mpi_processes(mpi_communicator);
-        const double workload_imbalance = (stokes_matrix_free ? stokes_matrix_free->get_workload_imbalance() : 0.0);
+        const unsigned int ref_number =
+                (parameters.initial_adaptive_refinement == 0 ? parameters.initial_global_refinement : step_number);
+        const unsigned int nprocs =
+                dealii::Utilities::MPI::n_mpi_processes(mpi_communicator);
+        const double workload_imbalance =
+                (stokes_matrix_free ? stokes_matrix_free->get_workload_imbalance() : 0.0);
         stokes_timer.print_data_file(parameters.timings_directory +
                                      problem_type + "-" +
-                                     dealii::Utilities::int_to_string(triangulation.n_global_levels()) + "ref-" +
+                                     dealii::Utilities::int_to_string(ref_number) + "ref-" +
                                      dealii::Utilities::int_to_string(nprocs) + "procs.dat",
                                      problem_type,
-                                     triangulation.n_global_levels(),
+                                     ref_number,
                                      triangulation.n_global_active_cells(),
                                      dof_handler.n_dofs(),
                                      nprocs,
                                      workload_imbalance);
 
         stokes_timer.initialize_sections();
+        ++step_number;
 
 
         // see if we have to start over with a new adaptive refinement cycle
