@@ -35,6 +35,7 @@ echo "end" >> temp256a.prm
 
 current_model="no_output"
 echo "set Output directory = output/adaptive-mf-256" >> temp256a.prm
+echo "set Timing output directory = timings-on-palmetto/" >> temp256a.prm
 #echo "Starting ${current_model}"
 mpirun -np $Nproc ./aspect temp256a.prm 
 rm temp256a.prm
@@ -55,6 +56,7 @@ echo "end" >> temp256a.prm
 
 current_model="no_output"
 echo "set Output directory = output/adaptive-mb-256" >> temp256a.prm
+echo "set Timing output directory = timings-on-palmetto/" >> temp256a.prm
 #echo "Starting ${current_model}"
 mpirun -np $Nproc ./aspect temp256a.prm 
 rm temp256a.prm

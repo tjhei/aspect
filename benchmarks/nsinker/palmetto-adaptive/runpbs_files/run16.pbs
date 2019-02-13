@@ -35,6 +35,7 @@ echo "end" >> temp16a.prm
 
 current_model="no_output"
 echo "set Output directory = output/adaptive-mf-16" >> temp16a.prm
+echo "set Timing output directory = timings-on-palmetto/" >> temp16a.prm
 #echo "Starting ${current_model}"
 mpirun -np $Nproc ./aspect temp16a.prm  
 rm temp16a.prm
@@ -55,6 +56,7 @@ echo "end" >> temp16a.prm
 
 current_model="no_output"
 echo "set Output directory = output/adaptive-mb-16" >> temp16a.prm
+echo "set Timing output directory = timings-on-palmetto/" >> temp16a.prm
 #echo "Starting ${current_model}"
 mpirun -np $Nproc ./aspect temp16a.prm 
 rm temp16a.prm
