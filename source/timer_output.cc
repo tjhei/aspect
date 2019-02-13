@@ -137,6 +137,7 @@ namespace aspect
                                  const unsigned int cells,
                                  const unsigned int dofs,
                                  const unsigned int procs,
+                                 const unsigned int gmres_iterations,
                                  const double workload_imbalance)
   {
     std::ofstream out;
@@ -162,7 +163,7 @@ namespace aspect
           out << sections[section_name].time_vec[i] << " ";
       }
 
-    out << "Workload_imbalance: " << workload_imbalance << " ";
+    out << "GMRES-its: " << gmres_iterations << " Workload_imbalance: " << workload_imbalance << " ";
 
 
 

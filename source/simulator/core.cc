@@ -1898,6 +1898,7 @@ namespace aspect
                                      triangulation.n_global_active_cells(),
                                      dof_handler.n_dofs(),
                                      nprocs,
+                                     gmres_iterations,
                                      workload_imbalance);
 
         stokes_timer.initialize_sections();

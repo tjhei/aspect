@@ -47,6 +47,7 @@ namespace aspect
                             const unsigned int cells,
                             const unsigned int dofs,
                             const unsigned int procs,
+                            const unsigned int gmres_iterations,
                             const double workload_imbalance);
 
       void reset ();
