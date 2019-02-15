@@ -297,12 +297,16 @@ FOREACH(_test ${_tests})
       # instead of ${_output_name} here, to avoid having to specify BYPRODUCTS
       # for ninja.
       FOREACH(_output_name ${_output_files})
-  	ADD_CUSTOM_COMMAND(OUTPUT ${_output_name}.notime
-  	  COMMAND ${PERL_EXECUTABLE}
-  		  ${CMAKE_CURRENT_SOURCE_DIR}/normalize.pl
-  		  ${_output_name} ${ASPECT_BASE_DIR}
-  		  >${_output_name}.notime
-            DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/output-${_testname}/screen-output)
+        ADD_CUSTOM_COMMAND(OUTPUT ${_output_name}.notime
+          COMMAND ${PERL_EXECUTABLE}
+                  ${CMAKE_CURRENT_SOURCE_DIR}/normalize.pl
+                  ${_output_name} ${ASPECT_BASE_DIR}
+                  >${_output_name}.notime.tmp
+          COMMAND ${_replacement_script}
+                  ${_output_name}
+                  <${_output_name}.notime.tmp
+                  >${_output_name}.notime
+          DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/output-${_testname}/screen-output)
       ENDFOREACH()
   
       # Create commands to copy and normalize reference output
