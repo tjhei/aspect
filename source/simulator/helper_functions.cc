@@ -32,6 +32,7 @@
 #include <aspect/particle/integrator/interface.h>
 #include <aspect/particle/interpolator/interface.h>
 #include <aspect/particle/output/interface.h>
+#include <aspect/particle/property/interface.h>
 #include <aspect/postprocess/visualization.h>
 
 #include <deal.II/base/index_set.h>
@@ -275,7 +276,9 @@ namespace aspect
     Particle::Generator::write_plugin_graph<dim>(out);
     Particle::Integrator::write_plugin_graph<dim>(out);
     Particle::Interpolator::write_plugin_graph<dim>(out);
+#if !DEAL_II_VERSION_GTE(9,0,0)
     Particle::Output::write_plugin_graph<dim>(out);
+#endif
     Particle::Property::Manager<dim>::write_plugin_graph(out);
     Postprocess::Manager<dim>::write_plugin_graph(out);
     Postprocess::Visualization<dim>::write_plugin_graph(out);
@@ -1277,7 +1280,7 @@ namespace aspect
 
     const unsigned int n_q_points_1 = quadrature_formula_1.size();
     const unsigned int n_q_points_2 = quadrature_formula_2.size();
-    const unsigned int n_q_points   = dim * n_q_points_2 *std::pow(n_q_points_1, dim-1) ;
+    const unsigned int n_q_points   = dim * n_q_points_2 * static_cast<unsigned int>(std::pow(n_q_points_1, dim-1));
 
     std::vector< Point <dim> > quadrature_points;
     quadrature_points.reserve(n_q_points);
@@ -1926,7 +1929,7 @@ namespace aspect
                                       finite_element,
                                       quadrature_formula,
                                       update_values   | update_normal_vectors |
-                                      update_q_points | update_JxW_values);
+                                      update_quadrature_points | update_JxW_values);
 
     std::vector<Tensor<1,dim> > face_current_velocity_values (fe_face_values.n_quadrature_points);
 
