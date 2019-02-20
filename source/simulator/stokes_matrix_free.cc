@@ -35,6 +35,9 @@
 #include <deal.II/base/signaling_nan.h>
 #include <deal.II/lac/solver_gmres.h>
 
+// remove after fixing linker error?
+#include <deal.II/lac/read_write_vector.templates.h>
+
 namespace aspect
 {
   namespace internal
