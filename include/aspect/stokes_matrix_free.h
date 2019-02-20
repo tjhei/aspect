@@ -40,7 +40,6 @@
 #include <deal.II/lac/block_vector.h>
 #include <deal.II/lac/la_parallel_vector.h>
 #include <deal.II/lac/la_parallel_block_vector.h>
-#include <deal.II/lac/read_write_vector.h>
 
 namespace aspect
 {
@@ -106,12 +105,12 @@ namespace aspect
       for (unsigned int cell=0; cell<n_cells; ++cell)
         for (unsigned int i=0; i<this->get_matrix_free()->n_components_filled(cell); ++i)
           {
-            typename DoFHandler<dim>::cell_iterator FEQ_cell = this->get_matrix_free()->get_cell_iterator(cell,i);
-            typename DoFHandler<dim>::cell_iterator DG_cell(&tria,
+            typename DoFHandler<dim>::active_cell_iterator FEQ_cell = this->get_matrix_free()->get_cell_iterator(cell,i);
+            typename DoFHandler<dim>::active_cell_iterator DG_cell(&tria,
                                                             FEQ_cell->level(),
                                                             FEQ_cell->index(),
                                                             &dof_handler_for_projection);
-            DG_cell->get_dof_indices(local_dof_indices);
+            DG_cell->get_active_or_mg_dof_indices(local_dof_indices);
 
             //TODO: projection with higher degree
             Assert(local_dof_indices.size() == 1, ExcNotImplemented());
@@ -272,12 +271,12 @@ namespace aspect
       for (unsigned int cell=0; cell<n_cells; ++cell)
         for (unsigned int i=0; i<this->get_matrix_free()->n_components_filled(cell); ++i)
           {
-            typename DoFHandler<dim>::cell_iterator FEQ_cell = this->get_matrix_free()->get_cell_iterator(cell,i);
-            typename DoFHandler<dim>::cell_iterator DG_cell(&tria,
+            typename DoFHandler<dim>::active_cell_iterator FEQ_cell = this->get_matrix_free()->get_cell_iterator(cell,i);
+            typename DoFHandler<dim>::active_cell_iterator DG_cell(&tria,
                                                             FEQ_cell->level(),
                                                             FEQ_cell->index(),
                                                             &dof_handler_for_projection);
-            DG_cell->get_dof_indices(local_dof_indices);
+            DG_cell->get_active_or_mg_dof_indices(local_dof_indices);
 
             //TODO: projection with higher degree
             Assert(local_dof_indices.size() == 1, ExcNotImplemented());
@@ -470,12 +469,12 @@ namespace aspect
       for (unsigned int cell=0; cell<n_cells; ++cell)
         for (unsigned int i=0; i<this->get_matrix_free()->n_components_filled(cell); ++i)
           {
-            typename DoFHandler<dim>::cell_iterator FEQ_cell = this->get_matrix_free()->get_cell_iterator(cell,i);
-            typename DoFHandler<dim>::cell_iterator DG_cell(&tria,
+            typename DoFHandler<dim>::level_cell_iterator FEQ_cell = this->get_matrix_free()->get_cell_iterator(cell,i);
+            typename DoFHandler<dim>::level_cell_iterator DG_cell(&tria,
                                                             FEQ_cell->level(),
                                                             FEQ_cell->index(),
                                                             &dof_handler_for_projection);
-            DG_cell->get_mg_dof_indices(local_mg_dof_indices);
+            DG_cell->get_active_or_mg_dof_indices(local_mg_dof_indices);
 
             //TODO: projection with higher degree
             Assert(local_mg_dof_indices.size() == 1, ExcNotImplemented());
