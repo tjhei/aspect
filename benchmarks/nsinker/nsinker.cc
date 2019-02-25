@@ -183,7 +183,7 @@ namespace aspect
       delta = 200.0;
       omega = 0.1;
 
-      centers.resize(76);
+      centers.resize(75);
       centers[0] = Point<3>(2.4257829890e-01, 1.3469574514e-02, 3.8313885004e-01);
       centers[1] = Point<3>(4.1465269048e-01, 6.7768972864e-02, 9.9312692973e-01);
       centers[2] = Point<3>(4.8430804651e-01, 7.6533776604e-01, 3.1833815403e-02);

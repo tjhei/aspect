@@ -187,7 +187,7 @@ namespace aspect
                                                "single Advection, iterated Stokes|no Advection, iterated Stokes|"
                                                "iterated Advection and Newton Stokes|single Advection, no Stokes|"
                                                "IMPES|iterated IMPES|iterated Stokes|Newton Stokes|Stokes only|Advection only|"
-                                               "first timestep only, single Stokes";
+                                               "first timestep only, single Stokes|no Advection, no Stokes";
 
     prm.declare_entry ("Nonlinear solver scheme", "single Advection, single Stokes",
                        Patterns::Selection (allowed_solver_schemes),
@@ -803,6 +803,9 @@ namespace aspect
                          "pressure, respectively (unless the `Use locally conservative "
                          "discretization' parameter is set, which modifies the pressure "
                          "element). "
+                         "\n\n"
+                         "Be careful if you choose 1 as the degree. The resulting element "
+                         "is not stable and it may lead to artifacts in the solution. "
                          "Units: None.");
       prm.declare_entry ("Temperature polynomial degree", "2",
                          Patterns::Integer (1),
@@ -813,12 +816,16 @@ namespace aspect
                          "discontinuous field. "
                          "Units: None.");
       prm.declare_entry ("Composition polynomial degree", "2",
-                         Patterns::Integer (1),
+                         Patterns::Integer (0),
                          "The polynomial degree to use for the composition variable(s). "
                          "As an example, a value of 2 for this parameter will yield "
                          "either the element $Q_2$ or $DGQ_2$ for the compositional "
                          "field(s), depending on whether we use continuous or "
                          "discontinuous field(s). "
+                         "\n\n"
+                         "For continuous elements, the value needs to be 1 or larger "
+                         "as $Q_1$ is the lowest order element, while $DGQ_0$ is a "
+                         "valid choice. "
                          "Units: None.");
       prm.declare_entry ("Use locally conservative discretization", "false",
                          Patterns::Bool (),
@@ -1182,6 +1189,8 @@ namespace aspect
         nonlinear_solver = NonlinearSolver::single_Advection_no_Stokes;
       else if (solver_scheme == "first timestep only, single Stokes")
         nonlinear_solver = NonlinearSolver::first_timestep_only_single_Stokes;
+      else if (solver_scheme == "no Advection, no Stokes")
+        nonlinear_solver = NonlinearSolver::no_Advection_no_Stokes;
       else
         AssertThrow (false, ExcNotImplemented());
     }
@@ -1456,6 +1465,11 @@ namespace aspect
         = prm.get_bool("Use discontinuous temperature discretization");
       use_discontinuous_composition_discretization
         = prm.get_bool("Use discontinuous composition discretization");
+
+      Assert(use_discontinuous_composition_discretization == true || composition_degree > 0,
+             ExcMessage("Using a composition polynomial degree of 0 (cell-wise constant composition) "
+                        "is only supported if a discontinuous composition discretization is selected."));
+
       prm.enter_subsection ("Stabilization parameters");
       {
         use_artificial_viscosity_smoothing  = prm.get_bool ("Use artificial viscosity smoothing");

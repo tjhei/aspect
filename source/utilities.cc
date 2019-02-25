@@ -722,7 +722,7 @@ namespace aspect
 
       for (unsigned int i = 0; i < n_poly_points; ++i)
         {
-          const std::array<Point<2>,2 > list = {point_list[i], shifted_point_list[i]};
+          const std::array<Point<2>,2 > list = {{point_list[i], shifted_point_list[i]}};
           distances[i] = distance_to_line(list, point);
         }
 
@@ -1526,7 +1526,7 @@ namespace aspect
       while (in.peek() == '#')
         {
           std::string line;
-          getline(in,line);
+          std::getline(in,line);
           std::stringstream linestream(line);
           std::string word;
           while (linestream >> word)
@@ -1862,12 +1862,12 @@ namespace aspect
       for (const auto &boundary_id : boundary_ids)
         {
           lookups.insert(std::make_pair(boundary_id,
-                                        std::make_shared<Utilities::AsciiDataLookup<dim-1>>
+                                        std_cxx14::make_unique<Utilities::AsciiDataLookup<dim-1>>
                                         (components,
                                          this->scale_factor)));
 
           old_lookups.insert(std::make_pair(boundary_id,
-                                            std::make_shared<Utilities::AsciiDataLookup<dim-1>>
+                                            std_cxx14::make_unique<Utilities::AsciiDataLookup<dim-1>>
                                             (components,
                                              this->scale_factor)));
 
@@ -2086,11 +2086,8 @@ namespace aspect
 
               const bool load_both_files = std::abs(current_file_number - old_file_number) >= 1;
 
-              for (typename std::map<types::boundary_id,
-                   std::shared_ptr<Utilities::AsciiDataLookup<dim-1> > >::iterator
-                   boundary_id = lookups.begin();
-                   boundary_id != lookups.end(); ++boundary_id)
-                update_data(boundary_id->first,load_both_files);
+              for (const auto &boundary_id : lookups)
+                update_data(boundary_id.first, load_both_files);
             }
 
           time_weight = time_steps_since_start
@@ -2267,7 +2264,7 @@ namespace aspect
       {
         data_file_time_step             = prm.get_double ("Data file time step");
         first_data_file_model_time      = prm.get_double ("First data file model time");
-        first_data_file_number          = prm.get_double ("First data file number");
+        first_data_file_number          = prm.get_integer("First data file number");
         decreasing_file_order           = prm.get_bool   ("Decreasing file order");
 
         if (this->convert_output_to_years() == true)
@@ -2297,8 +2294,8 @@ namespace aspect
                    ExcMessage ("This ascii data plugin can only be used when using "
                                "a spherical shell, chunk or box geometry."));
 
-      lookup = std::make_shared<Utilities::AsciiDataLookup<dim>> (components,
-                                                                  this->scale_factor);
+      lookup = std_cxx14::make_unique<Utilities::AsciiDataLookup<dim>> (components,
+                                                                        this->scale_factor);
 
       const std::string filename = this->data_directory + this->data_file_name;
 

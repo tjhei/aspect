@@ -569,6 +569,19 @@ namespace aspect
       void solve_single_advection_no_stokes ();
 
       /**
+       * This function implements one scheme for the various
+       * steps necessary to assemble and solve the nonlinear problem.
+       *
+       * The `no Advection, no Stokes' scheme skips solving the temperature,
+       * composition and Stokes equations, which permits to go directly to
+       * postprocessing after setting up the initial condition.
+       *
+       * This function is implemented in
+       * <code>source/simulator/solver_schemes.cc</code>.
+       */
+      void solve_no_advection_no_stokes ();
+
+      /**
        * Initiate the assembly of the Stokes preconditioner matrix via
        * assemble_stokes_preconditoner(), then set up the data structures to
        * actually build a preconditioner from this matrix.
@@ -1651,7 +1664,7 @@ namespace aspect
       const std::unique_ptr<AdiabaticConditions::Interface<dim> >             adiabatic_conditions;
       const std::unique_ptr<WorldBuilder::World>                              world_builder;
       BoundaryVelocity::Manager<dim>                                          boundary_velocity_manager;
-      std::map<types::boundary_id,std::shared_ptr<BoundaryTraction::Interface<dim> > > boundary_traction;
+      std::map<types::boundary_id,std::unique_ptr<BoundaryTraction::Interface<dim> > > boundary_traction;
       const std::unique_ptr<BoundaryHeatFlux::Interface<dim> >                boundary_heat_flux;
 
       /**
@@ -1800,8 +1813,8 @@ namespace aspect
 
 
 
-      std::shared_ptr<LinearAlgebra::PreconditionAMG>     Amg_preconditioner;
-      std::shared_ptr<LinearAlgebra::PreconditionBase>    Mp_preconditioner;
+      std::unique_ptr<LinearAlgebra::PreconditionAMG>           Amg_preconditioner;
+      std::unique_ptr<LinearAlgebra::PreconditionBase>          Mp_preconditioner;
 
       bool                                                      rebuild_sparsity_and_matrices;
       bool                                                      rebuild_stokes_matrix;
