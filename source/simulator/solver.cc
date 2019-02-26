@@ -787,6 +787,20 @@ namespace aspect
         }
 
 
+        {
+          LinearAlgebra::BlockVector tmp_dst = distributed_stokes_solution;
+          LinearAlgebra::BlockVector tmp_scr = distributed_stokes_rhs;
+
+          stokes_timer.enter_subsection("operator_vmult");
+          for (unsigned int i=0; i<10; ++i)
+            {
+              stokes_block.vmult(tmp_dst, tmp_scr);
+              tmp_scr = tmp_dst;
+            }
+          stokes_timer.leave_subsection("operator_vmult");
+        }
+
+
 
 
 

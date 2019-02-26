@@ -107,9 +107,9 @@ namespace aspect
           {
             typename DoFHandler<dim>::active_cell_iterator FEQ_cell = this->get_matrix_free()->get_cell_iterator(cell,i);
             typename DoFHandler<dim>::active_cell_iterator DG_cell(&tria,
-                                                            FEQ_cell->level(),
-                                                            FEQ_cell->index(),
-                                                            &dof_handler_for_projection);
+                                                                   FEQ_cell->level(),
+                                                                   FEQ_cell->index(),
+                                                                   &dof_handler_for_projection);
             DG_cell->get_active_or_mg_dof_indices(local_dof_indices);
 
             //TODO: projection with higher degree
@@ -273,9 +273,9 @@ namespace aspect
           {
             typename DoFHandler<dim>::active_cell_iterator FEQ_cell = this->get_matrix_free()->get_cell_iterator(cell,i);
             typename DoFHandler<dim>::active_cell_iterator DG_cell(&tria,
-                                                            FEQ_cell->level(),
-                                                            FEQ_cell->index(),
-                                                            &dof_handler_for_projection);
+                                                                   FEQ_cell->level(),
+                                                                   FEQ_cell->index(),
+                                                                   &dof_handler_for_projection);
             DG_cell->get_active_or_mg_dof_indices(local_dof_indices);
 
             //TODO: projection with higher degree
@@ -471,9 +471,9 @@ namespace aspect
           {
             typename DoFHandler<dim>::level_cell_iterator FEQ_cell = this->get_matrix_free()->get_cell_iterator(cell,i);
             typename DoFHandler<dim>::level_cell_iterator DG_cell(&tria,
-                                                            FEQ_cell->level(),
-                                                            FEQ_cell->index(),
-                                                            &dof_handler_for_projection);
+                                                                  FEQ_cell->level(),
+                                                                  FEQ_cell->index(),
+                                                                  &dof_handler_for_projection);
             DG_cell->get_active_or_mg_dof_indices(local_mg_dof_indices);
 
             //TODO: projection with higher degree

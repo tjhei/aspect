@@ -30,7 +30,7 @@ namespace aspect
     std::vector<std::string> possible_sections {"total_setup", "total_assembly", "gmres_solve", "preconditioner_vmult",
                                                 "setup_sys_dofs", "setup_mf_dofs", "setup_mg_dofs", "setup_mf_ops", "setup_mg_transfer",
                                                 "setup_sparsity", "assemble_sys_mat_rhs", "assemble_mf_coef_rhs", "assemble_prec_mat",
-                                                "assemble_amg"
+                                                "assemble_amg", "operator_vmult"
                                                };
 
     for (const auto section_name : possible_sections)
@@ -164,6 +164,11 @@ namespace aspect
       }
 
     out << "GMRES-its: " << gmres_iterations << " Workload_imbalance: " << workload_imbalance << " ";
+
+    out << "operator_vmult: ";
+    std::sort(sections["operator_vmult"].time_vec.begin(), sections["operator_vmult"].time_vec.end());
+    for (unsigned int i=0; i<n_timings; ++i)
+      out << sections["operator_vmult"].time_vec[i] <<  " ";
 
 
 

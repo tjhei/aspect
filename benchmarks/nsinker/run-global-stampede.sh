@@ -1,6 +1,6 @@
 #!/bin/bash
 
-Nproc=32 
+Nprocs=32 
 
 echo "MatrixFree, 4 sinkers, 1e4 visc jump"
 for refinement in 4 5 6 7; do
@@ -14,9 +14,9 @@ for refinement in 4 5 6 7; do
   echo "  set List of postprocessors = memory statistics" >> temp.prm
   echo "end" >> temp.prm
 
-  echo "set Output directory = output/global-mf-stampede" >> temp.prm
+  echo "set Output directory = output/global-mf-stampede-${Nprocs}-${refinement}" >> temp.prm
   echo "set Timing output directory = timings-on-stampede" >> temp.prm
-  mpirun -np $Nproc ./aspect temp.prm 
+  mpirun -np $Nprocs ./aspect temp.prm 
   rm temp.prm
 done
 
@@ -33,9 +33,9 @@ for refinement in 4 5 6 7; do
   echo "  set List of postprocessors = memory statistics" >> temp.prm
   echo "end" >> temp.prm
 
-  echo "set Output directory = output/global-mb-stampede" >> temp.prm
+  echo "set Output directory = output/global-mb-stampede-${Nprocs}-${refinement}" >> temp.prm
   echo "set Timing output directory = timings-on-stampede/" >> temp.prm
-  mpirun -np $Nproc ./aspect temp.prm 
+  mpirun -np $Nprocs ./aspect temp.prm 
   rm temp.prm
 done
 

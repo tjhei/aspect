@@ -71,54 +71,54 @@ namespace aspect
                                             const unsigned int first_vector_component,
                                             MGConstrainedDoFs         &mg_constrained_dofs)
       {
-          // For a given boundary id, find which vector component is on the boundary
-          // and set a zero boundary constraint for those degrees of freedom.
-          std::set<types::boundary_id> bid_set;
-          bid_set.insert(bid);
+        // For a given boundary id, find which vector component is on the boundary
+        // and set a zero boundary constraint for those degrees of freedom.
+        std::set<types::boundary_id> bid_set;
+        bid_set.insert(bid);
 
-          const unsigned int n_components = dof.get_fe_collection().n_components();
-          Assert(first_vector_component + dim <= n_components,
-                 ExcIndexRange(first_vector_component, 0, n_components - dim + 1));
+        const unsigned int n_components = dof.get_fe_collection().n_components();
+        Assert(first_vector_component + dim <= n_components,
+               ExcIndexRange(first_vector_component, 0, n_components - dim + 1));
 
-          ComponentMask comp_mask(n_components, false);
+        ComponentMask comp_mask(n_components, false);
 
 
-          typename Triangulation<dim>::face_iterator
-            face = dof.get_triangulation().begin_face(),
-            endf = dof.get_triangulation().end_face();
-          for (; face != endf; ++face)
-            if (face->boundary_id() == bid)
-              for (unsigned int d = 0; d < dim; ++d)
-                {
-                  Tensor<1, dim, double> unit_vec;
-                  unit_vec[d] = 1.0;
+        typename Triangulation<dim>::face_iterator
+        face = dof.get_triangulation().begin_face(),
+        endf = dof.get_triangulation().end_face();
+        for (; face != endf; ++face)
+          if (face->boundary_id() == bid)
+            for (unsigned int d = 0; d < dim; ++d)
+              {
+                Tensor<1, dim, double> unit_vec;
+                unit_vec[d] = 1.0;
 
-                  Tensor<1, dim> normal_vec =
-                    face->get_manifold().normal_vector(face, face->center());
+                Tensor<1, dim> normal_vec =
+                  face->get_manifold().normal_vector(face, face->center());
 
-                  if (std::abs(std::abs(unit_vec * normal_vec) - 1.0) < 1e-10)
-                    comp_mask.set(d + first_vector_component, true);
-                  else
-                    Assert(
-                      std::abs(unit_vec * normal_vec) < 1e-10,
-                      ExcMessage(
-                        "We can currently only support no normal flux conditions "
-                        "for a specific boundary id if all faces are normal to the "
-                        "x, y, or z axis."));
-                }
+                if (std::abs(std::abs(unit_vec * normal_vec) - 1.0) < 1e-10)
+                  comp_mask.set(d + first_vector_component, true);
+                else
+                  Assert(
+                    std::abs(unit_vec * normal_vec) < 1e-10,
+                    ExcMessage(
+                      "We can currently only support no normal flux conditions "
+                      "for a specific boundary id if all faces are normal to the "
+                      "x, y, or z axis."));
+              }
 
-          Assert(comp_mask.n_selected_components() == 1,
-                 ExcMessage(
-                   "We can currently only support no normal flux conditions "
-                   "for a specific boundary id if all faces are facing in the "
-                   "same direction, i.e., a boundary normal to the x-axis must "
-                   "have a different boundary id than a boundary normal to the "
-                   "y- or z-axis and so on. If the mesh here was produced using "
-                   "GridGenerator::..., setting colorize=true during mesh generation "
-                   "and calling make_no_normal_flux_constraints() for each no normal "
-                   "flux boundary will fulfill the condition."));
+        Assert(comp_mask.n_selected_components() == 1,
+               ExcMessage(
+                 "We can currently only support no normal flux conditions "
+                 "for a specific boundary id if all faces are facing in the "
+                 "same direction, i.e., a boundary normal to the x-axis must "
+                 "have a different boundary id than a boundary normal to the "
+                 "y- or z-axis and so on. If the mesh here was produced using "
+                 "GridGenerator::..., setting colorize=true during mesh generation "
+                 "and calling make_no_normal_flux_constraints() for each no normal "
+                 "flux boundary will fulfill the condition."));
 
-          mg_constrained_dofs.make_zero_boundary_constraints(dof, bid_set, comp_mask);
+        mg_constrained_dofs.make_zero_boundary_constraints(dof, bid_set, comp_mask);
       }
     }
 
@@ -939,6 +939,20 @@ namespace aspect
       sim.stokes_timer.enter_subsection("preconditioner_vmult");
       preconditioner_cheap.vmult(tmp_dst, tmp_scr);
       sim.stokes_timer.leave_subsection("preconditioner_vmult");
+    }
+
+    {
+      dealii::LinearAlgebra::distributed::BlockVector<double> tmp_dst = solution_copy;
+      dealii::LinearAlgebra::distributed::BlockVector<double> tmp_scr = rhs_copy;
+
+      sim.stokes_timer.enter_subsection("operator_vmult");
+      for (unsigned int i=0; i<10; ++i)
+        {
+          stokes_matrix.vmult(tmp_dst, tmp_scr);
+          tmp_scr = tmp_dst;
+        }
+      sim.stokes_timer.leave_subsection("operator_vmult");
+
     }
 //    MPI_Pcontrol(-1,"gmg_vmult");
 
