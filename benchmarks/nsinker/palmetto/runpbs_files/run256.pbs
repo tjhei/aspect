@@ -29,7 +29,7 @@ for refinement in 4 5 6 7; do # 4 5 6 7
   echo "  set Initial global refinement = $refinement" >> temp256.prm
   echo "end" >> temp256.prm
         
-  echo "set Output directory = output/global-mf-256-${r}ref" >> temp256.prm
+  echo "set Output directory = output/global-mf-256-${refinement}ref" >> temp256.prm
   echo "set Timing output directory = timings-on-palmetto/" >> temp256.prm
   mpirun -np $Nproc ./aspect temp256.prm
   rm temp256.prm
@@ -44,7 +44,7 @@ for refinement in 4 5 6 7; do # 4 5 6 7
   echo "  set Initial global refinement = $refinement" >> temp256.prm
   echo "end" >> temp256.prm
         
-  echo "set Output directory = output/global-mb-256-${r}ref" >> temp256.prm
+  echo "set Output directory = output/global-mb-256-${refinement}ref" >> temp256.prm
   echo "set Timing output directory = timings-on-palmetto/" >> temp256.prm
   mpirun -np $Nproc ./aspect temp256.prm
   rm temp256.prm
