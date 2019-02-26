@@ -8,7 +8,7 @@
 set Additional shared libraries            = ./libnsinker.so
 
 set Number of timings = 5
-set Timing output directory = timings/
+#set Timing output directory = timings/
 
 set Dimension                              = 3 
 set End time                               = 0
@@ -21,6 +21,7 @@ set Use years in output instead of seconds = false
 subsection Solver parameters
   subsection Stokes solver parameters
     set Stokes solver type = block AMG
+    set Use full A block as preconditioner              = false    
     set Number of cheap Stokes solver steps             = 200
     set Maximum number of expensive Stokes solver steps = 100
     set Linear solver tolerance                         = 1e-6
@@ -90,13 +91,11 @@ end
 
 
 subsection Postprocess
-  set List of postprocessors = visualization
-
-  subsection Visualization
-    set List of output variables = material properties
+  set List of postprocessors = memory statistics
+  subsection Memory statistics
+    set Output peak virtual memory (VmPeak) = true
   end
 end
-
 
 
 set Output directory = output/mb/adaptive

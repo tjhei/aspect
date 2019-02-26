@@ -8,7 +8,7 @@
 set Additional shared libraries            = ./libnsinker.so
 
 set Number of timings = 5
-set Timing output directory = timings/
+#set Timing output directory = timings/
 
 set Dimension                              = 3
 set End time                               = 0
@@ -20,7 +20,8 @@ set Use years in output instead of seconds = false
 # Follow as closely as possible the parameters from Rudi et al. (2017)
 subsection Solver parameters
   subsection Stokes solver parameters
-    set Use full A block as preconditioner              = true 
+    set Stokes solver type = block AMG
+    set Use full A block as preconditioner              = false 
     set Number of cheap Stokes solver steps             = 200
     set Maximum number of expensive Stokes solver steps = 1000
     set Linear solver tolerance                         = 1e-6
@@ -67,5 +68,11 @@ subsection Initial temperature model
   set Model name = function
 end
 
+subsection Postprocess
+  set List of postprocessors = memory statistics
+  subsection Memory statistics
+    set Output peak virtual memory (VmPeak) = true
+  end
+end
 
 

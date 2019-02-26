@@ -8,7 +8,7 @@
 set Additional shared libraries            = ./libnsinker.so
 
 set Number of timings = 5
-set Timing output directory = timings/
+#set Timing output directory = timings/
 
 set Dimension                              = 3 
 set End time                               = 0
@@ -90,11 +90,9 @@ end
 
 
 subsection Postprocess
-  set List of postprocessors = visualization
-
-  subsection Visualization
-    set Time between graphical output = 0 
-    set List of output variables = material properties
+  set List of postprocessors = memory statistics
+  subsection Memory statistics
+    set Output peak virtual memory (VmPeak) = true
   end
 end
 
