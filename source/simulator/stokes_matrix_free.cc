@@ -38,6 +38,27 @@
 // remove after fixing linker error?
 #include <deal.II/lac/read_write_vector.templates.h>
 
+
+
+
+// Add likwid support
+//#ifdef LIKWID_PERFMON
+//#include <likwid.h>
+//#else
+//#define LIKWID_MARKER_INIT
+//#define LIKWID_MARKER_THREADINIT
+//#define LIKWID_MARKER_SWITCH
+//#define LIKWID_MARKER_REGISTER(regionTag)
+//#define LIKWID_MARKER_START(regionTag)
+//#define LIKWID_MARKER_STOP(regionTag)
+//#define LIKWID_MARKER_CLOSE
+//#define LIKWID_MARKER_GET(regionTag, nevents, events, time, count)
+//#endif
+
+
+
+
+
 namespace aspect
 {
   namespace internal
@@ -904,6 +925,14 @@ namespace aspect
     internal::ChangeVectorTypes::copy(rhs_copy,distributed_stokes_rhs);
     solution_copy.update_ghost_values();
 
+//    LIKWID_MARKER_INIT;
+//       LIKWID_MARKER_THREADINIT;
+//       LIKWID_MARKER_REGISTER("VMULT");
+
+
+
+//    LIKWID_MARKER_START("VMULT");
+//    MPI_Pcontrol(1,"gmg_vmult");
     {
       dealii::LinearAlgebra::distributed::BlockVector<double> tmp_dst = solution_copy;
       dealii::LinearAlgebra::distributed::BlockVector<double> tmp_scr = rhs_copy;
@@ -911,6 +940,13 @@ namespace aspect
       preconditioner_cheap.vmult(tmp_dst, tmp_scr);
       sim.stokes_timer.leave_subsection("preconditioner_vmult");
     }
+//    MPI_Pcontrol(-1,"gmg_vmult");
+
+//    LIKWID_MARKER_STOP("VMULT");
+
+
+//    LIKWID_MARKER_CLOSE;
+
 
 
     // TODO: doesn't make a difference
