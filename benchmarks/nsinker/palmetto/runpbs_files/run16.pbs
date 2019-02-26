@@ -35,7 +35,6 @@ for refinement in 4 5 6; do # 4 5 6 7
   rm temp16.prm
 done
 
-
 echo "MatrixBased, 4 sinkers, 1e4 visc jump"
 for refinement in 4 5 6; do # 4 5 6 7
   cp nsinker_mb.prm temp16.prm
