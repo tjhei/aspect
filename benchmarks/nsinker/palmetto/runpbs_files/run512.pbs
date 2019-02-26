@@ -29,7 +29,7 @@ for refinement in 5 6 7; do # 4 5 6 7
   echo "  set Initial global refinement = $refinement" >> temp512.prm
   echo "end" >> temp512.prm
 
-  echo "set Output directory = output/global-mf-512" >> temp512.prm
+  echo "set Output directory = output/global-mf-512-${r}ref" >> temp512.prm
   echo "set Timing output directory = timings-on-palmetto/" >> temp512.prm
   mpirun -np $Nproc ./aspect temp512.prm
   rm temp512.prm
@@ -44,7 +44,7 @@ for refinement in 5 6 7; do # 4 5 6 7
   echo "  set Initial global refinement = $refinement" >> temp512.prm
   echo "end" >> temp512.prm
         
-  echo "set Output directory = output/global-mb-512" >> temp512.prm
+  echo "set Output directory = output/global-mb-512-${r}ref" >> temp512.prm
   echo "set Timing output directory = timings-on-palmetto/" >> temp512.prm
   mpirun -np $Nproc ./aspect temp512.prm
   rm temp512.prm
