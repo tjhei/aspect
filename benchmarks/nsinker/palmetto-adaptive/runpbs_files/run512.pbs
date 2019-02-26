@@ -29,14 +29,8 @@ echo "  set Initial global refinement = 2" >> temp512a.prm
 echo "  set Initial adaptive refinement = 12" >> temp512a.prm 
 echo "end" >> temp512a.prm
         
-echo "subsection Postprocess" >> temp512a.prm
-echo "  set List of postprocessors = memory statistics" >> temp512a.prm
-echo "end" >> temp512a.prm
-
-current_model="no_output"
 echo "set Output directory = output/adaptive-mf-512" >> temp512a.prm
 echo "set Timing output directory = timings-on-palmetto/" >> temp512a.prm
-#echo "Starting ${current_model}"
 mpirun -np $Nproc ./aspect temp512a.prm 
 rm temp512a.prm
 
@@ -50,14 +44,8 @@ echo "  set Initial global refinement = 2" >> temp512a.prm
 echo "  set Initial adaptive refinement = 12" >> temp512a.prm  
 echo "end" >> temp512a.prm
         
-echo "subsection Postprocess" >> temp512a.prm
-echo "  set List of postprocessors = memory statistics" >> temp512a.prm
-echo "end" >> temp512a.prm
-
-current_model="no_output"
 echo "set Output directory = output/adaptive-mb-512" >> temp512a.prm
 echo "set Timing output directory = timings-on-palmetto/" >> temp512a.prm
-#echo "Starting ${current_model}"
 mpirun -np $Nproc ./aspect temp512a.prm 
 rm temp512a.prm
 

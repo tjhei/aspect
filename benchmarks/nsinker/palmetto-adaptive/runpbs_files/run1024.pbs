@@ -29,14 +29,8 @@ echo "  set Initial global refinement = 2" >> temp1024a.prm
 echo "  set Initial adaptive refinement = 12" >> temp1024a.prm 
 echo "end" >> temp1024a.prm
         
-echo "subsection Postprocess" >> temp1024a.prm
-echo "  set List of postprocessors = memory statistics" >> temp1024a.prm
-echo "end" >> temp1024a.prm
-
-current_model="no_output"
 echo "set Output directory = output/adaptive-mf-1024" >> temp1024a.prm
 echo "set Timing output directory = timings-on-palmetto/" >> temp1024a.prm
-#echo "Starting ${current_model}"
 mpirun -np $Nproc ./aspect temp1024a.prm 
 rm temp1024a.prm
 
@@ -50,14 +44,8 @@ echo "  set Initial global refinement = 2" >> temp1024a.prm
 echo "  set Initial adaptive refinement = 12" >> temp1024a.prm  
 echo "end" >> temp1024a.prm
         
-echo "subsection Postprocess" >> temp1024a.prm
-echo "  set List of postprocessors = memory statistics" >> temp1024a.prm
-echo "end" >> temp1024a.prm
-
-current_model="no_output"
 echo "set Output directory = output/adaptive-mb-1024" >> temp1024a.prm
 echo "set Timing output directory = timings-on-palmetto/" >> temp1024a.prm
-#echo "Starting ${current_model}"
 mpirun -np $Nproc ./aspect temp1024a.prm 
 rm temp1024a.prm
 

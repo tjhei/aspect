@@ -28,16 +28,9 @@ for refinement in 4 5 6; do # 4 5 6 7
   echo "subsection Mesh refinement" >> temp32.prm
   echo "  set Initial global refinement = $refinement" >> temp32.prm
   echo "end" >> temp32.prm
-        
-  echo "subsection Postprocess" >> temp32.prm
-  echo "  set List of postprocessors = memory statistics" >> temp32.prm
-  echo "end" >> temp32.prm
 
-  #current_model="mb/harmonic/nsinkers${nsinkers}_viscosity${viscosity}_refinement${refinement}"
-  current_model="no_output"
   echo "set Output directory = output/global-mf-32" >> temp32.prm
   echo "set Timing output directory = timings-on-palmetto/" >> temp32.prm
-  #echo "Starting ${current_model}"
   mpirun -np $Nproc ./aspect temp32.prm
   rm temp32.prm
 done
@@ -50,16 +43,9 @@ for refinement in 4 5 6; do # 4 5 6 7
   echo "subsection Mesh refinement" >> temp32.prm
   echo "  set Initial global refinement = $refinement" >> temp32.prm
   echo "end" >> temp32.prm
-        
-  echo "subsection Postprocess" >> temp32.prm
-  echo "  set List of postprocessors = memory statistics" >> temp32.prm
-  echo "end" >> temp32.prm
-
-  #current_model="mb/harmonic/nsinkers${nsinkers}_viscosity${viscosity}_refinement${refinement}"
-  current_model="no_output"
+  
   echo "set Output directory = output/global-mb-32" >> temp32.prm
   echo "set Timing output directory = timings-on-palmetto/" >> temp32.prm
-  #echo "Starting ${current_model}"
   mpirun -np $Nproc ./aspect temp32.prm
   rm temp32.prm
 done
