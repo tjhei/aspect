@@ -29,7 +29,7 @@ echo "  set Initial global refinement = 2" >> temp64a.prm
 echo "  set Initial adaptive refinement = 10" >> temp64a.prm 
 echo "end" >> temp64a.prm
         
-echo "set Output directory = output/adaptive-mf-62" >> temp64a.prm
+echo "set Output directory = output/adaptive-mf-64" >> temp64a.prm
 echo "set Timing output directory = timings-on-palmetto/" >> temp64a.prm
 mpirun -np $Nproc ./aspect temp64a.prm 
 rm temp64a.prm
