@@ -1,0 +1,180 @@
+-----------------------------------------------------------------------------
+-- This is ASPECT, the Advanced Solver for Problems in Earth's ConvecTion.
+--     . version 2.1.0-pre (gmg, 4dfafd0)
+--     . using deal.II 9.1.0-pre (master, dac30e6)
+--     . using Trilinos 12.10.1
+--     . using p4est 2.0.0
+--     . running in OPTIMIZED mode
+--     . running with 32 MPI processes
+-----------------------------------------------------------------------------
+
+Vectorization over 4 doubles = 256 bits (AVX), VECTORIZATION_LEVEL=2
+-----------------------------------------------------------------------------
+-- For information on how to cite ASPECT, see:
+--   https://aspect.geodynamics.org/citing.html?ver=2.1.0-pre&sha=4dfafd0&src=code
+-----------------------------------------------------------------------------
+Number of active cells: 64 (on 3 levels)
+Number of degrees of freedom: 3,041 (2,187+125+729)
+
+*** Timestep 0:  t=0 seconds
+out:    GMRES iterations 
+out:    21
+out:    
+      Relative nonlinear residual (Stokes system) after nonlinear iteration 1: 1.0109
+
+
+   Postprocessing:
+     System matrix memory consumption:  0.10 MB
+
+Number of active cells: 113 (on 4 levels)
+Number of degrees of freedom: 5,492 (3,957+216+1,319)
+
+*** Timestep 0:  t=0 seconds
+out:    GMRES iterations 
+out:    28
+out:    
+      Relative nonlinear residual (Stokes system) after nonlinear iteration 1: 1
+
+
+   Postprocessing:
+     System matrix memory consumption:  0.01 MB
+
+Number of active cells: 211 (on 5 levels)
+Number of degrees of freedom: 10,027 (7,236+379+2,412)
+
+*** Timestep 0:  t=0 seconds
+out:    GMRES iterations 
+out:    36
+out:    
+      Relative nonlinear residual (Stokes system) after nonlinear iteration 1: 1
+
+
+   Postprocessing:
+     System matrix memory consumption:  0.10 MB
+
+Number of active cells: 554 (on 6 levels)
+Number of degrees of freedom: 26,323 (19,023+959+6,341)
+
+*** Timestep 0:  t=0 seconds
+out:    GMRES iterations 
+out:    38
+out:    
+      Relative nonlinear residual (Stokes system) after nonlinear iteration 1: 1
+
+
+   Postprocessing:
+     System matrix memory consumption:  0.18 MB
+
+Number of active cells: 1,576 (on 7 levels)
+Number of degrees of freedom: 70,426 (50,973+2,462+16,991)
+
+*** Timestep 0:  t=0 seconds
+out:    GMRES iterations 
+out:    82
+out:    
+      Relative nonlinear residual (Stokes system) after nonlinear iteration 1: 1
+
+
+   Postprocessing:
+     System matrix memory consumption:  0.43 MB
+
+Number of active cells: 3,291 (on 8 levels)
+Number of degrees of freedom: 141,755 (102,645+4,895+34,215)
+
+*** Timestep 0:  t=0 seconds
+out:    GMRES iterations 
+out:    73
+out:    
+      Relative nonlinear residual (Stokes system) after nonlinear iteration 1: 0.999929
+
+
+   Postprocessing:
+     System matrix memory consumption:  0.82 MB
+
+Number of active cells: 4,166 (on 8 levels)
+Number of degrees of freedom: 176,449 (127,788+6,065+42,596)
+
+*** Timestep 0:  t=0 seconds
+out:    GMRES iterations 
+out:    39
+out:    
+      Relative nonlinear residual (Stokes system) after nonlinear iteration 1: 0.999894
+
+
+   Postprocessing:
+     System matrix memory consumption:  0.87 MB
+
+Number of active cells: 6,805 (on 8 levels)
+Number of degrees of freedom: 282,203 (204,468+9,579+68,156)
+
+*** Timestep 0:  t=0 seconds
+out:    GMRES iterations 
+out:    38
+out:    
+      Relative nonlinear residual (Stokes system) after nonlinear iteration 1: 0.99994
+
+
+   Postprocessing:
+     System matrix memory consumption:  1.56 MB
+
+Number of active cells: 16,843 (on 8 levels)
+Number of degrees of freedom: 684,550 (496,350+22,750+165,450)
+
+*** Timestep 0:  t=0 seconds
+out:    GMRES iterations 
+out:    28
+out:    
+      Relative nonlinear residual (Stokes system) after nonlinear iteration 1: 0.999953
+
+
+   Postprocessing:
+     System matrix memory consumption:  3.78 MB
+
+Number of active cells: 51,038 (on 8 levels)
+Number of degrees of freedom: 2,021,256 (1,466,202+66,320+488,734)
+
+*** Timestep 0:  t=0 seconds
+out:    GMRES iterations 
+out:    28
+out:    
+      Relative nonlinear residual (Stokes system) after nonlinear iteration 1: 0.999965
+
+
+   Postprocessing:
+     System matrix memory consumption:  10.68 MB
+
+Number of active cells: 156,157 (on 9 levels)
+Number of degrees of freedom: 5,913,673 (4,292,433+190,429+1,430,811)
+
+*** Timestep 0:  t=0 seconds
+out:    GMRES iterations 
+out:    28
+out:    
+      Relative nonlinear residual (Stokes system) after nonlinear iteration 1: 0.99997
+
+
+   Postprocessing:
+     System matrix memory consumption:  32.06 MB
+
+Termination requested by criterion: end time
+
+
++---------------------------------------------+------------+------------+
+| Total wallclock time elapsed since start    |       229s |            |
+|                                             |            |            |
+| Section                         | no. calls |  wall time | % of total |
++---------------------------------+-----------+------------+------------+
+| Assemble Stokes system rhs      |        66 |      5.97s |       2.6% |
+| Initialization                  |         1 |    0.0647s |         0% |
+| Postprocessing                  |        11 |    0.0211s |         0% |
+| Refine mesh structure, part 1   |        10 |      2.29s |         1% |
+| Refine mesh structure, part 2   |        10 |      1.71s |      0.75% |
+| Setup dof systems               |        66 |      70.8s |        31% |
+| Setup initial conditions        |        11 |      2.86s |       1.2% |
+| Solve Stokes system             |        66 |       114s |        50% |
++---------------------------------+-----------+------------+------------+
+
+-----------------------------------------------------------------------------
+-- For information on how to cite ASPECT, see:
+--   https://aspect.geodynamics.org/citing.html?ver=2.1.0-pre&sha=4dfafd0&src=code
+-----------------------------------------------------------------------------

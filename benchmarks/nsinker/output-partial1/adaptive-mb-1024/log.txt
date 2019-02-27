@@ -1,0 +1,284 @@
+-----------------------------------------------------------------------------
+-- This is ASPECT, the Advanced Solver for Problems in Earth's ConvecTion.
+--     . version 2.1.0-pre (gmg, 4dfafd0)
+--     . using deal.II 9.1.0-pre (master, dac30e6)
+--     . using Trilinos 12.10.1
+--     . using p4est 2.0.0
+--     . running in OPTIMIZED mode
+--     . running with 1024 MPI processes
+-----------------------------------------------------------------------------
+
+-----------------------------------------------------------------------------
+-- For information on how to cite ASPECT, see:
+--   https://aspect.geodynamics.org/citing.html?ver=2.1.0-pre&sha=4dfafd0&src=code
+-----------------------------------------------------------------------------
+Number of active cells: 64 (on 3 levels)
+Number of degrees of freedom: 3,041 (2,187+125+729)
+
+*** Timestep 0:  t=0 seconds
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+out:    GMRES iterations
+out:    33
+out:    
+      Relative nonlinear residual (Stokes system) after nonlinear iteration 1: 1
+
+
+   Postprocessing:
+     System matrix memory consumption:  0.01 MB
+
+Number of active cells: 113 (on 4 levels)
+Number of degrees of freedom: 5,492 (3,957+216+1,319)
+
+*** Timestep 0:  t=0 seconds
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+out:    GMRES iterations
+out:    26
+out:    
+      Relative nonlinear residual (Stokes system) after nonlinear iteration 1: 1
+
+
+   Postprocessing:
+     System matrix memory consumption:  0.01 MB
+
+Number of active cells: 211 (on 5 levels)
+Number of degrees of freedom: 10,027 (7,236+379+2,412)
+
+*** Timestep 0:  t=0 seconds
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+out:    GMRES iterations
+out:    30
+out:    
+      Relative nonlinear residual (Stokes system) after nonlinear iteration 1: 1
+
+
+   Postprocessing:
+     System matrix memory consumption:  0.01 MB
+
+Number of active cells: 554 (on 6 levels)
+Number of degrees of freedom: 26,323 (19,023+959+6,341)
+
+*** Timestep 0:  t=0 seconds
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+out:    GMRES iterations
+out:    29
+out:    
+      Relative nonlinear residual (Stokes system) after nonlinear iteration 1: 1
+
+
+   Postprocessing:
+     System matrix memory consumption:  0.01 MB
+
+Number of active cells: 1,534 (on 7 levels)
+Number of degrees of freedom: 68,862 (49,839+2,410+16,613)
+
+*** Timestep 0:  t=0 seconds
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+out:    GMRES iterations
+out:    30
+out:    
+      Relative nonlinear residual (Stokes system) after nonlinear iteration 1: 1
+
+
+   Postprocessing:
+     System matrix memory consumption:  0.01 MB
+
+Number of active cells: 4,425 (on 8 levels)
+Number of degrees of freedom: 190,671 (138,099+6,539+46,033)
+
+*** Timestep 0:  t=0 seconds
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+out:    GMRES iterations
+out:    39
+out:    
+      Relative nonlinear residual (Stokes system) after nonlinear iteration 1: 1
+
+
+   Postprocessing:
+     System matrix memory consumption:  0.37 MB
+
+Number of active cells: 5,048 (on 8 levels)
+Number of degrees of freedom: 215,347 (155,979+7,375+51,993)
+
+*** Timestep 0:  t=0 seconds
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+out:    GMRES iterations
+out:    39
+out:    
+      Relative nonlinear residual (Stokes system) after nonlinear iteration 1: 1
+
+
+   Postprocessing:
+     System matrix memory consumption:  0.60 MB
+
+Number of active cells: 7,155 (on 8 levels)
+Number of degrees of freedom: 303,455 (219,840+10,335+73,280)
+
+*** Timestep 0:  t=0 seconds
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+out:    GMRES iterations
+out:    39
+out:    
+      Relative nonlinear residual (Stokes system) after nonlinear iteration 1: 1
+
+
+   Postprocessing:
+     System matrix memory consumption:  0.46 MB
+
+Number of active cells: 14,918 (on 8 levels)
+Number of degrees of freedom: 619,345 (448,947+20,749+149,649)
+
+*** Timestep 0:  t=0 seconds
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+out:    GMRES iterations
+out:    40
+out:    
+      Relative nonlinear residual (Stokes system) after nonlinear iteration 1: 1
+
+
+   Postprocessing:
+     System matrix memory consumption:  0.99 MB
+
+Number of active cells: 39,831 (on 8 levels)
+Number of degrees of freedom: 1,591,063 (1,153,989+52,411+384,663)
+
+*** Timestep 0:  t=0 seconds
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+out:    GMRES iterations
+out:    43
+out:    
+      Relative nonlinear residual (Stokes system) after nonlinear iteration 1: 1
+
+
+   Postprocessing:
+     System matrix memory consumption:  2.52 MB
+
+Number of active cells: 118,945 (on 9 levels)
+Number of degrees of freedom: 4,570,388 (3,316,929+147,816+1,105,643)
+
+*** Timestep 0:  t=0 seconds
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+out:    GMRES iterations
+out:    45
+out:    
+      Relative nonlinear residual (Stokes system) after nonlinear iteration 1: 1
+
+
+   Postprocessing:
+     System matrix memory consumption:  7.74 MB
+
+Number of active cells: 377,007 (on 9 levels)
+Number of degrees of freedom: 14,044,978 (10,197,189+448,726+3,399,063)
+
+*** Timestep 0:  t=0 seconds
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+out:    GMRES iterations
+out:    50
+out:    
+      Relative nonlinear residual (Stokes system) after nonlinear iteration 1: 1
+
+
+   Postprocessing:
+     System matrix memory consumption:  24.08 MB
+
+Number of active cells: 1,174,300 (on 10 levels)
+Number of degrees of freedom: 42,137,524 (30,609,198+1,325,260+10,203,066)
+
+*** Timestep 0:  t=0 seconds
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+   Rebuilding Stokes preconditioner...
+out:    GMRES iterations
+out:    54
+out:    
+      Relative nonlinear residual (Stokes system) after nonlinear iteration 1: 1
+
+
+   Postprocessing:
+     System matrix memory consumption:  73.44 MB
+
+Termination requested by criterion: end time
+
+
++---------------------------------------------+------------+------------+
+| Total wallclock time elapsed since start    |  1.25e+03s |            |
+|                                             |            |            |
+| Section                         | no. calls |  wall time | % of total |
++---------------------------------+-----------+------------+------------+
+| Assemble Stokes system          |        78 |      26.9s |       2.1% |
+| Build Stokes preconditioner     |        78 |       187s |        15% |
+| Initialization                  |         1 |    0.0746s |         0% |
+| Postprocessing                  |        13 |    0.0216s |         0% |
+| Refine mesh structure, part 1   |        12 |         4s |      0.32% |
+| Refine mesh structure, part 2   |        12 |      6.84s |      0.55% |
+| Setup dof systems               |        78 |       131s |        10% |
+| Setup initial conditions        |        13 |      3.36s |      0.27% |
+| Solve Stokes system             |        78 |       778s |        62% |
++---------------------------------+-----------+------------+------------+
+
+-----------------------------------------------------------------------------
+-- For information on how to cite ASPECT, see:
+--   https://aspect.geodynamics.org/citing.html?ver=2.1.0-pre&sha=4dfafd0&src=code
+-----------------------------------------------------------------------------
