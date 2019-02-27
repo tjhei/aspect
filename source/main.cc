@@ -731,6 +731,36 @@ int main (int argc, char *argv[])
 
       const bool i_am_proc_0 = (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0);
 
+      if (true)
+        {
+          int myid = Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
+
+          std::ifstream file("/proc/self/status");
+          std::string line;
+          std::string name;
+          std::string allowed = "?";
+          while (!file.eof())
+            {
+              file >> name;
+              if (name == "Cpus_allowed_list:")
+                {
+                  file >> allowed;
+                  break;
+                }
+              getline(file, line);
+            }
+
+          for (int p=0; p<96; ++p)
+            {
+              MPI_Barrier(MPI_COMM_WORLD);
+              if (p==myid)
+                std::cout << "cpus_allowed on " << myid << " " << allowed << std::endl;
+            }
+
+
+        }
+
+
       if (i_am_proc_0)
         {
           // Output header, except for a clean output for xml or plugin graph
