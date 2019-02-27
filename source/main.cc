@@ -742,7 +742,7 @@ int main (int argc, char *argv[])
           while (!file.eof())
             {
               file >> name;
-              if (name == "Cpus_allowed:")
+              if (name == "Cpus_allowed_list:")
                 {
                   file >> allowed;
                   break;
