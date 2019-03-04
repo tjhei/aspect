@@ -77,7 +77,7 @@ end
 
 subsection Mesh refinement
   set Initial global refinement = 4
-  set Initial adaptive refinement = 18
+  set Initial adaptive refinement = 5
   set Adapt by fraction of cells = true
   set Strategy = velocity
   set Run postprocessors on initial refinement = true
