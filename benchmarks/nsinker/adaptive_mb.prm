@@ -21,7 +21,7 @@ set Use years in output instead of seconds = false
 subsection Solver parameters
   subsection Stokes solver parameters
     set Stokes solver type = block AMG
-    set Use full A block as preconditioner              = false    
+    set Use full A block as preconditioner              = false 
     set Number of cheap Stokes solver steps             = 200
     set Maximum number of expensive Stokes solver steps = 100
     set Linear solver tolerance                         = 1e-6
@@ -77,16 +77,13 @@ end
 
 
 subsection Mesh refinement
-  set Initial global refinement                = 2
-  set Initial adaptive refinement              = 5 
-
-
-  set Adapt by fraction of cells = false
-
+  set Initial global refinement = 4
+  set Initial adaptive refinement = 18 
+  set Adapt by fraction of cells = true
   set Strategy = velocity
   set Run postprocessors on initial refinement = true
-  set Coarsening fraction                      = 0.0
-  set Refinement fraction                      = 0.5
+  set Coarsening fraction       = 0.0
+  set Refinement fraction       = 0.14285714285
 end
 
 
