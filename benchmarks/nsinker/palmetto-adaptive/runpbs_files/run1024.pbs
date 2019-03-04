@@ -25,8 +25,8 @@ echo "MatrixFree, 4 sinkers, 1e4 visc jump"
 cp adaptive_mf.prm temp1024a.prm
 
 echo "subsection Mesh refinement" >> temp1024a.prm
-echo "  set Initial global refinement = 2" >> temp1024a.prm
-echo "  set Initial adaptive refinement = 12" >> temp1024a.prm 
+echo "  set Initial global refinement = 4" >> temp1024a.prm
+echo "  set Initial adaptive refinement = 10" >> temp1024a.prm 
 echo "end" >> temp1024a.prm
         
 echo "set Output directory = output/adaptive-mf-1024" >> temp1024a.prm
@@ -40,8 +40,8 @@ echo "MatrixBased, 4 sinkers, 1e4 visc jump"
 cp adaptive_mb.prm temp1024a.prm
 
 echo "subsection Mesh refinement" >> temp1024a.prm
-echo "  set Initial global refinement = 2" >> temp1024a.prm
-echo "  set Initial adaptive refinement = 12" >> temp1024a.prm  
+echo "  set Initial global refinement = 4" >> temp1024a.prm
+echo "  set Initial adaptive refinement = 10" >> temp1024a.prm  
 echo "end" >> temp1024a.prm
         
 echo "set Output directory = output/adaptive-mb-1024" >> temp1024a.prm

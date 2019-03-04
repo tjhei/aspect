@@ -25,8 +25,8 @@ echo "MatrixFree, 4 sinkers, 1e4 visc jump"
 cp adaptive_mf.prm temp16a.prm
 
 echo "subsection Mesh refinement" >> temp16a.prm
-echo "  set Initial global refinement = 2" >> temp16a.prm
-echo "  set Initial adaptive refinement = 10" >> temp16a.prm 
+echo "  set Initial global refinement = 4" >> temp16a.prm
+echo "  set Initial adaptive refinement = 5" >> temp16a.prm 
 echo "end" >> temp16a.prm
         
 echo "set Output directory = output/adaptive-mf-16" >> temp16a.prm
@@ -40,8 +40,8 @@ echo "MatrixBased, 4 sinkers, 1e4 visc jump"
 cp adaptive_mb.prm temp16a.prm
 
 echo "subsection Mesh refinement" >> temp16a.prm
-echo "  set Initial global refinement = 2" >> temp16a.prm
-echo "  set Initial adaptive refinement = 10" >> temp16a.prm  
+echo "  set Initial global refinement = 4" >> temp16a.prm
+echo "  set Initial adaptive refinement = 5" >> temp16a.prm  
 echo "end" >> temp16a.prm
         
 echo "set Output directory = output/adaptive-mb-16" >> temp16a.prm

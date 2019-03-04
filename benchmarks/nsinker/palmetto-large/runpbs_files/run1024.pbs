@@ -28,12 +28,8 @@ for refinement in 6 7 8; do # 4 5 6 7
   echo "subsection Mesh refinement" >> temp1024l.prm
   echo "  set Initial global refinement = $refinement" >> temp1024l.prm
   echo "end" >> temp1024l.prm
-        
-  echo "subsection Postprocess" >> temp1024l.prm
-  echo "  set List of postprocessors = memory statistics" >> temp1024l.prm
-  echo "end" >> temp1024l.prm
 
-  echo "set Output directory = output/large-global-1024" >> temp1024l.prm
+  echo "set Output directory = output/large-global-${refinement}ref-1024" >> temp1024l.prm
   echo "set Timing output directory = timings-large/" >> temp1024l.prm
 
   mpirun -np $Nproc ./aspect temp1024l.prm
@@ -44,17 +40,8 @@ echo "MatrixFree, 4 sinkers, 1e4 visc jump"
 cp adaptive_mf.prm temp1024l.prm
 
 echo "subsection Mesh refinement" >> temp1024l.prm
-echo "  set Initial global refinement = 2" >> temp1024l.prm
-echo "  set Initial adaptive refinement = 15" >> temp1024l.prm
-echo "  set Adapt by fraction of cells = true" >> temp1024l.prm
-echo "  set Strategy = velocity" >> temp1024l.prm
-echo "  set Run postprocessors on initial refinement = true" >> temp1024l.prm
-echo "  set Coarsening fraction       = 0.0" >> temp1024l.prm
-echo "  set Refinement fraction       = 0.14285714285" >> temp1024l.prm
-echo "end" >> temp1024l.prm
-
-echo "subsection Postprocess" >> temp1024l.prm
-echo "  set List of postprocessors = memory statistics" >> temp1024l.prm
+echo "  set Initial global refinement = 4" >> temp1024l.prm
+echo "  set Initial adaptive refinement = 13" >> temp1024l.prm
 echo "end" >> temp1024l.prm
 
 echo "set Output directory = output/large-adaptive-1024" >> temp1024l.prm
