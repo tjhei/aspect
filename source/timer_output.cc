@@ -38,7 +38,8 @@ namespace aspect
         sections[section_name].timer = Timer(mpi_communicator, true);
 
         sections[section_name].time_vec.clear();
-        sections[section_name].time_vec.resize(n_timings,0.0);
+        sections[section_name].time_vec.resize((n_timings>0 ? n_timings : 1),
+                                               0.0);
 
         sections[section_name].n_calls = 0;
       }
@@ -72,7 +73,8 @@ namespace aspect
             sections[section_name].timer = Timer(mpi_communicator, true);
 
             sections[section_name].time_vec.clear();
-            sections[section_name].time_vec.resize(n_timings,0.0);
+            sections[section_name].time_vec.resize((n_timings>0 ? n_timings : 1),
+                                                   0.0);
           }
 
         sections[section_name].n_calls = 0;
@@ -109,7 +111,8 @@ namespace aspect
     if (!(ignore_first && sections[actual_section_name].n_calls == 1))
       {
         // if we are doing 5 timings, and we hit a 6th timing, assume it should be added to the 1st timing
-        const unsigned int indx = (ignore_first ? sections[actual_section_name].n_calls-2 : sections[actual_section_name].n_calls-1)%n_timings;
+        const unsigned int indx = (ignore_first ? sections[actual_section_name].n_calls-2 : sections[actual_section_name].n_calls-1)
+                %(n_timings>0 ? n_timings : 1);
         sections[actual_section_name].time_vec[indx] += sections[actual_section_name].timer.last_wall_time();
       }
 
@@ -159,7 +162,7 @@ namespace aspect
         out << section_name << ": ";
 
         std::sort(sections[section_name].time_vec.begin(), sections[section_name].time_vec.end());
-        for (unsigned int i=0; i<n_timings; ++i)
+        for (unsigned int i=0; i<(n_timings>0 ? n_timings : 1); ++i)
           out << sections[section_name].time_vec[i] << " ";
       }
 
@@ -167,7 +170,7 @@ namespace aspect
 
     out << "operator_vmult: ";
     std::sort(sections["operator_vmult"].time_vec.begin(), sections["operator_vmult"].time_vec.end());
-    for (unsigned int i=0; i<n_timings; ++i)
+    for (unsigned int i=0; i<(n_timings>0 ? n_timings : 1); ++i)
       out << sections["operator_vmult"].time_vec[i] <<  " ";
 
 

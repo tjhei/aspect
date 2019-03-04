@@ -960,10 +960,17 @@ namespace aspect
         if (i==0)
           {
             pcout << std::left
-                  << std::setw(8) << "out:"
-                  << "GMRES iterations"
+                  << std::setw(8) << "output:"
+                  << std::setw(15) << "MPI_Ranks"
+                  << std::setw(15) << "Active Cells"
+                  << std::setw(15) << "DoFs"
+                  << std::setw(15) << "GMRES iterations: "
                   << std::endl
-                  << std::setw(8) << "out:"
+                  << std::setw(8) << "output:"
+                  << std::setw(15) << Utilities::MPI::n_mpi_processes(mpi_communicator)
+                  << std::setw(15) << triangulation.n_global_active_cells()
+                  << std::setw(15) << dof_handler.n_dofs()
+                  << std::setw(15)
                   << (solver_control_cheap.last_step() != numbers::invalid_unsigned_int ?
                       solver_control_cheap.last_step():
                       0);
@@ -975,8 +982,7 @@ namespace aspect
                         0);
             pcout << std::left
                   << std::endl
-                  << std::setw(8) << "out:" << std::endl;
-
+                  << std::setw(8) << "output:" << std::endl;
           }
 
 
