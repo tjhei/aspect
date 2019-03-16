@@ -1,5 +1,5 @@
 #!/bin/bash                                                                                                      
-#PBS -l select=8:ncpus=16:mpiprocs=16:chip_type=e5-2665:interconnect=fdr:mem=70gb                                   
+#PBS -l select=8:ncpus=16:mpiprocs=16:chip_type=e5-2665:interconnect=fdr:mem=61gb                                   
 #PBS -l walltime=1:00:00                                                                                            
 #PBS -j oe                                                                                                          
 #PBS -N test                                                                                                        
@@ -26,7 +26,7 @@ cp adaptive_mf.prm temp128a.prm
 
 echo "subsection Mesh refinement" >> temp128a.prm
 echo "  set Initial global refinement = 4" >> temp128a.prm
-echo "  set Initial adaptive refinement = 9" >> temp128a.prm 
+echo "  set Initial adaptive refinement = 8" >> temp128a.prm 
 echo "end" >> temp128a.prm
         
 echo "set Output directory = output/adaptive-mf-128" >> temp128a.prm
@@ -41,7 +41,7 @@ cp adaptive_mb.prm temp128a.prm
 
 echo "subsection Mesh refinement" >> temp128a.prm
 echo "  set Initial global refinement = 4" >> temp128a.prm
-echo "  set Initial adaptive refinement = 9" >> temp128a.prm  
+echo "  set Initial adaptive refinement = 8" >> temp128a.prm  
 echo "end" >> temp128a.prm
         
 echo "set Output directory = output/adaptive-mb-128" >> temp128a.prm

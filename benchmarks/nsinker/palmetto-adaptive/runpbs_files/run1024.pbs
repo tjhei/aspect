@@ -1,6 +1,6 @@
 #!/bin/bash                                                                                                      
 #PBS -l select=64:ncpus=16:mpiprocs=16:chip_type=e5-2665:interconnect=fdr:mem=61gb                                   
-#PBS -l walltime=1:00:00                                                                                            
+#PBS -l walltime=2:00:00                                                                                            
 #PBS -j oe                                                                                                          
 #PBS -N test                                                                                                        
 ##PBS -q compmath                                                                                                   
@@ -26,7 +26,7 @@ cp adaptive_mf.prm temp1024a.prm
 
 echo "subsection Mesh refinement" >> temp1024a.prm
 echo "  set Initial global refinement = 4" >> temp1024a.prm
-echo "  set Initial adaptive refinement = 10" >> temp1024a.prm 
+echo "  set Initial adaptive refinement = 11" >> temp1024a.prm 
 echo "end" >> temp1024a.prm
         
 echo "set Output directory = output/adaptive-mf-1024" >> temp1024a.prm
@@ -41,7 +41,7 @@ cp adaptive_mb.prm temp1024a.prm
 
 echo "subsection Mesh refinement" >> temp1024a.prm
 echo "  set Initial global refinement = 4" >> temp1024a.prm
-echo "  set Initial adaptive refinement = 10" >> temp1024a.prm  
+echo "  set Initial adaptive refinement = 11" >> temp1024a.prm  
 echo "end" >> temp1024a.prm
         
 echo "set Output directory = output/adaptive-mb-1024" >> temp1024a.prm
