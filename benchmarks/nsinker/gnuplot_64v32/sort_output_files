@@ -1,0 +1,21 @@
+#!/bin/bash
+
+rm 32bit_mf
+rm 64bit_mf
+
+cat ../timings-adaptive32/mf-adaptive-5ref-16procs.dat <(echo) ../timings-adaptive32/mf-adaptive-6ref-32procs.dat <(echo) ../timings-adaptive32/mf-adaptive-7ref-64procs.dat > 32bit_mf
+
+cat ../timings-adaptive64/mf-adaptive-5ref-16procs.dat <(echo) ../timings-adaptive64/mf-adaptive-6ref-32procs.dat <(echo) ../timings-adaptive64/mf-adaptive-7ref-64procs.dat > 64bit_mf
+
+
+#for i in {0..8};
+#do 
+#    grep -rh "mf-adaptive" ../timings-adaptive/ | grep "Ref: ${i}" | sort -n -k 10 > mf/mf-adaptive-${i}ref 
+#done
+
+
+
+#for i in {0..8};
+#do 
+#    grep -rh "mf-adaptive" ../timings-adaptive/ | grep "Ref: ${i}" | sort -n -k 10 > mf/mf-adaptive-${i}ref 
+#done

@@ -1,0 +1,147 @@
+
+#problem size
+reset
+set logscale xy
+set xtics (16,32,64,128,256)
+set xrange [8:384]
+set yrange [5e6:1e8]
+set title "problem size"
+set xlabel "# of processors"
+set ylabel "DoFs"
+set key left top
+plot "32bit_mf" u 10:8:(sprintf("%d",($8))) with labels center offset 5,-1 tc lt 1 notitle, "" u 10:8 with linespoints title "32 bit 32 bit GMG" lt 1, \
+     "64bit_mf" u 10:8:(sprintf("%d",($8))) with labels center offset -3,1 tc lt 2notitle, "" u 10:8 with linespoints title "64 bit GMG" lt 2, \
+     (16<x && x<256) ? 5682025*x/16 : 1/0 with lines dt 2 lt -1 title "O(n)"
+
+
+
+#problem size
+reset
+set logscale xy
+set xtics (16,32,64,128,256)
+set xrange [8:384]
+set yrange [1e5:1e6]
+set title "problem size"
+set xlabel "# of processors"
+set ylabel "DoFs per processors"
+set key left top
+plot "32bit_mf" u 10:($8/$10):(sprintf("%d",($8/$10))) with labels center offset 0,-1.2 tc lt 1 notitle, "" u 10:($8/$10) with linespoints title "32 bit GMG" lt 1, \
+     "64bit_mf" u 10:($8/$10):(sprintf("%d",($8/$10))) with labels center offset 0,1.2 tc lt 2 notitle, "" u 10:($8/$10) with linespoints title "64 bit GMG" lt 2, \
+     (16<x && x<256) ? 5682025/16*x/x : 1/0 with lines dt 2 lt -1 title "O(n)"
+
+
+
+
+#problem size
+reset
+set logscale xy
+set xtics (16,32,64,128,256)
+set xrange [8:384]
+set yrange [1e3:1e5]
+set title "problem size"
+set xlabel "# of processors"
+set ylabel "Cells per processors"
+set key left top
+plot "32bit_mf" u 10:($6/$10):(sprintf("%d",($6/$10))) with labels center offset 0,-1.2 tc lt 1 notitle, "" u 10:($6/$10) with linespoints title "32 bit GMG" lt 1, \
+     "64bit_mf" u 10:($6/$10):(sprintf("%d",($6/$10))) with labels center offset 0,1.2 tc lt 2 notitle, "" u 10:($6/$10) with linespoints title "64 bit GMG" lt 2, \
+     (16<x && x<256) ? 149612/16*x/x : 1/0 with lines dt 2 lt -1 title "O(n)"
+
+
+
+
+
+
+#Setup Time
+reset
+set logscale xy
+set xtics (16,32,64)
+set xrange [8:96]
+set yrange [8:100]
+set title "Setup"
+set xlabel "# of processors"
+set ylabel "Setup time"
+plot "32bit_mf" u 10:14:(sprintf("%0.2f",$14)) with labels center offset -3,-1 notitle, "" u 10:14 with linespoints title "32 bit GMG" lt 1, \
+     "64bit_mf" u 10:14:(sprintf("%0.2f",$14)) with labels center offset -3,1 notitle, "" u 10:14 with linespoints title "64 bit GMG" lt 2, \
+     (16<x && x<64) ? 12.533*x/x : 1/0 with lines dt 2 lt -1 title "O(p)",\
+     for [i=1:5] "32bit_mf" u 10:(column(11+i)) with points notitle lt 1 lw 2,\
+     for [i=1:5] "64bit_mf" u 10:(column(11+i)) with points notitle lt 2 lw 2,\
+     "32bit_mf" u 10:((12.533)*($98/1.72787)) with lines title "imbalance O(p)" dt 2 lt 7
+
+
+#Assemble Time
+reset
+set logscale xy
+set xtics (16,32,64)
+set xrange [8:96]
+set yrange [2:5]
+set title "Assemble"
+set xlabel "# of processors"
+set ylabel "Assemble time"
+plot "32bit_mf" u 10:20:(sprintf("%0.2f",$20)) with labels center offset -3,-1 notitle, "" u 10:20 with linespoints title "32 bit GMG" lt 1, \
+     "64bit_mf" u 10:20:(sprintf("%0.2f",$20)) with labels center offset -3,1 notitle, "" u 10:20 with linespoints title "64 bit GMG" lt 2, \
+     (16<x && x<64) ? 2.7692*x/x : 1/0 with lines dt 2 lt -1 title "O(p)",\
+     for [i=1:5] "32bit_mf" u 10:(column(17+i)) with points notitle lt 1 lw 2,\
+     for [i=1:5] "64bit_mf" u 10:(column(17+i)) with points notitle lt 2 lw 2,\
+     "32bit_mf" u 10:((2.7692)*($98/1.72787)) with lines title "imbalance O(p)" dt 2 lt 7
+
+
+
+
+#Solve Time
+reset
+set logscale xy
+set xtics (16,32,64)
+set xrange [8:96]
+set yrange [5:30]
+set title "GMRES Solve"
+set xlabel "# of processors"
+set ylabel "solve time"
+plot "32bit_mf" u 10:26:(sprintf("%0.2f",$26)) with labels center offset -3,-1 notitle, "" u 10:26 with linespoints title "32 bit GMG" lt 1, \
+     "64bit_mf" u 10:26:(sprintf("%0.2f",$26)) with labels center offset -3,1 notitle, "" u 10:26 with linespoints title "64 bit GMG" lt 2, \
+     (16<x && x<64) ? 13.0061*x/x : 1/0 with lines dt 2 lt -1 title "O(p)",\
+     for [i=1:5] "32bit_mf" u 10:(column(23+i)) with points notitle lt 1 lw 2,\
+     for [i=1:5] "64bit_mf" u 10:(column(23+i)) with points notitle lt 2 lw 2,\
+     "32bit_mf" u 10:((13.0061)*($98/1.72787)) with lines title "imbalance O(p)" dt 2 lt 7
+
+
+
+
+#Preconditioner vmult Time
+reset
+set logscale xy
+set xtics (16,32,64)
+set xrange [8:96]
+set yrange [0.5:1.5]
+set title "Preconditioner vmult"
+set xlabel "# of processors"
+set ylabel "Preconditioner vmult time"
+plot "32bit_mf" u 10:32:(sprintf("%0.2f",$32)) with labels center offset -3,-1 notitle, "" u 10:32 with linespoints title "32 bit GMG" lt 1, \
+     "64bit_mf" u 10:32:(sprintf("%0.2f",$32)) with labels center offset -3,1 notitle, "" u 10:32 with linespoints title "64 bit GMG" lt 2, \
+     (16<x && x<64) ? 0.613678*x/x : 1/0 with lines dt 2 lt -1 title "O(p)",\
+     for [i=1:5] "32bit_mf" u 10:(column(29+i)) with points notitle lt 1 lw 2,\
+     for [i=1:5] "64bit_mf" u 10:(column(29+i)) with points notitle lt 2 lw 2,\
+     "32bit_mf" u 10:((0.613678)*($98/1.72787)) with lines title "imbalance O(p)" dt 2 lt 7
+
+
+#Operator vmult Time
+reset
+set logscale xy
+set xtics (16,32,64)
+set xrange [8:96]
+set yrange [.1:.5]
+set title "Operator vmult"
+set xlabel "# of processors"
+set ylabel "Operator vmult time"
+plot "32bit_mf" u 10:102:(sprintf("%0.3f",$102)) with labels center offset -3,-1 notitle, "" u 10:102 with linespoints title "32 bit GMG" lt 1, \
+     "64bit_mf" u 10:102:(sprintf("%0.3f",$102)) with labels center offset -3,1 notitle, "" u 10:102 with linespoints title "64 bit GMG" lt 2, \
+     (16<x && x<64) ? 0.194693*x/x : 1/0 with lines dt 2 lt -1 title "O(p)",\
+     for [i=1:5] "32bit_mf" u 10:(column(99+i)) with points notitle lt 1 lw 2,\
+     for [i=1:5] "64bit_mf" u 10:(column(99+i)) with points notitle lt 2 lw 2
+
+
+
+
+
+
+
+

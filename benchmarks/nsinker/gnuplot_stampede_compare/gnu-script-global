@@ -1,0 +1,188 @@
+#Gnuplot scrips:
+
+
+
+
+#7 REFINEMENTS
+
+
+# SETUP
+reset
+
+set logscale xy
+unset logscale xy
+
+set boxwidth 1.9 absolute
+set style fill   solid 1.00 border lt -1
+set key fixed right top vertical Right noreverse noenhanced noautotitle nobox
+set style increment default
+set style histogram clustered gap 1 title textcolor lt -1
+set style errorbars linewidth 1
+set datafile missing '-'
+set style data histograms
+ 
+
+set xrange auto
+set yrange auto
+set ylabel "Time"
+set xlabel "MPI ranks - 384/rank threads (or x threads)"
+
+set xtics rotate by -45
+
+set title "Setup - Global refinement - 70M DoFs"
+
+ypos(x) = x/2
+
+yfunc(x,r) = (x*r) 
+
+plot "mf/mf-global-7ref" u (yfunc($14,$106)):xtic(10) title 'setup' lt 3,\
+     "" u 105:(yfunc($14,$106)):(yfunc($12,$106)):(yfunc($16,$106)) with yerrorbars lc rgb 'black' pt 0 lw 1 notitle,\
+     "" u 105:(ypos(yfunc($14,$106))):(sprintf("%0.2fs",(yfunc($14,$106)))) with labels notitle
+
+
+
+
+# Assemble
+reset
+
+set logscale xy
+unset logscale xy
+
+set boxwidth 1.9 absolute
+set style fill   solid 1.00 border lt -1
+set key fixed right top vertical Right noreverse noenhanced noautotitle nobox
+set style increment default
+set style histogram clustered gap 1 title textcolor lt -1
+set style errorbars linewidth 1
+set datafile missing '-'
+set style data histograms
+ 
+
+set xrange auto
+set yrange auto
+set ylabel "Time"
+set xlabel "MPI ranks - 384/rank threads (or x threads)"
+
+set xtics rotate by -45
+
+set title "Assemble - Global refinement - 70M DoFs"
+
+ypos(x) = x/2
+
+yfunc(x,r) = (x*r) 
+
+plot "mf/mf-global-7ref" u (yfunc($20,$106)):xtic(10) title 'assemble' lt 3,\
+     "" u 105:(yfunc($20,$106)):(yfunc($18,$106)):(yfunc($22,$106)) with yerrorbars lc rgb 'black' pt 0 lw 1 notitle,\
+     "" u 105:(ypos(yfunc($20,$106))):(sprintf("%0.2fs",(yfunc($20,$106)))) with labels notitle
+
+
+
+
+
+# Solve
+reset
+
+set logscale xy
+unset logscale xy
+
+set boxwidth 1.9 absolute
+set style fill   solid 1.00 border lt -1
+set key fixed right top vertical Right noreverse noenhanced noautotitle nobox
+set style increment default
+set style histogram clustered gap 1 title textcolor lt -1
+set style errorbars linewidth 1
+set datafile missing '-'
+set style data histograms
+ 
+
+set xrange auto
+set yrange auto
+set ylabel "Time"
+set xlabel "MPI ranks - 384/rank threads (or x threads)"
+
+set xtics rotate by -45
+
+set title "Solve - Global refinement - 70M DoFs"
+
+ypos(x) = x/2
+
+yfunc(x,r) = (x*r) 
+
+plot "mf/mf-global-7ref" u (yfunc($26,$106)):xtic(10) title 'solve' lt 3,\
+     "" u 105:(yfunc($26,$106)):(yfunc($24,$106)):(yfunc($28,$106)) with yerrorbars lc rgb 'black' pt 0 lw 1 notitle,\
+     "" u 105:(ypos(yfunc($26,$106))):(sprintf("%0.2fs",(yfunc($26,$106)))) with labels notitle
+
+
+
+# Prec vmult
+reset
+
+set logscale xy
+unset logscale xy
+
+set boxwidth 1.9 absolute
+set style fill   solid 1.00 border lt -1
+set key fixed right top vertical Right noreverse noenhanced noautotitle nobox
+set style increment default
+set style histogram clustered gap 1 title textcolor lt -1
+set style errorbars linewidth 1
+set datafile missing '-'
+set style data histograms
+ 
+
+set xrange auto
+set yrange auto
+set ylabel "Time"
+set xlabel "MPI ranks - 384/rank threads (or x threads)"
+
+set xtics rotate by -45
+
+set title "Prec Vmult - Global refinement - 70M DoFs"
+
+ypos(x) = x/2
+
+yfunc(x,r) = (x*r) 
+
+plot "mf/mf-global-7ref" u (yfunc($32,$106)):xtic(10) title 'prec vmult' lt 3,\
+     "" u 105:(yfunc($32,$106)):(yfunc($30,$106)):(yfunc($34,$106)) with yerrorbars lc rgb 'black' pt 0 lw 1 notitle,\
+     "" u 105:(ypos(yfunc($32,$106))):(sprintf("%0.3fs",(yfunc($32,$106)))) with labels notitle
+
+
+
+
+# Operator vmult
+reset
+
+set logscale xy
+unset logscale xy
+
+set boxwidth 1.9 absolute
+set style fill   solid 1.00 border lt -1
+set key fixed right top vertical Right noreverse noenhanced noautotitle nobox
+set style increment default
+set style histogram clustered gap 1 title textcolor lt -1
+set style errorbars linewidth 1
+set datafile missing '-'
+set style data histograms
+ 
+
+set xrange auto
+set yrange auto
+set ylabel "Time"
+set xlabel "MPI ranks - 384/rank threads (or x threads)"
+
+set xtics rotate by -45
+
+set title "Operator Vmult - Global refinement - 70M DoFs"
+
+ypos(x) = x/2
+
+yfunc(x,r) = (x*r) 
+
+plot "mf/mf-global-7ref" u (yfunc($102,$106)):xtic(10) title 'operator vmult' lt 3,\
+     "" u 105:(yfunc($102,$106)):(yfunc($100,$106)):(yfunc($104,$106)) with yerrorbars lc rgb 'black' pt 0 lw 1 notitle,\
+     "" u 105:(ypos(yfunc($102,$106))):(sprintf("%0.3fs",(yfunc($102,$106)))) with labels notitle
+
+
+
+

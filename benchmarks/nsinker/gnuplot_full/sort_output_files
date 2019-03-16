@@ -1,0 +1,30 @@
+#!/bin/bash
+
+rm mf/*
+rm mb/*
+
+for i in {4..7};
+do 
+    grep -rh "mf-global" ../timings-full1/ | grep "Ref: ${i}" | sort -n -k 10 > mf/mf-global-${i}ref 
+done
+
+
+
+for i in {4..7};
+do 
+    grep -rh "mb-global" ../timings-full1/ | grep "Ref: ${i}" | sort -n -k 10 > mb/mb-global-${i}ref 
+done
+
+
+
+for i in {0..12};
+do 
+    grep -rh "mf-adaptive" ../timings-full1/ | grep "Ref: ${i}" | sort -n -k 10 > mf/mf-adaptive-${i}ref 
+done
+
+
+
+for i in {0..12};
+do 
+    grep -rh "mb-adaptive" ../timings-full1/ | grep "Ref: ${i}" | sort -n -k 10 > mb/mb-adaptive-${i}ref 
+done

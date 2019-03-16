@@ -1,0 +1,196 @@
+#Gnuplot scrips:
+
+
+
+
+
+
+#CYCLE 12
+
+
+
+#Each setup comp
+reset
+set style line
+set logscale xy
+set xtics (128,256,512,1024)
+set xrange [96:1536]
+set yrange [0.03:100]
+set title "Setup (each componenet) - 43M"
+set xlabel "# of processors"
+set ylabel "median of 5 runs"
+plot "partial/mb-adaptive-partial-12ref" u 10:38 with linespoints title "sys dofs" lt 1, \
+     "" u 10:68 with linespoints title 'sparsity-gmg' lt 2, \
+     "" u 10:44 with linespoints title 'mf dofs' lt 3, \
+     "" u 10:50 with linespoints title 'mg dofs' lt 4, \
+     "" u 10:56 with linespoints title 'mf operators' lt 5, \
+     "" u 10:62 with linespoints title 'mg transfer' lt 6,\
+     "full/mb-adaptive-full-12ref" u 10:38 with linespoints title "sys dofs" dt 2 lt 1, \
+     "" u 10:68 with linespoints title 'sparsity-amg' dt 2 lt 2, \
+     (128<x && x<1024) ? 128*.95/x : 1/0 with lines dt 5 lt -1 lw 2 title "O(p)",\
+     (128<x && x<1024) ? 128*3/x : 1/0 with lines dt 5 lt -1 lw 2 notitle,\
+     (128<x && x<1024) ? 128*.38/x : 1/0 with lines dt 5 lt -1 lw 2 notitle,\
+     (128<x && x<1024) ? 128*30/x : 1/0 with lines dt 5 lt -1 lw 2 notitle
+
+
+
+#Each Assmeble comp
+reset
+set style line
+set logscale xy
+set xtics (128,256,512,1024)
+set xrange [96:1536]
+set yrange [0.15:20]
+set title "Assemble (each componenet) - 43M"
+set xlabel "# of processors"
+set ylabel "median of 5 runs"
+plot "partial/mb-adaptive-partial-12ref" u 10:74 with linespoints title "system matrix/rhs (GMG)" lt 1, \
+     "" u 10:80 with linespoints title 'mf coefficients/RHS correct' lt 2, \
+     "full/mb-adaptive-full-12ref" u 10:74 with linespoints title "system matrix/rhs (AMG)" dt 2 lt 1, \
+     "" u 10:86 with linespoints title 'prec matrix (AMG)' dt 2 lt 3, \
+     "" u 10:92 with linespoints title 'AMG' dt 2 lt 4, \
+     (128<x && x<1024) ? 128*15/x : 1/0 with lines dt 5 lt -1 lw 2 title "O(p)",\
+     (128<x && x<1024) ? 128*6.5/x : 1/0 with lines dt 5 lt -1 lw 2 notitle,\
+     (128<x && x<1024) ? 128*2.3/x : 1/0 with lines dt 5 lt -1 lw 2 notitle,\
+     (128<x && x<1024) ? 128*1.2/x : 1/0 with lines dt 5 lt -1 lw 2 notitle
+
+
+
+
+#12 ref, total setup time
+reset
+set logscale xy
+set xtics (128,256,512,1024)
+set xrange [96:1536]
+set yrange [2:150]
+set title "Setup - 43M"
+set xlabel "# of processors"
+set ylabel "median of 5 runs"
+plot "partial/mb-adaptive-partial-12ref" u 10:14:(sprintf("%0.2f",$14)) with labels center offset -3,0 notitle, "" u 10:14 with linespoints title "partial" lt 1, \
+     "full/mb-adaptive-full-12ref" u 10:14:(sprintf("%0.2f",$14)) with labels center offset -3,0 notitle, "" u 10:14 with linespoints title "full" lt 2, \
+     (128<x && x<1024) ? 128*16.26/x : 1/0 with lines dt 2 lt -1 title "O(p)",\
+     for [i=1:5] "partial/mb-adaptive-partial-12ref" u 10:(column(11+i)) with points notitle lt 1 lw 2,\
+     for [i=1:5] "full/mb-adaptive-full-12ref" u 10:(column(11+i)) with points notitle lt 2 lw 2,\
+     "partial/mb-adaptive-partial-12ref" u 10:(((128*16.2557)/$10)*($98/2.6511)) with lines title "imbalance O(p)" dt 2 lt 7
+
+
+#12 ref, assemble time
+reset
+set logscale xy
+set xtics (128,256,512,1024)
+set xrange [96:1536]
+set yrange [.4:50]
+set title "Assemble RHS/StokesMatrix/AMG - 43M"
+set xlabel "# of processors"
+set ylabel "median of 5 runs"
+plot "partial/mb-adaptive-partial-12ref" u 10:20:(sprintf("%0.2f",$20)) with labels center offset -3,0 notitle, "" u 10:20 with linespoints title "partial" lt 1, \
+     "full/mb-adaptive-full-12ref" u 10:20:(sprintf("%0.2f",$20)) with labels center offset -3,0 notitle, "" u 10:20 with linespoints title "full" lt 2, \
+     (128<x && x<1024) ? 128*3.59/x : 1/0 with lines dt 2 lt -1 title "O(p)",\
+     for [i=1:5] "partial/mb-adaptive-partial-12ref" u 10:(column(17+i)) with points notitle lt 1 lw 2,\
+     for [i=1:5] "full/mb-adaptive-full-12ref" u 10:(column(17+i)) with points notitle lt 2 lw 2,\
+     "partial/mb-adaptive-partial-12ref" u 10:(((128*3.56684)/$10)*($98/2.6511)) with lines title "imbalance O(p)" dt 2 lt 7
+
+
+#12 ref, solve time
+reset
+set logscale xy
+set xtics (128,256,512,1024)
+set xrange [96:1536]
+set yrange [2:70]
+set title "Solve - 43M"
+set xlabel "# of processors"
+set ylabel "median of 5 runs"
+plot "partial/mb-adaptive-partial-12ref" u 10:26:(sprintf("%0.2f",$26)) with labels center offset -3,0 notitle, "" u 10:26 with linespoints title "partial" lt 1, \
+     "full/mb-adaptive-full-12ref" u 10:26:(sprintf("%0.2f",$26)) with labels center offset -3,0 notitle, "" u 10:26 with linespoints title "full" lt 2, \
+     (128<x && x<1024) ? 128*20.03/x : 1/0 with lines dt 2 lt -1 title "O(p)",\
+     for [i=1:5] "partial/mb-adaptive-partial-12ref" u 10:(column(23+i)) with points notitle lt 1 lw 2,\
+     for [i=1:5] "full/mb-adaptive-full-12ref" u 10:(column(23+i)) with points notitle lt 2 lw 2,\
+     "partial/mb-adaptive-partial-12ref" u 10:(((128*20.0358)/$10)*($98/2.6511)) with lines title "imbalance O(p)" dt 2 lt 7
+
+
+#12 ref, speedup solve time
+reset
+set logscale xy
+set xtics (128,256,512,1024)
+set ytics (1,2,4,8)
+set grid xtics
+set grid ytics
+set xrange [96:1536]
+set yrange [0.9:11]
+set title "Solve speedup - 43M"
+set xlabel "# of processors"
+set ylabel "median of 5 runs"
+
+a = 20.04
+b = 37.59
+
+plot "partial/mb-adaptive-partial-12ref" u 10:(a/$26):(sprintf("%0.2f",(a/$26))) with labels center offset -3,0 notitle, "" u 10:(a/$26) with linespoints title "partial" lt 1, \
+     "full/mb-adaptive-full-12ref" u 10:(b/$26):(sprintf("%0.2f",(b/$26))) with labels center offset +3,0 notitle, "" u 10:(b/$26) with linespoints title "full" lt 2, \
+     (128<x && x<1024) ? x/128 : 1/0 with lines dt 2 lt -1 title "ideal",\
+     "partial/mb-adaptive-partial-12ref" u 10:(($10/128)*(2.6511/$98)) with lines title "imbalance" dt 2 lt 7
+
+
+
+#12 ref, preconditioner vmult time
+reset
+set logscale xy
+set xtics (128,256,512,1024)
+set xrange [96:1536]
+set yrange [.1:1.5]
+set title "Preconditioner Vmult - 43M"
+set xlabel "# of processors"
+set ylabel "median of 5 runs"
+plot "partial/mb-adaptive-partial-12ref" u 10:32:(sprintf("%0.2f",$32)) with labels center offset -3,0 notitle, "" u 10:32 with linespoints title "partial" lt 1, \
+     "full/mb-adaptive-full-12ref" u 10:32:(sprintf("%0.2f",$32)) with labels center offset -3,0 notitle, "" u 10:32 with linespoints title "full" lt 2, \
+     (128<x && x<1024) ? 128*1.15/x : 1/0 with lines dt 2 lt -1 title "O(p)",\
+     for [i=1:5] "partial/mb-adaptive-partial-12ref" u 10:(column(29+i)) with points notitle lt 1 lw 2,\
+     for [i=1:5] "full/mb-adaptive-full-12ref" u 10:(column(29+i)) with points notitle lt 2 lw 2,\
+     "partial/mb-adaptive-partial-12ref" u 10:(((128*1.1558)/$10)*($98/2.6511)) with lines title "imbalance O(p)" dt 2 lt 7
+
+
+#12 ref, total time
+set logscale xy
+set xtics (128,256,512,1024)
+set xrange [96:1536]
+set yrange [2:100]
+set title "Total Time - 43M"
+set xlabel "# of processors"
+set ylabel "median of 5 runs"
+
+plot "partial/mb-adaptive-partial-12ref" u 10:($20+$26):(sprintf("%0.2f",$20+$26)) with labels center offset -3,0 notitle, "" u 10:($20+$26) with linespoints title "partial" lt 1,\
+     "full/mb-adaptive-full-12ref" u 10:($20+$26):(sprintf("%0.2f",$20+$26)) with labels center offset -3,0 notitle, "" u 10:($20+$26) with linespoints title "full" lt 2,\
+     (128<x && x<1024) ? 128*23.62/x : 1/0 with lines dt 2 lt -1 title "O(p)",\
+     for [i=1:5] "partial/mb-adaptive-partial-12ref" u 10:(column(17+i) + column(23+i)) with points notitle lt 1 lw 2,\
+     for [i=1:5] "full/mb-adaptive-full-12ref" u 10:(column(17+i) + column(23+i)) with points notitle lt 2 lw 2,\
+     "partial/mb-adaptive-partial-12ref" u 10:(((128*23.6)/$10)*($98/2.6511)) with lines title "imbalance O(p)" dt 2 lt 7
+
+
+
+
+#iterations
+set logscale xy
+unset logscale y
+set xtics (16,32,64,128,256,512,1024)
+set ytics auto
+unset grid
+set xrange [8:1536]
+set yrange [0:100]
+set title "GMRES iterations for adaptive refinement"
+set xlabel "# of processors"
+set ylabel "GMRES iterations"
+plot "partial/mb-adaptive-partial-12ref" u 10:($96-0.4) with linespoints lt 1 pt 1 dt 1 notitle, \
+     "full/mb-adaptive-full-12ref" u 10:($96-0.4) with linespoints lt 1 pt 3 dt 2 notitle, \
+     "mf/mf-adaptive-11ref" u 10:($96+0.4) with linespoints lt 2 pt 1 dt 1 notitle,\
+     "mb/mb-adaptive-11ref" u 10:($96+0.4) with linespoints lt 2 pt 3 dt 2 notitle,\
+     "mf/mf-adaptive-10ref" u 10:96 with linespoints lt 3 pt 1 dt 1 notitle, \
+     "mb/mb-adaptive-10ref" u 10:96 with linespoints lt 3 pt 3 dt 2 notitle,\
+     "mf/mf-adaptive-9ref" u 10:96 with linespoints lt 4 pt 1 dt 1 notitle, \
+     "mb/mb-adaptive-9ref" u 10:96 with linespoints lt 4 pt 3 dt 2 notitle,\
+     1/0 lt 1 title "43M DoFs",\
+     1/0 lt 2 title "15M DoFs",\
+     1/0 lt 3 title "5.5M DoFs",\
+     1/0 lt 4 title "1.9M DoFs",\
+     1/0 lt -1 dt 1 title "partial",\
+     1/0 lt -1 dt 2 title "full"
+
+

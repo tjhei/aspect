@@ -1,0 +1,224 @@
+#Gnuplot scrips:
+
+
+
+
+#7 REFINEMENTS
+
+
+#Each setup comp
+set style line
+set logscale xy
+set xtics (128,256,512,1024)
+set ytics auto
+unset grid
+set xrange [96:1536]
+set yrange [0.03:100]
+set title "Setup (each componenet) - Global Ref - 70M DoFs"
+set xlabel "# of processors"
+set ylabel "median of 5 runs"
+plot "partial/mb-global-partial-7ref" u 10:38 with linespoints title "sys dofs-partial" lt 1, \
+     "" u 10:68 with linespoints title 'sparsity-partial' lt 2, \
+     "full/mb-global-full-7ref" u 10:38 with linespoints title "sys dofs-full" dt 2 lt 1, \
+     "" u 10:68 with linespoints title "sparsity-full" dt 2 lt 2, \
+     (128<x && x<1024) ? 128*4/x : 1/0 with lines dt 5 lt -1 lw 2 notitle,\
+     (128<x && x<1024) ? 128*40/x : 1/0 with lines dt 5 lt -1 lw 2 notitle
+
+
+
+#Each Assmeble comp
+reset key
+set style line
+set logscale xy
+set xtics (128,256,512,1024)
+set ytics auto
+unset grid
+set xrange [96:1536]
+set yrange [0.1:40]
+set title "Assemble (each componenet) - Global Ref - 70M DoFs"
+set xlabel "# of processors"
+set ylabel "median of 5 runs"
+plot "partial/mb-global-partial-7ref" u 10:74 with linespoints title "system matrix/rhs (partial)" lt 1, \
+     "" u 10:86 with linespoints title 'prec matrix (partial)' lt 3, \
+     "" u 10:92 with linespoints title 'amg (partial)' lt 4, \
+     "full/mb-global-full-7ref" u 10:74 with linespoints title "system matrix/rhs (full)" dt 2 lt 1, \
+     "" u 10:86 with linespoints title 'prec matrix (full)' dt 2 lt 3, \
+     "" u 10:92 with linespoints title 'amg (full)' dt 2 lt 4, \
+     (128<x && x<1024) ? 128*23/x : 1/0 with lines dt 5 lt -1 lw 2 title "O(p)",\
+     (128<x && x<1024) ? 128*9.1/x : 1/0 with lines dt 5 lt -1 lw 2 notitle,\
+     (128<x && x<1024) ? 128*2.2/x : 1/0 with lines dt 5 lt -1 lw 2 notitle
+
+
+
+
+
+
+
+#7 ref, total setup time
+reset
+set logscale xy
+set xtics (128,256,512,1024)
+set ytics auto
+unset grid
+set xrange [96:1536]
+set yrange [1:200]
+set title "Setup - Global Ref - 70M DoFs"
+set xlabel "# of processors"
+set ylabel "median of 5 runs"
+plot "partial/mb-global-partial-7ref" u 10:14:(sprintf("%0.2f",$14)) with labels center offset -3,0 notitle, "" u 10:14 with linespoints title "partial" lt 1, \
+     "full/mb-global-full-7ref" u 10:14:(sprintf("%0.2f",$14)) with labels center offset -3,0 notitle, "" u 10:14 with linespoints title "full" lt 2, \
+     (128<x && x<1024) ? 128*54/x : 1/0 with lines dt 2 lt -1 title "O(p)",\
+     for [i=1:5] "partial/mb-global-partial-7ref" u 10:(column(11+i)) with points notitle lt 1 lw 2,\
+     for [i=1:5] "full/mb-global-full-7ref" u 10:(column(11+i)) with points notitle lt 2 lw 2
+
+
+#7 ref, assemble time
+set logscale xy
+set xtics (128,256,512,1024)
+set ytics auto
+unset grid
+set xrange [96:1536]
+set yrange [.4:100]
+set title "Assemble RHS/StokesMatrix/full - Global Ref - 70M DoFs"
+set xlabel "# of processors"
+set ylabel "median of 5 runs"
+plot "partial/mb-global-partial-7ref" u 10:20:(sprintf("%0.2f",$20)) with labels center offset -3,0 notitle, "" u 10:20 with linespoints title "partial" lt 1, \
+     "full/mb-global-full-7ref" u 10:20:(sprintf("%0.2f",$20)) with labels center offset -3,0 notitle, "" u 10:20 with linespoints title "full" lt 2, \
+     (128<x && x<1024) ? 128*50/x : 1/0 with lines dt 2 lt -1 title "O(p)",\
+     for [i=1:5] "partial/mb-global-partial-7ref" u 10:(column(17+i)) with points notitle lt 1 lw 2,\
+     for [i=1:5] "full/mb-global-full-7ref" u 10:(column(17+i)) with points notitle lt 2 lw 2
+
+
+
+#7 ref, solve time
+set logscale xy
+unset gridq
+set xtics (128,256,512,1024)
+set ytics auto
+unset grid
+set xrange [96:1536]
+set yrange [2:150]
+set title "Solve - Global Ref - 70M DoFs"
+set xlabel "# of processors"
+set ylabel "median of 5 runs"
+plot "partial/mb-global-partial-7ref" u 10:26:(sprintf("%0.2f",$26)) with labels center offset -3,0 notitle, "" u 10:26 with linespoints title "partial" lt 1, \
+     "full/mb-global-full-7ref" u 10:26:(sprintf("%0.2f",$26)) with labels center offset -3,0 notitle, "" u 10:26 with linespoints title "full" lt 2, \
+     (128<x && x<1024) ? 128*15.48/x : 1/0 with lines dt 2 lt -1 title "O(p)",\
+     for [i=1:5] "partial/mb-global-partial-7ref" u 10:(column(23+i)) with points notitle lt 1 lw 2,\
+     for [i=1:5] "full/mb-global-full-7ref" u 10:(column(23+i)) with points notitle lt 2 lw 2
+
+
+
+
+#7 ref, preconditioner vmult time
+reset
+set logscale xy
+set xtics (128,256,512,1024)
+set ytics auto
+unset grid
+set xrange [96:1536]
+set yrange [.1:1.5]
+set title "Preconditioner Vmult - Global Ref - 70M DoFs"
+set xlabel "# of processors"
+set ylabel "median of 5 runs"
+plot "partial/mb-global-partial-7ref" u 10:32:(sprintf("%0.2f",$32)) with labels center offset -3,0 notitle, "" u 10:32 with linespoints title "partial" lt 1, \
+     "full/mb-global-full-7ref" u 10:32:(sprintf("%0.2f",$32)) with labels center offset -3,0 notitle, "" u 10:32 with linespoints title "full" lt 2, \
+     (128<x && x<1024) ? 128*.82/x : 1/0 with lines dt 2 lt -1 title "O(p)",\
+     for [i=1:5] "partial/mb-global-partial-7ref" u 10:(column(29+i)) with points notitle lt 1 lw 2,\
+     for [i=1:5] "full/mb-global-full-7ref" u 10:(column(29+i)) with points notitle lt 2 lw 2
+
+
+
+
+#7 ref, total time
+set logscale xy
+set xtics (128,256,512,1024)
+set ytics auto
+unset grid
+set xrange [96:1536]
+set yrange [2:300]
+set title "Total Time - Global Ref - 70M DoFs"
+set xlabel "# of processors"
+set ylabel "median of 5 runs"
+plot "partial/mb-global-partial-7ref" u 10:($20+$26):(sprintf("%0.2f",$20+$26)) with labels center offset -3,0 notitle, "" u 10:($20+$26) with linespoints title "partial" lt 1,\
+     "full/mb-global-full-7ref" u 10:($20+$26):(sprintf("%0.2f",$20+$26)) with labels center offset -3,0 notitle, "" u 10:($20+$26) with linespoints title "full" lt 2,\
+     (128<x && x<1024) ? 128*19.58/x : 1/0 with lines dt 2 lt -1 title "O(p)",\
+     for [i=1:5] "partial/mb-global-partial-7ref" u 10:(column(17+i) + column(23+i)) with points notitle lt 1 lw 2,\
+     for [i=1:5] "full/mb-global-full-7ref" u 10:(column(17+i) + column(23+i)) with points notitle lt 2 lw 2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#speedup solve time
+set logscale xy
+set xtics (16,32,64,128,256,512,1024)
+set ytics (1,2,4,8,16,32,64)
+set grid xtics
+set grid ytics
+set xrange [8:1536]
+set yrange [0.9:65]
+set title "Solve speedup - Global Ref"
+set xlabel "# of processors"
+set ylabel "median of 5 runs"
+
+a1 = 15.48
+b1 = 91.44
+a2 = 15.3951
+b2 = 84.1595
+
+plot "partial/mb-global-partial-7ref" u 10:(a1/$26):(sprintf("%0.2f",(a1/$26))) with labels center offset -3,0 notitle, "" u 10:(a1/$26) with linespoints lt 1 pt 1 dt 1 notitle, \
+     "full/mb-global-full-7ref" u 10:(b1/$26):(sprintf("%0.2f",(b1/$26))) with labels center offset +3,0 notitle, "" u 10:(b1/$26) with linespoints lt 1 pt 3 dt 2 notitle,\
+     "mf/mf-global-6ref" u 10:(a2/$26):(sprintf("%0.2f",(a2/$26))) with labels center offset -3,0 notitle, "" u 10:(a2/$26) with linespoints lt 2 pt 1 dt 1 notitle, \
+     "mb/mb-global-6ref" u 10:(b2/$26):(sprintf("%0.2f",(b2/$26))) with labels center offset +3,0 notitle, "" u 10:(b2/$26) with linespoints lt 2 pt 3 dt 2 notitle,\
+     1/0 lt 1 title "70M DoFs",\
+     1/0 lt 2 title "8.9M DoFs",\
+     1/0 lt -1 dt 1 title "partial",\
+     1/0 lt -1 dt 2 title "full",\
+     (128<x && x<1024) ? x/128 : 1/0 with lines dt 5 lt -1 title "ideal",\
+     (16<x && x<1024) ? x/16 : 1/0 with lines dt 5 lt -1 notitle
+
+
+#iterations
+set logscale xy
+unset logscale y
+set xtics (16,32,64,128,256,512,1024)
+set ytics auto
+unset grid
+set xrange [8:1536]
+set yrange [0:100]
+set title "GMRES iterations for global refinement"
+set xlabel "# of processors"
+set ylabel "GMRES iterations"
+plot "partial/mb-global-partial-7ref" u 10:96 with linespoints lt 1 pt 1 dt 1 notitle, \
+     "full/mb-global-full-7ref" u 10:96 with linespoints lt 1 pt 3 dt 2 notitle,\
+     "mf/mf-global-6ref" u 10:96 with linespoints lt 2 pt 1 dt 1 notitle, \
+     "mb/mb-global-6ref" u 10:96 with linespoints lt 2 pt 3 dt 2 notitle,\
+     "mf/mf-global-5ref" u 10:96 with linespoints lt 3 pt 1 dt 1 notitle, \
+     "mb/mb-global-5ref" u 10:96 with linespoints lt 3 pt 3 dt 2 notitle,\
+     "mf/mf-global-4ref" u 10:96 with linespoints lt 4 pt 1 dt 1 notitle, \
+     "mb/mb-global-4ref" u 10:96 with linespoints lt 4 pt 3 dt 2 notitle,\
+     1/0 lt 1 title "70M DoFs",\
+     1/0 lt 2 title "8.9M DoFs",\
+     1/0 lt 3 title "1.1M DoFs",\
+     1/0 lt 4 title "149K DoFs",\
+     1/0 lt -1 dt 1 title "partial",\
+     1/0 lt -1 dt 2 title "full"
+
+
+
+
+
+

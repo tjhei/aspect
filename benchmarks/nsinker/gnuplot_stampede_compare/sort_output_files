@@ -1,0 +1,21 @@
+#!/bin/bash
+
+rm mf/*
+
+cp ../stampede_first_run/timings-on-stampede-1/mf-global-* mf/
+cp ../stampede_first_run/timings-on-stampede-2/mf-global-* mf/
+cp ../stampede_first_run/timings-on-stampede-12/mf-global-* mf/
+cp ../stampede_first_run/timings-on-stampede-24/mf-global-* mf/
+cp ../stampede_first_run/timings-on-stampede-48/mf-global-* mf/
+
+for i in 4 5 6 7 
+do 
+  cp ../stampede_first_run/timings-on-stampede-48x1/mf-global-${i}ref-192procs.dat mf/mf-global-${i}ref-192x1procs.dat 
+done
+
+for i in 4 5 6 7 
+do 
+  cp ../stampede_first_run/timings-on-stampede-96x1/mf-global-${i}ref-384procs.dat mf/mf-global-${i}ref-384x1procs.dat 
+done
+
+

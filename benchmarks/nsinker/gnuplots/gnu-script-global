@@ -1,0 +1,394 @@
+#Gnuplot scrips:
+
+
+
+
+#7 REFINEMENTS
+
+#Percentage setup bar
+set logscale xy
+unset logscale xy
+
+set yrange [0:105]
+set xrange auto
+set title "Setup (% of total) - Global Ref - 70M DoFs DoFs"
+set key invert reverse Left outside
+set key noautotitle
+set style data histogram
+set style histogram rowstacked
+set style fill solid border -1
+set boxwidth 0.75
+
+func(x) = (100.*x/($38+$44+$50+$56+$62+$68))
+
+plot newhistogram "GMG", "mf/mf-global-7ref" u (func($38)):xtic(10) title 'sys dofs' lt 1, \
+     "" u (func($68)) title 'sparsity' lt 2, \
+     "" u (func($44)) title 'mf dofs' lt 3, \
+     "" u (func($50)) title 'mg dofs' lt 4, \
+     "" u (func($56)) title 'mf operators' lt 5, \
+     "" u (func($62)) title 'mg transfer' lt 6,\
+     "" u (xpos($10)):(ypos(0,func($38))):(sprintf("%0.0f%",func($38))) with labels,\
+     "" u (xpos($10)):(ypos(func($38),func($38)+func($68))):(sprintf("%0.0f%",func($68))) with labels,\
+     "" u (xpos($10)):(ypos(func($38)+func($68),func($38)+func($68)+func($44))):(sprintf("%0.0f%",func($44))) with labels,\
+     "" u (xpos($10)):(ypos(func($38)+func($68)+func($44),func($38)+func($68)+func($44)+func($50))):(sprintf("%0.0f%",func($50))) with labels,\
+     "" u (xpos($10)):(ypos(func($38)+func($68)+func($44)+func($50),func($38)+func($68)+func($44)+func($50)+func($56))):(sprintf("%0.0f%",func($56))) with labels,\
+     "" u (xpos($10)):(ypos(func($38)+func($68)+func($44)+func($50)+func($56),func($38)+func($68)+func($44)+func($50)+func($56)+func($62))):(sprintf("%0.0f%",func($62))) with labels,\
+     newhistogram "AMG", "mb/mb-global-7ref" u (func($38)):xtic(10) notitle lt 1, \
+     "" u (func($68)) notitle lt 2, \
+     "" u (func($44)) notitle lt 3, \
+     "" u (func($50)) notitle lt 4, \
+     "" u (func($56)) notitle lt 5, \
+     "" u (func($62)) notitle lt 6,\
+     "" u (xpos($10)+5):(ypos(0,func($38))):(sprintf("%0.0f%",func($38))) with labels,\
+     "" u (xpos($10)+5):(ypos(func($38),func($38)+func($68))):(sprintf("%0.0f%",func($68))) with labels
+
+
+
+#Each setup comp
+set style line
+set logscale xy
+set xtics (128,256,512,1024)
+set ytics auto
+unset grid
+set xrange [96:1536]
+set yrange [0.03:100]
+set title "Setup (each componenet) - Global Ref - 70M DoFs"
+set xlabel "# of processors"
+set ylabel "median of 5 runs"
+plot "mf/mf-global-7ref" u 10:38 with linespoints title "sys dofs" lt 1, \
+     "" u 10:68 with linespoints title 'sparsity-gmg' lt 2, \
+     "" u 10:44 with linespoints title 'mf dofs' lt 3, \
+     "" u 10:50 with linespoints title 'mg dofs' lt 4, \
+     "" u 10:56 with linespoints title 'mf operators' lt 5, \
+     "" u 10:62 with linespoints title 'mg transfer' lt 6,\
+     "mb/mb-global-7ref" u 10:38 with linespoints notitle dt 1 lt 1, \
+     "" u 10:68 with linespoints title 'sparsity-amg' dt 2 lt 2, \
+     (128<x && x<1024) ? 128*.95/x : 1/0 with lines dt 5 lt -1 lw 2 title "O(p)",\
+     (128<x && x<1024) ? 128*3/x : 1/0 with lines dt 5 lt -1 lw 2 notitle,\
+     (128<x && x<1024) ? 128*.3/x : 1/0 with lines dt 5 lt -1 lw 2 notitle,\
+     (128<x && x<1024) ? 128*30/x : 1/0 with lines dt 5 lt -1 lw 2 notitle
+
+
+
+
+
+
+
+#Percentage assemble bar
+set logscale xy
+unset logscale xy
+
+set yrange [0:105]
+set xrange auto
+set title "Assemble (% of total) - Global Ref - 70M DoFs DoFs"
+set key invert reverse Left outside
+set key noautotitle
+set style data histogram
+set style histogram rowstacked
+set style fill solid border -1
+set boxwidth 0.75
+
+func(x) = (100.*x/($74+$80+$86+$92))
+xpos(x) = log(x/128)/log(2)
+ypos(begin,end) = (end-begin)/2 + begin
+
+
+plot newhistogram "GMG", "mf/mf-global-7ref" u (func($74)):xtic(10) title 'system matrix/rhs' lt 1, \
+     "" u (func($80)) title 'mf coefficients/RHS correct' lt 2, \
+     "" u (func($86)) title 'prec matrix' lt 3, \
+     "" u (func($92)) title 'AMG' lt 4, \
+     "" u (xpos($10)):(ypos(0,func($74))):(sprintf("%0.0f%",func($74))) with labels,\
+     "" u (xpos($10)):(ypos(func($74),func($74)+func($80))):(sprintf("%0.0f%",func($80))) with labels,\
+     newhistogram "AMG", "mb/mb-global-7ref" u (func($74)):xtic(10) notitle lt 1, \
+     "" u (func($80)) notitle lt 2, \
+     "" u (func($86)) notitle lt 3, \
+     "" u (func($92)) notitle lt 4,\
+     "" u (xpos($10)+5):(ypos(0,func($74))):(sprintf("%0.0f%",func($74))) with labels,\
+     "" u (xpos($10)+5):(ypos(func($74),func($74)+func($86))):(sprintf("%0.0f%",func($86))) with labels,\
+     "" u (xpos($10)+5):(ypos(func($74)+func($88),func($74)+func($86)+func($92))):(sprintf("%0.0f%",func($92))) with labels
+
+
+#Each Assmeble comp
+reset key
+set style line
+set logscale xy
+set xtics (128,256,512,1024)
+set ytics auto
+unset grid
+set xrange [96:1536]
+set yrange [0.1:40]
+set title "Assemble (each componenet) - Global Ref - 70M DoFs"
+set xlabel "# of processors"
+set ylabel "median of 5 runs"
+plot "mf/mf-global-7ref" u 10:74 with linespoints title "system matrix/rhs (GMG)" lt 1, \
+     "" u 10:80 with linespoints title 'mf coefficients/RHS correct' lt 2, \
+     "mb/mb-global-7ref" u 10:74 with linespoints title "system matrix/rhs (AMG)" dt 2 lt 1, \
+     "" u 10:86 with linespoints title 'prec matrix (AMG)' dt 2 lt 3, \
+     "" u 10:92 with linespoints title 'AMG' dt 2 lt 4, \
+     (128<x && x<1024) ? 128*23/x : 1/0 with lines dt 5 lt -1 lw 2 title "O(p)",\
+     (128<x && x<1024) ? 128*1.8/x : 1/0 with lines dt 5 lt -1 lw 2 notitle
+
+
+
+
+
+
+
+
+#Percentage Overall bar
+reset key
+set logscale xy
+unset logscale xy
+
+set grid
+set yrange [0:105]
+set title "% of total time - Global Ref - 70M DoFs DoFs"
+set key invert reverse Left outside
+set key noautotitle
+set style data histogram
+set style histogram rowstacked
+set style fill solid border -1
+set boxwidth 0.75
+
+func(x) = (100.*x/($14+$20+$26))
+xpos(x) = log(x/128)/log(2)
+ypos(begin,end) = (end-begin)/2 + begin
+
+plot newhistogram "GMG", "mf/mf-global-7ref" u (func($14)):xtic(10) title 'setup' lt 1, \
+     "" u (func($20)) title 'assemble' lt 2, \
+     "" u (func($26)) title 'solve' lt 3, \
+     "" u (xpos($10)):(ypos(0,func($14))):(sprintf("%0.0f%",func($14))) with labels,\
+     "" u (xpos($10)):(ypos(func($14),func($14)+func($20))):(sprintf("%0.0f%",func($20))) with labels,\
+     "" u (xpos($10)):(ypos(func($14)+func($20),func($14)+func($20)+func($26))):(sprintf("%0.0f%",func($26))) with labels,\
+     "" u (xpos($10)):(102):(sprintf("%0.1fs",($14+$20+$26))) with labels,\
+     newhistogram "AMG", "mb/mb-global-7ref" u (func($14)):xtic(10) notitle lt 1, \
+     "" u (func($20)) notitle lt 2, \
+     "" u (func($26)) notitle lt 3, \
+     "" u (xpos($10)+5):(ypos(0,func($14))):(sprintf("%0.0f%",func($14))) with labels,\
+     "" u (xpos($10)+5):(ypos(func($14),func($14)+func($20))):(sprintf("%0.0f%",func($20))) with labels,\
+     "" u (xpos($10)+5):(ypos(func($14)+func($20),func($14)+func($20)+func($26))):(sprintf("%0.0f%",func($26))) with labels,\
+     "" u (xpos($10)+5):(102):(sprintf("%0.1fs",($14+$20+$26))) with labels
+
+
+func(x) = (100.*x/($20+$26))
+xpos(x) = log(x/128)/log(2)
+ypos(begin,end) = (end-begin)/2 + begin
+
+plot newhistogram "GMG", "mf/mf-global-7ref" u (func($20)):xtic(10) title 'assemble' lt 2, \
+     "" u (func($26)) title 'solve' lt 3, \
+     "" u (xpos($10)):(ypos(0,func($20))):(sprintf("%0.0f%",func($20))) with labels,\
+     "" u (xpos($10)):(ypos(func($20),func($20)+func($26))):(sprintf("%0.0f%",func($26))) with labels,\
+     "" u (xpos($10)):(102):(sprintf("%0.1fs",($14+$20+$26))) with labels,\
+     newhistogram "AMG", "mb/mb-global-7ref" u (func($20)):xtic(10) notitle lt 2, \
+     "" u (func($26)) notitle lt 3, \
+     "" u (xpos($10)+5):(ypos(0,func($20))):(sprintf("%0.0f%",func($20))) with labels,\
+     "" u (xpos($10)+5):(ypos(func($20),func($20)+func($26))):(sprintf("%0.0f%",func($26))) with labels,\
+     "" u (xpos($10)+5):(102):(sprintf("%0.1fs",($14+$20+$26))) with labels
+
+
+
+
+
+#Total bar
+set logscale xy
+unset logscale xy
+
+set boxwidth 0.9 absolute
+set style fill   solid 1.00 border lt -1
+set key fixed right top vertical Right noreverse noenhanced noautotitle nobox
+set style increment default
+set style histogram clustered gap 1 title textcolor lt -1
+set datafile missing '-'
+set style data histograms
+
+set yrange [0:1.1]
+set ylabel "strong-scaling efficiency"
+
+set title "Setup / Solve / Assemble - Global Ref - 70M DoFs DoFs"
+
+func(x0,x) = (128*x0/($10*x))
+plot newhistogram "GMG", "mf/mf-global-7ref" u (func(14.605,$14)):xtic(10) title 'setup' lt 1,\
+     "" u (func(4.10054,$20)) title 'assemble' lt 2,\
+     "" u (func(15.4833,$26)) title 'solve' lt 3,\
+     newhistogram "AMG", "mb/mb-global-7ref" u (func(86.9717,$14)):xtic(10) notitle lt 1,\
+     "" u (func(53.123,$20)) notitle lt 2,\
+     "" u (func(91.4429,$26)) notitle lt 3
+
+
+
+
+
+
+
+
+
+
+
+
+
+#7 ref, total setup time
+reset
+set logscale xy
+set xtics (128,256,512,1024)
+set ytics auto
+unset grid
+set xrange [96:1536]
+set yrange [1:200]
+set title "Setup - Global Ref - 70M DoFs"
+set xlabel "# of processors"
+set ylabel "median of 5 runs"
+plot "mf/mf-global-7ref" u 10:14:(sprintf("%0.2f",$14)) with labels center offset -3,0 notitle, "" u 10:14 with linespoints title "matrix-free" lt 1, \
+     "mb/mb-global-7ref" u 10:14:(sprintf("%0.2f",$14)) with labels center offset -3,0 notitle, "" u 10:14 with linespoints title "matrix-based" lt 2, \
+     (128<x && x<1024) ? 128*14.61/x : 1/0 with lines dt 2 lt -1 title "O(p)",\
+     for [i=1:5] "mf/mf-global-7ref" u 10:(column(11+i)) with points notitle lt 1 lw 2,\
+     for [i=1:5] "mb/mb-global-7ref" u 10:(column(11+i)) with points notitle lt 2 lw 2
+
+
+#7 ref, assemble time
+set logscale xy
+set xtics (128,256,512,1024)
+set ytics auto
+unset grid
+set xrange [96:1536]
+set yrange [.4:100]
+set title "Assemble RHS/StokesMatrix/AMG - Global Ref - 70M DoFs"
+set xlabel "# of processors"
+set ylabel "median of 5 runs"
+plot "mf/mf-global-7ref" u 10:20:(sprintf("%0.2f",$20)) with labels center offset -3,0 notitle, "" u 10:20 with linespoints title "matrix-free" lt 1, \
+     "mb/mb-global-7ref" u 10:20:(sprintf("%0.2f",$20)) with labels center offset -3,0 notitle, "" u 10:20 with linespoints title "matrix-based" lt 2, \
+     (128<x && x<1024) ? 128*4.09/x : 1/0 with lines dt 2 lt -1 title "O(p)",\
+     for [i=1:5] "mf/mf-global-7ref" u 10:(column(17+i)) with points notitle lt 1 lw 2,\
+     for [i=1:5] "mb/mb-global-7ref" u 10:(column(17+i)) with points notitle lt 2 lw 2
+
+#7 ref, solve time
+set logscale xy
+unset gridq
+set xtics (128,256,512,1024)
+set ytics auto
+unset grid
+set xrange [96:1536]
+set yrange [2:150]
+set title "Solve - Global Ref - 70M DoFs"
+set xlabel "# of processors"
+set ylabel "median of 5 runs"
+plot "mf/mf-global-7ref" u 10:26:(sprintf("%0.2f",$26)) with labels center offset -3,0 notitle, "" u 10:26 with linespoints title "matrix-free" lt 1, \
+     "mb/mb-global-7ref" u 10:26:(sprintf("%0.2f",$26)) with labels center offset -3,0 notitle, "" u 10:26 with linespoints title "matrix-based" lt 2, \
+     (128<x && x<1024) ? 128*15.48/x : 1/0 with lines dt 2 lt -1 title "O(p)",\
+     for [i=1:5] "mf/mf-global-7ref" u 10:(column(23+i)) with points notitle lt 1 lw 2,\
+     for [i=1:5] "mb/mb-global-7ref" u 10:(column(23+i)) with points notitle lt 2 lw 2
+
+
+
+
+#7 ref, preconditioner vmult time
+reset
+set logscale xy
+set xtics (128,256,512,1024)
+set ytics auto
+unset grid
+set xrange [96:1536]
+set yrange [.1:1.5]
+set title "Preconditioner Vmult - Global Ref - 70M DoFs"
+set xlabel "# of processors"
+set ylabel "median of 5 runs"
+plot "mf/mf-global-7ref" u 10:32:(sprintf("%0.2f",$32)) with labels center offset -3,0 notitle, "" u 10:32 with linespoints title "matrix-free" lt 1, \
+     "mb/mb-global-7ref" u 10:32:(sprintf("%0.2f",$32)) with labels center offset -3,0 notitle, "" u 10:32 with linespoints title "matrix-based" lt 2, \
+     (128<x && x<1024) ? 128*.82/x : 1/0 with lines dt 2 lt -1 title "O(p)",\
+     for [i=1:5] "mf/mf-global-7ref" u 10:(column(29+i)) with points notitle lt 1 lw 2,\
+     for [i=1:5] "mb/mb-global-7ref" u 10:(column(29+i)) with points notitle lt 2 lw 2
+
+
+
+
+#7 ref, total time
+set logscale xy
+set xtics (128,256,512,1024)
+set ytics auto
+unset grid
+set xrange [96:1536]
+set yrange [2:300]
+set title "Total Time - Global Ref - 70M DoFs"
+set xlabel "# of processors"
+set ylabel "median of 5 runs"
+plot "mf/mf-global-7ref" u 10:($20+$26):(sprintf("%0.2f",$20+$26)) with labels center offset -3,0 notitle, "" u 10:($20+$26) with linespoints title "matrix-free" lt 1,\
+     "mb/mb-global-7ref" u 10:($20+$26):(sprintf("%0.2f",$20+$26)) with labels center offset -3,0 notitle, "" u 10:($20+$26) with linespoints title "matrix-based" lt 2,\
+     (128<x && x<1024) ? 128*19.58/x : 1/0 with lines dt 2 lt -1 title "O(p)",\
+     for [i=1:5] "mf/mf-global-7ref" u 10:(column(17+i) + column(23+i)) with points notitle lt 1 lw 2,\
+     for [i=1:5] "mb/mb-global-7ref" u 10:(column(17+i) + column(23+i)) with points notitle lt 2 lw 2
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#speedup solve time
+set logscale xy
+set xtics (16,32,64,128,256,512,1024)
+set ytics (1,2,4,8,16,32,64)
+set grid xtics
+set grid ytics
+set xrange [8:1536]
+set yrange [0.9:65]
+set title "Solve speedup - Global Ref"
+set xlabel "# of processors"
+set ylabel "median of 5 runs"
+
+a1 = 15.48
+b1 = 91.44
+a2 = 15.3951
+b2 = 84.1595
+
+plot "mf/mf-global-7ref" u 10:(a1/$26):(sprintf("%0.2f",(a1/$26))) with labels center offset -3,0 notitle, "" u 10:(a1/$26) with linespoints lt 1 pt 1 dt 1 notitle, \
+     "mb/mb-global-7ref" u 10:(b1/$26):(sprintf("%0.2f",(b1/$26))) with labels center offset +3,0 notitle, "" u 10:(b1/$26) with linespoints lt 1 pt 3 dt 2 notitle,\
+     "mf/mf-global-6ref" u 10:(a2/$26):(sprintf("%0.2f",(a2/$26))) with labels center offset -3,0 notitle, "" u 10:(a2/$26) with linespoints lt 2 pt 1 dt 1 notitle, \
+     "mb/mb-global-6ref" u 10:(b2/$26):(sprintf("%0.2f",(b2/$26))) with labels center offset +3,0 notitle, "" u 10:(b2/$26) with linespoints lt 2 pt 3 dt 2 notitle,\
+     1/0 lt 1 title "70M DoFs",\
+     1/0 lt 2 title "8.9M DoFs",\
+     1/0 lt -1 dt 1 title "matrix-free",\
+     1/0 lt -1 dt 2 title "matrix-based",\
+     (128<x && x<1024) ? x/128 : 1/0 with lines dt 5 lt -1 title "ideal",\
+     (16<x && x<1024) ? x/16 : 1/0 with lines dt 5 lt -1 notitle
+
+
+#iterations
+set logscale xy
+unset logscale y
+set xtics (16,32,64,128,256,512,1024)
+set ytics auto
+unset grid
+set xrange [8:1536]
+set yrange [0:100]
+set title "GMRES iterations for global refinement"
+set xlabel "# of processors"
+set ylabel "GMRES iterations"
+plot "mf/mf-global-7ref" u 10:96 with linespoints lt 1 pt 1 dt 1 notitle, \
+     "mb/mb-global-7ref" u 10:96 with linespoints lt 1 pt 3 dt 2 notitle,\
+     "mf/mf-global-6ref" u 10:96 with linespoints lt 2 pt 1 dt 1 notitle, \
+     "mb/mb-global-6ref" u 10:96 with linespoints lt 2 pt 3 dt 2 notitle,\
+     "mf/mf-global-5ref" u 10:96 with linespoints lt 3 pt 1 dt 1 notitle, \
+     "mb/mb-global-5ref" u 10:96 with linespoints lt 3 pt 3 dt 2 notitle,\
+     "mf/mf-global-4ref" u 10:96 with linespoints lt 4 pt 1 dt 1 notitle, \
+     "mb/mb-global-4ref" u 10:96 with linespoints lt 4 pt 3 dt 2 notitle,\
+     1/0 lt 1 title "70M DoFs",\
+     1/0 lt 2 title "8.9M DoFs",\
+     1/0 lt 3 title "1.1M DoFs",\
+     1/0 lt 4 title "149K DoFs",\
+     1/0 lt -1 dt 1 title "matrix-free",\
+     1/0 lt -1 dt 2 title "matrix-based"
+
+
+
+
+
+

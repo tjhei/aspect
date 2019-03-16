@@ -1,0 +1,33 @@
+#!/bin/bash
+
+rm mf/*
+rm mb/*
+
+for i in {4..7};
+do 
+    grep -rh "mf-global" ../timings-on-palmetto/ | grep "Ref: ${i}" | sort -n -k 10 > mf/mf-global-${i}ref 
+done
+
+
+
+for i in {4..7};
+do 
+    grep -rh "mb-global" ../timings-on-palmetto/ | grep "Ref: ${i}" | sort -n -k 10 > mb/mb-global-${i}ref 
+done
+
+cat ../timings-on-palmetto/mb-adaptive-5ref-16procs.dat <(echo) ../timings-on-palmetto/mb-adaptive-6ref-32procs.dat <(echo) ../timings-on-palmetto/mb-adaptive-7ref-64procs.dat <(echo) ../timings-on-palmetto/mb-adaptive-8ref-128procs.dat <(echo) ../timings-on-palmetto/mb-adaptive-9ref-256procs.dat > weak_scaling_mb
+
+cat ../timings-on-palmetto/mf-adaptive-5ref-16procs.dat  <(echo) ../timings-on-palmetto/mf-adaptive-6ref-32procs.dat <(echo) ../timings-on-palmetto/mf-adaptive-7ref-64procs.dat <(echo) ../timings-on-palmetto/mf-adaptive-8ref-128procs.dat <(echo) ../timings-on-palmetto/mf-adaptive-9ref-256procs.dat > weak_scaling_mf
+
+
+#for i in {0..8};
+#do 
+#    grep -rh "mf-adaptive" ../timings-on-palmetto/ | grep "Ref: ${i}" | sort -n -k 10 > mf/mf-adaptive-${i}ref 
+#done
+
+
+
+#for i in {0..8};
+#do 
+#    grep -rh "mb-adaptive" ../timings-on-palmetto/ | grep "Ref: ${i}" | sort -n -k 10 > mb/mb-adaptive-${i}ref 
+#done

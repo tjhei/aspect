@@ -1,4 +1,0 @@
-MatrixFree, 4 sinkers, 1e4 visc jump
-out:    Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 512; 32768; 1134437; 0.470957; 0.025634; 0.716699; 24; 0.032365; 
-out:    Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 512; 262144; 8861381; 1.04226; 0.0776374; 1.21635; 26; 0.0371879; 
-out:    Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 512; 2097152; 70045061; 4.03338; 0.465964; 6.53555; 27; 0.169498; 
