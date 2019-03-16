@@ -41,6 +41,7 @@
 
 
 
+
 // Add likwid support
 //#ifdef LIKWID_PERFMON
 //#include <likwid.h>
@@ -191,7 +192,7 @@ namespace aspect
     /**
              * Implement the block Schur preconditioner for the Stokes system.
              */
-    template <class StokesMatrixType, class MassMatrixType, class PreconditionerMp,class PreconditionerA>
+    template <class ABlockMatrixType, class StokesMatrixType, class MassMatrixType, class PreconditionerMp,class PreconditionerA>
     class BlockSchurPreconditioner : public Subscriptor
     {
       public:
@@ -213,6 +214,7 @@ namespace aspect
                    *     the inverse of the S block (Schur complement matrix).
                    **/
         BlockSchurPreconditioner (const StokesMatrixType  &S,
+                                  const ABlockMatrixType  &A,
                                   const MassMatrixType  &Mass,
                                   const PreconditionerMp                     &Mppreconditioner,
                                   const PreconditionerA                      &Apreconditioner,
@@ -235,6 +237,7 @@ namespace aspect
                    * References to the various matrix object this preconditioner works on.
                    */
         const StokesMatrixType &stokes_matrix;
+        const ABlockMatrixType &velocity_matrix;
         const MassMatrixType &mass_matrix;
         const PreconditionerMp                    &mp_preconditioner;
         const PreconditionerA                     &a_preconditioner;
@@ -250,9 +253,10 @@ namespace aspect
         const double S_block_tolerance;
     };
 
-    template <class StokesMatrixType, class MassMatrixType, class PreconditionerMp,class PreconditionerA>
-    BlockSchurPreconditioner<StokesMatrixType, MassMatrixType, PreconditionerMp, PreconditionerA>::
+    template <class ABlockMatrixType, class StokesMatrixType, class MassMatrixType, class PreconditionerMp,class PreconditionerA>
+    BlockSchurPreconditioner<ABlockMatrixType, StokesMatrixType, MassMatrixType, PreconditionerMp, PreconditionerA>::
     BlockSchurPreconditioner (const StokesMatrixType  &S,
+                              const ABlockMatrixType  &A,
                               const MassMatrixType  &Mass,
                               const PreconditionerMp                     &Mppreconditioner,
                               const PreconditionerA                      &Apreconditioner,
@@ -261,6 +265,7 @@ namespace aspect
                               const double                                S_block_tolerance)
       :
       stokes_matrix     (S),
+      velocity_matrix   (A),
       mass_matrix     (Mass),
       mp_preconditioner (Mppreconditioner),
       a_preconditioner  (Apreconditioner),
@@ -271,25 +276,25 @@ namespace aspect
       S_block_tolerance(S_block_tolerance)
     {}
 
-    template <class StokesMatrixType, class MassMatrixType, class PreconditionerMp,class PreconditionerA>
+    template <class ABlockMatrixType, class StokesMatrixType, class MassMatrixType, class PreconditionerMp,class PreconditionerA>
     unsigned int
-    BlockSchurPreconditioner<StokesMatrixType, MassMatrixType, PreconditionerMp, PreconditionerA>::
+    BlockSchurPreconditioner<ABlockMatrixType, StokesMatrixType, MassMatrixType, PreconditionerMp, PreconditionerA>::
     n_iterations_A() const
     {
       return n_iterations_A_;
     }
 
-    template <class StokesMatrixType, class MassMatrixType, class PreconditionerMp,class PreconditionerA>
+    template <class ABlockMatrixType, class StokesMatrixType, class MassMatrixType, class PreconditionerMp,class PreconditionerA>
     unsigned int
-    BlockSchurPreconditioner<StokesMatrixType, MassMatrixType, PreconditionerMp, PreconditionerA>::
+    BlockSchurPreconditioner<ABlockMatrixType, StokesMatrixType, MassMatrixType, PreconditionerMp, PreconditionerA>::
     n_iterations_S() const
     {
       return n_iterations_S_;
     }
 
-    template <class StokesMatrixType, class MassMatrixType, class PreconditionerMp,class PreconditionerA>
+    template <class ABlockMatrixType, class StokesMatrixType, class MassMatrixType, class PreconditionerMp,class PreconditionerA>
     void
-    BlockSchurPreconditioner<StokesMatrixType, MassMatrixType, PreconditionerMp, PreconditionerA>::
+    BlockSchurPreconditioner<ABlockMatrixType, StokesMatrixType, MassMatrixType, PreconditionerMp, PreconditionerA>::
     vmult (dealii::LinearAlgebra::distributed::BlockVector<double>       &dst,
            const dealii::LinearAlgebra::distributed::BlockVector<double>  &src) const
     {
@@ -351,34 +356,34 @@ namespace aspect
       // iterations of our two-stage outer GMRES iteration)
       if (do_solve_A == true)
         {
-          Assert(false, ExcNotImplemented());
-          /*
-                        SolverControl solver_control(10000, utmp.block(0).l2_norm() * A_block_tolerance);
-                        SolverCG<LinearAlgebra::distributed::Vector<double>> solver(solver_control);
-                        try
-                        {
-                          dst.block(0) = 0.0;
-                          solver.solve(stokes_matrix.block(0,0), dst.block(0), utmp.block(0),
-                                       a_preconditioner);
-                          n_iterations_A_ += solver_control.last_step();
-                        }
-                        // if the solver fails, report the error from processor 0 with some additional
-                        // information about its location, and throw a quiet exception on all other
-                        // processors
-                        catch (const std::exception &exc)
-                        {
-                          if (Utilities::MPI::this_mpi_process(src.block(0).get_mpi_communicator()) == 0)
-                            AssertThrow (false,
-                                         ExcMessage (std::string("The iterative (top left) solver in BlockSchurPreconditioner::vmult "
-                                                                 "did not converge to a tolerance of "
-                                                                 + Utilities::to_string(solver_control.tolerance()) +
-                                                                 ". It reported the following error:\n\n")
-                                                     +
-                                                     exc.what()))
-                                else
-                                throw QuietException();
-                        }
-                        */
+          //Assert(false, ExcNotImplemented());
+
+          SolverControl solver_control(10000, utmp.block(0).l2_norm() * A_block_tolerance);
+          SolverCG<dealii::LinearAlgebra::distributed::Vector<double>> solver(solver_control);
+          try
+            {
+              dst.block(0) = 0.0;
+              solver.solve(velocity_matrix, dst.block(0), utmp.block(0),
+                           a_preconditioner);
+              n_iterations_A_ += solver_control.last_step();
+            }
+          // if the solver fails, report the error from processor 0 with some additional
+          // information about its location, and throw a quiet exception on all other
+          // processors
+          catch (const std::exception &exc)
+            {
+              if (Utilities::MPI::this_mpi_process(src.block(0).get_mpi_communicator()) == 0)
+                AssertThrow (false,
+                             ExcMessage (std::string("The iterative (top left) solver in BlockSchurPreconditioner::vmult "
+                                                     "did not converge to a tolerance of "
+                                                     + Utilities::to_string(solver_control.tolerance()) +
+                                                     ". It reported the following error:\n\n")
+                                         +
+                                         exc.what()))
+                else
+                  throw QuietException();
+            }
+
         }
       else
         {
@@ -479,22 +484,16 @@ namespace aspect
             n_owned_cells_on_lvl += 1;
 
         work_estimate_this_level = dealii::Utilities::MPI::max(n_owned_cells_on_lvl,sim.triangulation.get_communicator());
-//      MPI_Reduce(&n_owned_cells_on_lvl, &work_estimate_this_level, 1,
-//                 MPI_UNSIGNED_LONG_LONG, MPI_MAX, 0,
-//                 MPI_COMM_WORLD);
 
         //Work estimated by summing up max number of cells on each level
         work_estimate += work_estimate_this_level;
 
         total_cells_on_lvl = dealii::Utilities::MPI::sum(n_owned_cells_on_lvl,sim.triangulation.get_communicator());
-//      MPI_Reduce(&n_owned_cells_on_lvl, &total_cells_on_lvl, 1,
-//                 MPI_UNSIGNED_LONG_LONG, MPI_SUM, 0,
-//                 MPI_COMM_WORLD);
 
         total_cells_in_hierarchy += total_cells_on_lvl;
       }
     double ideal_work = total_cells_in_hierarchy / (double)n_proc;
-    double workload_imbalance_ratio = work_estimate / ideal_work; // maybe 1 over
+    double workload_imbalance_ratio = work_estimate / ideal_work;
 
     return workload_imbalance_ratio;
   }
@@ -555,6 +554,11 @@ namespace aspect
                                                         sim.triangulation,
                                                         dof_handler_projection);
 
+    velocity_matrix.fill_viscosities(active_coef_dof_vec,
+                                     sim.triangulation,
+                                     dof_handler_projection,
+                                     false);
+
     mass_matrix.fill_viscosities_and_pressure_scaling(active_coef_dof_vec,
                                                       sim.pressure_scaling,
                                                       sim.triangulation,
@@ -577,7 +581,8 @@ namespace aspect
       {
         mg_matrices[level].fill_viscosities(level_coef_dof_vec[level],
                                             sim.triangulation,
-                                            dof_handler_projection);
+                                            dof_handler_projection,
+                                            true);
         mg_matrices[level].compute_diagonal();
       }
   }
@@ -900,20 +905,28 @@ namespace aspect
     // create Solver controls for the cheap and expensive solver phase
     SolverControl solver_control_cheap (sim.parameters.n_cheap_stokes_solver_steps,
                                         solver_tolerance, true);
-    //  SolverControl solver_control_expensive (sim.parameters.n_expensive_stokes_solver_steps,
-    //                                          solver_tolerance);
+    SolverControl solver_control_expensive (sim.parameters.n_expensive_stokes_solver_steps,
+                                            solver_tolerance);
 
     solver_control_cheap.enable_history_data();
-    //solver_control_expensive.enable_history_data();
+    solver_control_expensive.enable_history_data();
 
 
     // create a cheap preconditioner that consists of only a single V-cycle
-    const internal::BlockSchurPreconditioner<StokesMatrixType, MassMatrixType, MassPreconditioner, APreconditioner>
-    preconditioner_cheap (stokes_matrix, mass_matrix,
+    const internal::BlockSchurPreconditioner<ABlockMatrixType, StokesMatrixType, MassMatrixType, MassPreconditioner, APreconditioner>
+    preconditioner_cheap (stokes_matrix, velocity_matrix, mass_matrix,
                           prec_S, prec_A,
                           false,
                           sim.parameters.linear_solver_A_block_tolerance,
                           sim.parameters.linear_solver_S_block_tolerance);
+
+    // create a cheap preconditioner that consists of only a single V-cycle
+    const internal::BlockSchurPreconditioner<ABlockMatrixType, StokesMatrixType, MassMatrixType, MassPreconditioner, APreconditioner>
+    preconditioner_expensive (stokes_matrix, velocity_matrix, mass_matrix,
+                              prec_S, prec_A,
+                              true,
+                              sim.parameters.linear_solver_A_block_tolerance,
+                              sim.parameters.linear_solver_S_block_tolerance);
 
     dealii::LinearAlgebra::distributed::BlockVector<double> solution_copy(2);
     dealii::LinearAlgebra::distributed::BlockVector<double> rhs_copy(2);
@@ -983,19 +996,44 @@ namespace aspect
 
         final_linear_residual = solver_control_cheap.last_value();
       }
-    catch (SolverControl::NoConvergence)
+    // step 1b: take the stronger solver in case
+    // the simple solver failed and attempt solving
+    // it in n_expensive_stokes_solver_steps steps or less.
+    catch (const SolverControl::NoConvergence &)
       {
-        sim.pcout << "********************************************************************" << std::endl
-                  << "SOLVER DID NOT CONVERGE AFTER "
-                  << sim.parameters.n_cheap_stokes_solver_steps
-                  << " ITERATIONS. res=" << solver_control_cheap.last_value() << std::endl
-                  << "********************************************************************" << std::endl;
+        const unsigned int number_of_temporary_vectors = (sim.parameters.include_melt_transport == false ?
+                                                          sim.parameters.stokes_gmres_restart_length :
+                                                          std::max(sim.parameters.stokes_gmres_restart_length, 100U));
 
-        //Assert(false,ExcNotImplemented());
+        SolverFGMRES<dealii::LinearAlgebra::distributed::BlockVector<double>>
+                                                                           solver(solver_control_expensive, mem,
+                                                                                  SolverFGMRES<dealii::LinearAlgebra::distributed::BlockVector<double>>::
+                                                                                  AdditionalData(number_of_temporary_vectors));
+
+        try
+          {
+            solver.solve(stokes_matrix,
+                         solution_copy,
+                         rhs_copy,
+                         preconditioner_expensive);
+
+            final_linear_residual = solver_control_expensive.last_value();
+          }
+        catch (SolverControl::NoConvergence)
+          {
+            sim.pcout << "********************************************************************" << std::endl
+                      << "SOLVER DID NOT CONVERGE AFTER "
+                      << sim.parameters.n_cheap_stokes_solver_steps
+                      << "+" << sim.parameters.n_expensive_stokes_solver_steps
+                      << " ITERATIONS. res=" << solver_control_expensive.last_value() << std::endl
+                      << "********************************************************************" << std::endl;
+
+            //Assert(false,ExcNotImplemented());
+          }
       }
     sim.stokes_timer.leave_subsection("gmres_solve");
 
-    sim.gmres_iterations = solver_control_cheap.last_step();
+    sim.gmres_iterations = solver_control_cheap.last_step() + solver_control_expensive.last_step();
 
 
 
@@ -1037,9 +1075,16 @@ namespace aspect
                   << std::setw(15)
                   << (solver_control_cheap.last_step() != numbers::invalid_unsigned_int ?
                       solver_control_cheap.last_step():
-                      0)
-                  << std::endl;
-        sim.pcout << std::left
+                      0);
+
+        if (solver_control_expensive.last_step() > 0 &&
+            solver_control_expensive.last_step() != numbers::invalid_unsigned_int)
+          sim.pcout << " + "
+                    << (solver_control_expensive.last_step() != numbers::invalid_unsigned_int ?
+                        solver_control_expensive.last_step():
+                        0);
+
+        sim.pcout << std::left << std::endl
                   << std::setw(8) << "output:" << std::endl;
       }
 
@@ -1171,6 +1216,22 @@ namespace aspect
         stokes_matrix.clear();
         stokes_matrix.initialize(stokes_mf_storage);
 
+      }
+
+      // ABlock active matrix...
+      {
+        typename MatrixFree<dim,double>::AdditionalData additional_data;
+        additional_data.tasks_parallel_scheme =
+          MatrixFree<dim,double>::AdditionalData::none;
+        additional_data.mapping_update_flags = (update_values | update_gradients |
+                                                update_JxW_values | update_quadrature_points);
+        std::shared_ptr<MatrixFree<dim,double> >
+        ablock_mf_storage(new MatrixFree<dim,double>());
+        ablock_mf_storage->reinit(*sim.mapping,dof_handler_v, constraints_v,
+                                  QGauss<1>(sim.parameters.stokes_velocity_degree+1), additional_data);
+
+        velocity_matrix.clear();
+        velocity_matrix.initialize(ablock_mf_storage);
       }
 
       // Mass matrix...

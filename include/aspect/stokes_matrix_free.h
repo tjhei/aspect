@@ -421,7 +421,8 @@ namespace aspect
         void clear ();
         void fill_viscosities(const dealii::LinearAlgebra::distributed::Vector<number> &visc_vals,
                               const Triangulation<dim> &tria,
-                              const DoFHandler<dim> &dof_handler_for_projection);
+                              const DoFHandler<dim> &dof_handler_for_projection,
+                              const bool for_mg);
         void output_visc (const unsigned int level, const unsigned int proc);
         virtual void compute_diagonal ();
 
@@ -459,27 +460,41 @@ namespace aspect
     ABlockOperator<dim,degree_v,number>::
     fill_viscosities (const dealii::LinearAlgebra::distributed::Vector<number> &visc_vals,
                       const Triangulation<dim> &tria,
-                      const DoFHandler<dim> &dof_handler_for_projection)
+                      const DoFHandler<dim> &dof_handler_for_projection,
+                      const bool for_mg)
     {
       FEEvaluation<dim,degree_v,degree_v+1,dim,number> velocity (*this->data, 0);
       const unsigned int n_cells = this->data->n_macro_cells();
       viscosity_x_2.reinit(n_cells, velocity.n_q_points);
 
-      std::vector<types::global_dof_index> local_mg_dof_indices(dof_handler_for_projection.get_fe().dofs_per_cell);
+      std::vector<types::global_dof_index> local_dof_indices(dof_handler_for_projection.get_fe().dofs_per_cell);
       for (unsigned int cell=0; cell<n_cells; ++cell)
         for (unsigned int i=0; i<this->get_matrix_free()->n_components_filled(cell); ++i)
           {
-            typename DoFHandler<dim>::level_cell_iterator FEQ_cell = this->get_matrix_free()->get_cell_iterator(cell,i);
-            typename DoFHandler<dim>::level_cell_iterator DG_cell(&tria,
-                                                                  FEQ_cell->level(),
-                                                                  FEQ_cell->index(),
-                                                                  &dof_handler_for_projection);
-            DG_cell->get_active_or_mg_dof_indices(local_mg_dof_indices);
+
+            if (for_mg)
+              {
+                typename DoFHandler<dim>::level_cell_iterator FEQ_cell = this->get_matrix_free()->get_cell_iterator(cell,i);
+                typename DoFHandler<dim>::level_cell_iterator DG_cell(&tria,
+                                                                      FEQ_cell->level(),
+                                                                      FEQ_cell->index(),
+                                                                      &dof_handler_for_projection);
+                DG_cell->get_active_or_mg_dof_indices(local_dof_indices);
+              }
+            else
+              {
+                typename DoFHandler<dim>::active_cell_iterator FEQ_cell = this->get_matrix_free()->get_cell_iterator(cell,i);
+                typename DoFHandler<dim>::active_cell_iterator DG_cell(&tria,
+                                                                       FEQ_cell->level(),
+                                                                       FEQ_cell->index(),
+                                                                       &dof_handler_for_projection);
+                DG_cell->get_active_or_mg_dof_indices(local_dof_indices);
+              }
 
             //TODO: projection with higher degree
-            Assert(local_mg_dof_indices.size() == 1, ExcNotImplemented());
+            Assert(local_dof_indices.size() == 1, ExcNotImplemented());
             for (unsigned int q=0; q<velocity.n_q_points; ++q)
-              viscosity_x_2(cell,q)[i] = 2.0*visc_vals(local_mg_dof_indices[0]);
+              viscosity_x_2(cell,q)[i] = 2.0*visc_vals(local_dof_indices[0]);
           }
     }
 
@@ -685,6 +700,7 @@ namespace aspect
       DoFHandler<dim> dof_handler_p;
 
       StokesMatrixType stokes_matrix;
+      ABlockMatrixType velocity_matrix;
       MassMatrixType mass_matrix;
 
       ConstraintMatrix stokes_constraints;
