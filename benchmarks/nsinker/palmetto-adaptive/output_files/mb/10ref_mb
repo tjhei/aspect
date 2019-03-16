@@ -1,7 +1,0 @@
-Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 16; 157074; 5944962; 4.8978; 27.4936; 27.6256; 50; 0.28147; 
-Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 32; 155772; 5899464; 3.10776; 14.2094; 15.3334; 50; 0.156592; 
-Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 64; 123467; 4721463; 1.65356; 6.20954; 6.89182; 47; 0.0809215; 
-Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 128; 121136; 4641852; 1.13185; 3.77075; 5.19401; 46; 0.0727479; 
-Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 256; 126876; 4843214; 0.727536; 2.57252; 8.12737; 45; 0.147662; 
-Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 512; 124636; 4766538; 0.561228; 2.54659; 14.7441; 45; 0.270047; 
-Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 1024; 118945; 4570388; 0.777574; 5.69677; 14.2706; 44; 0.338897; 

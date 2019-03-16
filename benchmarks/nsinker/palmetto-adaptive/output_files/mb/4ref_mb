@@ -1,7 +1,0 @@
-out:    Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 16; 1590; 70876; 0.161436; 0.499093; 0.258983; 31; 0.00480942; 
-out:    Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 32; 1576; 70426; 0.134301; 0.414698; 0.463333; 30; 0.00975895; 
-out:    Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 64; 1674; 74798; 0.11918; 0.413473; 0.704492; 31; 0.016053; 
-out:    Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 128; 1667; 74642; 0.140769; 0.376737; 1.5777; 30; 0.0367715; 
-out:    Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 256; 1499; 67483; 0.165813; 0.295104; 2.13882; 30; 0.0583975; 
-out:    Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 512; 1485; 67083; 0.225378; 0.248544; 1.95969; 30; 0.0509147; 
-out:    Procs; Cells; DoFs; Setup; Assemble; Solve; Iterations; Vcycle; 1024; 1534; 68862; 0.481105; 0.285577; 2.28757; 29; 0.0605691; 
