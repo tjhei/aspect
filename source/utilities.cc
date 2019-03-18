@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2018 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2019 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -547,13 +547,13 @@ namespace aspect
               const double u_theta = spherical_vector[2];
 
               cartesian_vector[0] = std::cos(phi)*std::sin(theta)*u_r
-                                    - std::sin(phi)*u_theta
-                                    - std::cos(phi)*std::cos(theta)*u_phi; // X
+                                    - std::sin(phi)*u_phi
+                                    + std::cos(phi)*std::cos(theta)*u_theta; // X
               cartesian_vector[1] = std::sin(phi)*std::sin(theta)*u_r
-                                    + std::cos(phi)*u_theta
-                                    - std::sin(phi)*std::cos(theta)*u_phi; // Y
+                                    + std::cos(phi)*u_phi
+                                    + std::sin(phi)*std::cos(theta)*u_theta; // Y
               cartesian_vector[2] = std::cos(theta)*u_r
-                                    + std::sin(theta)*u_phi;                 // Z
+                                    - std::sin(theta)*u_theta; // Z
               break;
             }
 

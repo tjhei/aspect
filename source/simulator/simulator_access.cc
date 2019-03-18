@@ -1,5 +1,5 @@
 /*
-  Copyright (C) 2011 - 2018 by the authors of the ASPECT code.
+  Copyright (C) 2011 - 2019 by the authors of the ASPECT code.
 
   This file is part of ASPECT.
 
@@ -616,6 +616,15 @@ namespace aspect
     Assert (simulator->melt_handler.get() != 0,
             ExcMessage("You can not call this function if melt transport is not enabled."));
     return *(simulator->melt_handler);
+  }
+
+  template <int dim>
+  const VolumeOfFluidHandler<dim> &
+  SimulatorAccess<dim>::get_volume_of_fluid_handler () const
+  {
+    Assert (simulator->volume_of_fluid_handler.get() != nullptr,
+            ExcMessage("You can not call this function if volume of fluid interface tracking is not enabled."));
+    return *(simulator->volume_of_fluid_handler);
   }
 
   template <int dim>
