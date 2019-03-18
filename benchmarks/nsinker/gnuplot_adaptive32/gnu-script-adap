@@ -17,7 +17,7 @@ set ylabel "Cells"
 set key left top
 plot "weak_scaling_mf" u 10:6:(sprintf("%d",($6))) with labels center offset 0,-1.5 tc lt 1 notitle, "" u 10:6 with linespoints title "GMG" lt 1, \
      "weak_scaling_mb" u 10:6:(sprintf("%d",($6))) with labels center offset 0,1.5 tc lt 2notitle, "" u 10:6 with linespoints title "AMG" lt 2, \
-     (16<x && x<1024) ? 149612*x/16 : 1/0 with lines dt 2 lt -1 title "O(n)"
+     (16<x && x<1024) ? 162223*x/16 : 1/0 with lines dt 2 lt -1 title "O(n)"
 
 
 #problem size: DoFs
@@ -30,9 +30,9 @@ set title "Problem size: DoFs"
 set xlabel "# of processors"
 set ylabel "DoFs"
 set key left top
-plot "weak_scaling_mf" u 10:8:(sprintf("%d",($8))) with labels center offset 0,-1.5 tc lt 1 notitle, "" u 10:8 with linespoints title "GMG" lt 1, \
-     "weak_scaling_mb" u 10:8:(sprintf("%d",($8))) with labels center offset 0,1.5 tc lt 2notitle, "" u 10:8 with linespoints title "AMG" lt 2, \
-     (16<x && x<1024) ? 5682025*x/16 : 1/0 with lines dt 2 lt -1 title "O(n)"
+plot "weak_scaling_mf" u 10:8:(sprintf("%d",($8))) with labels center offset 0,1.5 tc lt 1 notitle, "" u 10:8 with linespoints title "GMG" lt 1, \
+     "weak_scaling_mb" u 10:8:(sprintf("%d",($8))) with labels center offset 0,-1.5 tc lt 2 notitle, "" u 10:8 with linespoints title "AMG" lt 2, \
+     (16<x && x<1024) ? 6150329*x/16 : 1/0 with lines dt 2 lt -1 title "O(n)"
 
 
 #problem size: Cells per proc
@@ -47,7 +47,7 @@ set ylabel "Cells per proc"
 set key left top
 plot "weak_scaling_mf" u 10:($6/$10):(sprintf("%d",($6/$10))) with labels center offset 0,-1.2 tc lt 1 notitle, "" u 10:($6/$10) with linespoints title "GMG" lt 1, \
      "weak_scaling_mb" u 10:($6/$10):(sprintf("%d",($6/$10))) with labels center offset 0,1.2 tc lt 2 notitle, "" u 10:($6/$10) with linespoints title "AMG" lt 2, \
-     (16<x && x<1024) ? 149612/16*x/x : 1/0 with lines dt 2 lt -1 title "O(n)"
+     (16<x && x<1024) ? 162223/16*x/x : 1/0 with lines dt 2 lt -1 title "O(n)"
 
 
 #problem size: DoFs per proc
@@ -62,7 +62,7 @@ set ylabel "DoFs per proc"
 set key left top
 plot "weak_scaling_mf" u 10:($8/$10):(sprintf("%d",($8/$10))) with labels center offset 0,-1.2 tc lt 1 notitle, "" u 10:($8/$10) with linespoints title "GMG" lt 1, \
      "weak_scaling_mb" u 10:($8/$10):(sprintf("%d",($8/$10))) with labels center offset 0,1.2 tc lt 2 notitle, "" u 10:($8/$10) with linespoints title "AMG" lt 2, \
-     (16<x && x<1024) ? 5682025/16*x/x : 1/0 with lines dt 2 lt -1 title "O(n)"
+     (16<x && x<1024) ? 6150329/16*x/x : 1/0 with lines dt 2 lt -1 title "O(n)"
 
 
 
@@ -77,7 +77,7 @@ set logscale xy
 unset logscale xy
 
 set yrange [0:105]
-set title "Setup (% of total) - 43M DoFs"
+set title "Setup (% of total)"
 set key invert reverse Left outside
 set key noautotitle
 set style data histogram
@@ -117,11 +117,12 @@ reset
 set style line
 set logscale xy
 set xtics (16,32,64,128,256,512,1024)
-set xrange [96:1536]
-set yrange [0.03:100]
-set title "Setup (each componenet) - 43M"
+set xrange [12:1536]
+set yrange [0.1:1000]
+set title "Setup (each componenet)"
 set xlabel "# of processors"
 set ylabel "median of 5 runs"
+set key left top
 plot "weak_scaling_mf" u 10:38 with linespoints title "sys dofs" lt 1, \
      "" u 10:68 with linespoints title 'sparsity-gmg' lt 2, \
      "" u 10:44 with linespoints title 'mf dofs' lt 3, \
@@ -130,10 +131,10 @@ plot "weak_scaling_mf" u 10:38 with linespoints title "sys dofs" lt 1, \
      "" u 10:62 with linespoints title 'mg transfer' lt 6,\
      "weak_scaling_mb" u 10:38 with linespoints title "sys dofs" dt 2 lt 1, \
      "" u 10:68 with linespoints title 'sparsity-amg' dt 2 lt 2, \
-     (128<x && x<1024) ? 128*.95/x : 1/0 with lines dt 5 lt -1 lw 2 title "O(p)",\
-     (128<x && x<1024) ? 128*3/x : 1/0 with lines dt 5 lt -1 lw 2 notitle,\
-     (128<x && x<1024) ? 128*.38/x : 1/0 with lines dt 5 lt -1 lw 2 notitle,\
-     (128<x && x<1024) ? 128*30/x : 1/0 with lines dt 5 lt -1 lw 2 notitle
+     (16<x && x<1024) ? 0.25*x/x : 1/0 with lines dt 5 lt -1 lw 2 title "O(p)",\
+     (16<x && x<1024) ? 0.75*x/x : 1/0 with lines dt 5 lt -1 lw 2 notitle,\
+     (16<x && x<1024) ? 2.5*x/x : 1/0 with lines dt 5 lt -1 lw 2 notitle,\
+     (16<x && x<1024) ? 38*x/x : 1/0 with lines dt 5 lt -1 lw 2 notitle
 
 
 
@@ -144,7 +145,7 @@ set logscale xy
 unset logscale xy
 
 set yrange [0:105]
-set title "Assemble (% of total) - 43M DoFs"
+set title "Assemble (% of total)"
 set key invert reverse Left outside
 set key noautotitle
 set style data histogram
@@ -153,7 +154,7 @@ set style fill solid border -1
 set boxwidth 0.75
 
 func(x) = (100.*x/($74+$80+$86+$92))
-xpos(x) = log(x/128)/log(2)
+xpos(x) = log(x/16)/log(2)
 ypos(begin,end) = (end-begin)/2 + begin
 
 plot newhistogram "GMG", "weak_scaling_mf" u (func($74)):xtic(10) title 'system matrix/rhs' lt 1, \
@@ -166,9 +167,9 @@ plot newhistogram "GMG", "weak_scaling_mf" u (func($74)):xtic(10) title 'system 
      "" u (func($80)) notitle lt 2, \
      "" u (func($86)) notitle lt 3, \
      "" u (func($92)) notitle lt 4,\
-     "" u (xpos($10)+5):(ypos(0,func($74))):(sprintf("%0.0f%",func($74))) with labels,\
-     "" u (xpos($10)+5):(ypos(func($74),func($74)+func($86))):(sprintf("%0.0f%",func($86))) with labels,\
-     "" u (xpos($10)+5):(ypos(func($74)+func($88),func($74)+func($86)+func($92))):(sprintf("%0.0f%",func($92))) with labels
+     "" u (xpos($10)+8):(ypos(0,func($74))):(sprintf("%0.0f%",func($74))) with labels,\
+     "" u (xpos($10)+8):(ypos(func($74),func($74)+func($86))):(sprintf("%0.0f%",func($86))) with labels,\
+     "" u (xpos($10)+8):(ypos(func($74)+func($88),func($74)+func($86)+func($92))):(sprintf("%0.0f%",func($92))) with labels
 
 
 #Each Assmeble comp
@@ -176,20 +177,21 @@ reset
 set style line
 set logscale xy
 set xtics (16,32,64,128,256,512,1024)
-set xrange [96:1536]
-set yrange [0.15:20]
-set title "Assemble (each componenet) - 43M"
+set xrange [12:1536]
+set yrange [0.7:70]
+set title "Assemble (each componenet)"
 set xlabel "# of processors"
 set ylabel "median of 5 runs"
+set key left top
 plot "weak_scaling_mf" u 10:74 with linespoints title "system matrix/rhs (GMG)" lt 1, \
      "" u 10:80 with linespoints title 'mf coefficients/RHS correct' lt 2, \
      "weak_scaling_mb" u 10:74 with linespoints title "system matrix/rhs (AMG)" dt 2 lt 1, \
      "" u 10:86 with linespoints title 'prec matrix (AMG)' dt 2 lt 3, \
      "" u 10:92 with linespoints title 'AMG' dt 2 lt 4, \
-     (128<x && x<1024) ? 128*15/x : 1/0 with lines dt 5 lt -1 lw 2 title "O(p)",\
-     (128<x && x<1024) ? 128*6.5/x : 1/0 with lines dt 5 lt -1 lw 2 notitle,\
-     (128<x && x<1024) ? 128*2.3/x : 1/0 with lines dt 5 lt -1 lw 2 notitle,\
-     (128<x && x<1024) ? 128*1.2/x : 1/0 with lines dt 5 lt -1 lw 2 notitle
+     (16<x && x<1024) ? 1.0*x/x : 1/0 with lines dt 5 lt -1 lw 2 title "O(p)",\
+     (16<x && x<1024) ? 1.75*x/x : 1/0 with lines dt 5 lt -1 lw 2 notitle,\
+     (16<x && x<1024) ? 6.0*x/x : 1/0 with lines dt 5 lt -1 lw 2 notitle,\
+     (16<x && x<1024) ? 14.5*x/x : 1/0 with lines dt 5 lt -1 lw 2 notitle
 
 
 
@@ -200,7 +202,7 @@ unset logscale xy
 
 set grid
 set yrange [0:105]
-set title "% of total time - 43M DoFs"
+set title "% of total time"
 set key invert reverse Left outside
 set key noautotitle
 set style data histogram
@@ -209,7 +211,7 @@ set style fill solid border -1
 set boxwidth 0.75
 
 func(x) = (100.*x/($14+$20+$26))
-xpos(x) = log(x/128)/log(2)
+xpos(x) = log(x/16)/log(2)
 ypos(begin,end) = (end-begin)/2 + begin
 
 plot newhistogram "GMG", "weak_scaling_mf" u (func($14)):xtic(10) title 'setup' lt 1, \
@@ -222,14 +224,14 @@ plot newhistogram "GMG", "weak_scaling_mf" u (func($14)):xtic(10) title 'setup' 
      newhistogram "AMG", "weak_scaling_mb" u (func($14)):xtic(10) notitle lt 1, \
      "" u (func($20)) notitle lt 2, \
      "" u (func($26)) notitle lt 3, \
-     "" u (xpos($10)+5):(ypos(0,func($14))):(sprintf("%0.0f%",func($14))) with labels,\
-     "" u (xpos($10)+5):(ypos(func($14),func($14)+func($20))):(sprintf("%0.0f%",func($20))) with labels,\
-     "" u (xpos($10)+5):(ypos(func($14)+func($20),func($14)+func($20)+func($26))):(sprintf("%0.0f%",func($26))) with labels,\
-     "" u (xpos($10)+5):(102):(sprintf("%0.1fs",($14+$20+$26))) with labels
+     "" u (xpos($10)+8):(ypos(0,func($14))):(sprintf("%0.0f%",func($14))) with labels,\
+     "" u (xpos($10)+8):(ypos(func($14),func($14)+func($20))):(sprintf("%0.0f%",func($20))) with labels,\
+     "" u (xpos($10)+8):(ypos(func($14)+func($20),func($14)+func($20)+func($26))):(sprintf("%0.0f%",func($26))) with labels,\
+     "" u (xpos($10)+8):(102):(sprintf("%0.1fs",($14+$20+$26))) with labels
 
 
 func(x) = (100.*x/($20+$26))
-xpos(x) = log(x/128)/log(2)
+xpos(x) = log(x/16)/log(2)
 ypos(begin,end) = (end-begin)/2 + begin
 
 plot newhistogram "GMG", "weak_scaling_mf" u (func($20)):xtic(10) title 'assemble' lt 2, \
@@ -239,9 +241,9 @@ plot newhistogram "GMG", "weak_scaling_mf" u (func($20)):xtic(10) title 'assembl
      "" u (xpos($10)):(102):(sprintf("%0.1fs",($14+$20+$26))) with labels,\
      newhistogram "AMG", "weak_scaling_mb" u (func($20)):xtic(10) notitle lt 2, \
      "" u (func($26)) notitle lt 3, \
-     "" u (xpos($10)+5):(ypos(0,func($20))):(sprintf("%0.0f%",func($20))) with labels,\
-     "" u (xpos($10)+5):(ypos(func($20),func($20)+func($26))):(sprintf("%0.0f%",func($26))) with labels,\
-     "" u (xpos($10)+5):(102):(sprintf("%0.1fs",($14+$20+$26))) with labels
+     "" u (xpos($10)+8):(ypos(0,func($20))):(sprintf("%0.0f%",func($20))) with labels,\
+     "" u (xpos($10)+8):(ypos(func($20),func($20)+func($26))):(sprintf("%0.0f%",func($26))) with labels,\
+     "" u (xpos($10)+8):(102):(sprintf("%0.1fs",($14+$20+$26))) with labels
 
 
 
@@ -257,73 +259,80 @@ Timings for setup,assemble,solve,vmult
 reset
 set logscale xy
 set xtics (16,32,64,128,256,512,1024)
-set xrange [96:1536]
-set yrange [2:150]
-set title "Setup - 43M"
+set xrange [12:1536]
+set yrange [10:210]
+set title "Setup"
 set xlabel "# of processors"
 set ylabel "median of 5 runs"
-plot "weak_scaling_mf" u 10:14:(sprintf("%0.2f",$14)) with labels center offset -3,0 notitle, "" u 10:14 with linespoints title "matrix-free" lt 1, \
-     "weak_scaling_mb" u 10:14:(sprintf("%0.2f",$14)) with labels center offset -3,0 notitle, "" u 10:14 with linespoints title "matrix-based" lt 2, \
-     (128<x && x<1024) ? 128*16.26/x : 1/0 with lines dt 2 lt -1 title "O(p)",\
+set key left top
+plot "weak_scaling_mf" u 10:14:(sprintf("%0.2f",$14)) with labels center offset 3,-1 notitle, "" u 10:14 with linespoints title "GMG" lt 1, \
+     "weak_scaling_mb" u 10:14:(sprintf("%0.2f",$14)) with labels center offset 3,-1 notitle, "" u 10:14 with linespoints title "AMG" lt 2, \
+     (16<x && x<1024) ? 12.45*x/x : 1/0 with lines dt 2 lt -1 title "O(p)",\
+     (16<x && x<1024) ? 49.01*x/x : 1/0 with lines dt 2 lt -1 notitle,\
      for [i=1:5] "weak_scaling_mf" u 10:(column(11+i)) with points notitle lt 1 lw 2,\
      for [i=1:5] "weak_scaling_mb" u 10:(column(11+i)) with points notitle lt 2 lw 2,\
-     "weak_scaling_mf" u 10:(((128*16.2557)/$10)*($98/2.6511)) with lines title "imbalance O(p)" dt 2 lt 7
+     "weak_scaling_mf" u 10:(12.45*($98/1.72787)) with lines title "imbalance O(p)" dt 2 lt 7
 
 
 #assemble time
 reset
 set logscale xy
 set xtics (16,32,64,128,256,512,1024)
-set xrange [96:1536]
-set yrange [.4:50]
-set title "Assemble RHS/StokesMatrix/AMG - 43M"
+set xrange [12:1536]
+set yrange [1:100]
+set title "Assemble RHS/StokesMatrix/AMG"
 set xlabel "# of processors"
 set ylabel "median of 5 runs"
-plot "weak_scaling_mf" u 10:20:(sprintf("%0.2f",$20)) with labels center offset -3,0 notitle, "" u 10:20 with linespoints title "matrix-free" lt 1, \
-     "weak_scaling_mb" u 10:20:(sprintf("%0.2f",$20)) with labels center offset -3,0 notitle, "" u 10:20 with linespoints title "matrix-based" lt 2, \
-     (128<x && x<1024) ? 128*3.59/x : 1/0 with lines dt 2 lt -1 title "O(p)",\
+set key left top
+plot "weak_scaling_mf" u 10:20:(sprintf("%0.2f",$20)) with labels center offset 3,-1 notitle, "" u 10:20 with linespoints title "GMG" lt 1, \
+     "weak_scaling_mb" u 10:20:(sprintf("%0.2f",$20)) with labels center offset 3,-1 notitle, "" u 10:20 with linespoints title "AMG" lt 2, \
+     (16<x && x<1024) ? 2.76*x/x : 1/0 with lines dt 2 lt -1 title "O(p)",\
+     (16<x && x<1024) ? 26.65*x/x : 1/0 with lines dt 2 lt -1 notitle,\
      for [i=1:5] "weak_scaling_mf" u 10:(column(17+i)) with points notitle lt 1 lw 2,\
      for [i=1:5] "weak_scaling_mb" u 10:(column(17+i)) with points notitle lt 2 lw 2,\
-     "weak_scaling_mf" u 10:(((128*3.56684)/$10)*($98/2.6511)) with lines title "imbalance O(p)" dt 2 lt 7
+     "weak_scaling_mf" u 10:(2.67*($98/1.72787)) with lines title "imbalance O(p)" dt 2 lt 7
 
 
 #solve time
 reset
 set logscale xy
 set xtics (16,32,64,128,256,512,1024)
-set xrange [96:1536]
-set yrange [2:70]
-set title "Solve - 43M"
+set xrange [12:1536]
+set yrange [10:150]
+set title "Solve"
 set xlabel "# of processors"
 set ylabel "median of 5 runs"
-plot "weak_scaling_mf" u 10:26:(sprintf("%0.2f",$26)) with labels center offset -3,0 notitle, "" u 10:26 with linespoints title "matrix-free" lt 1, \
-     "weak_scaling_mb" u 10:26:(sprintf("%0.2f",$26)) with labels center offset -3,0 notitle, "" u 10:26 with linespoints title "matrix-based" lt 2, \
-     (128<x && x<1024) ? 128*20.03/x : 1/0 with lines dt 2 lt -1 title "O(p)",\
+set key left top
+a=13.71
+b=29.88
+plot "weak_scaling_mf" u 10:26:(sprintf("%0.2f",$26)) with labels center offset 3,-1 notitle, "" u 10:26 with linespoints title "GMG" lt 1, \
+     "weak_scaling_mb" u 10:26:(sprintf("%0.2f",$26)) with labels center offset 3,-1 notitle, "" u 10:26 with linespoints title "AMG" lt 2, \
+     (16<x && x<1024) ? a*x/x : 1/0 with lines dt 2 lt -1 title "O(p)",\
+     (16<x && x<1024) ? b*x/x : 1/0 with lines dt 2 lt -1 notitle,\
      for [i=1:5] "weak_scaling_mf" u 10:(column(23+i)) with points notitle lt 1 lw 2,\
      for [i=1:5] "weak_scaling_mb" u 10:(column(23+i)) with points notitle lt 2 lw 2,\
-     "weak_scaling_mf" u 10:(((128*20.0358)/$10)*($98/2.6511)) with lines title "imbalance O(p)" dt 2 lt 7
+     "weak_scaling_mf" u 10:(a*($98/1.72787)) with lines title "imbalance O(p)" dt 2 lt 7
 
 
 #speedup solve time
 reset
 set logscale xy
 set xtics (16,32,64,128,256,512,1024)
-set ytics (1,2,4,8)
-set grid xtics
-set grid ytics
-set xrange [96:1536]
-set yrange [0.9:11]
-set title "Solve speedup - 43M"
+set xrange [12:1536]
+set yrange [1e5:3e7]
+set title "Solve speedup (DoFs/time unit)"
 set xlabel "# of processors"
-set ylabel "median of 5 runs"
+set ylabel "DoFs/time unit"
+set key left top
 
-a = 20.04
-b = 37.59
+a = 6150329/13.71
+b = 6150329/29.88
+r = 1.72787
 
-plot "weak_scaling_mf" u 10:(a/$26):(sprintf("%0.2f",(a/$26))) with labels center offset -3,0 notitle, "" u 10:(a/$26) with linespoints title "matrix-free" lt 1, \
-     "weak_scaling_mb" u 10:(b/$26):(sprintf("%0.2f",(b/$26))) with labels center offset +3,0 notitle, "" u 10:(b/$26) with linespoints title "matrix-based" lt 2, \
-     (128<x && x<1024) ? x/128 : 1/0 with lines dt 2 lt -1 title "ideal",\
-     "weak_scaling_mf" u 10:(($10/128)*(2.6511/$98)) with lines title "imbalance" dt 2 lt 7
+plot "weak_scaling_mf" u 10:($8/$26):(sprintf("%0.2f",(($8/$26)/(a*$10/16)))) with labels center offset 0,-1 notitle, "" u 10:($8/$26) with linespoints title "GMG" lt 1, \
+     "weak_scaling_mb" u 10:($8/$26):(sprintf("%0.2f",(($8/$26)/(b*$10/16)))) with labels center offset 0,-1 notitle, "" u 10:($8/$26) with linespoints title "AMG" lt 2, \
+     (16<x && x<1024) ? a*x/16 : 1/0 with lines dt 2 lt -1 title "ideal",\
+     "weak_scaling_mf" u 10:((a*$10/16)*(r/$98)) with lines title "imbalance" dt 2 lt 7
 
 
 
@@ -331,35 +340,56 @@ plot "weak_scaling_mf" u 10:(a/$26):(sprintf("%0.2f",(a/$26))) with labels cente
 reset
 set logscale xy
 set xtics (16,32,64,128,256,512,1024)
-set xrange [96:1536]
-set yrange [.1:1.5]
-set title "Preconditioner Vmult - 43M"
+set xrange [12:1536]
+set yrange [.2:2]
+set title "5 Consecutive Preconditioner Vmult"
 set xlabel "# of processors"
 set ylabel "median of 5 runs"
-plot "weak_scaling_mf" u 10:32:(sprintf("%0.2f",$32)) with labels center offset -3,0 notitle, "" u 10:32 with linespoints title "matrix-free" lt 1, \
-     "weak_scaling_mb" u 10:32:(sprintf("%0.2f",$32)) with labels center offset -3,0 notitle, "" u 10:32 with linespoints title "matrix-based" lt 2, \
-     (128<x && x<1024) ? 128*1.15/x : 1/0 with lines dt 2 lt -1 title "O(p)",\
+set key left top
+plot "weak_scaling_mf" u 10:32:(sprintf("%0.2f",$32)) with labels center offset 3,-1 notitle, "" u 10:32 with linespoints title "GMG" lt 1, \
+     "weak_scaling_mb" u 10:32:(sprintf("%0.2f",$32)) with labels center offset 3,-1 notitle, "" u 10:32 with linespoints title "AMG" lt 2, \
+     (16<x && x<1024) ? 0.61*x/x : 1/0 with lines dt 2 lt -1 title "O(p)",\
+     (16<x && x<1024) ? 0.26*x/x : 1/0 with lines dt 2 lt -1 notitle,\
      for [i=1:5] "weak_scaling_mf" u 10:(column(29+i)) with points notitle lt 1 lw 2,\
      for [i=1:5] "weak_scaling_mb" u 10:(column(29+i)) with points notitle lt 2 lw 2,\
-     "weak_scaling_mf" u 10:(((128*1.1558)/$10)*($98/2.6511)) with lines title "imbalance O(p)" dt 2 lt 7
+     "weak_scaling_mf" u 10:(0.61*($98/1.72787)) with lines title "imbalance O(p)" dt 2 lt 7
+
+
+#Operator vmult time
+reset
+set logscale xy
+set xtics (16,32,64,128,256,512,1024)
+set xrange [12:1536]
+set yrange [.1:4]
+set title "10 consecutive Operator Vmult"
+set xlabel "# of processors"
+set ylabel "median of 5 runs"
+set key left top
+plot "weak_scaling_mf" u 10:103:(sprintf("%0.2f",$103)) with labels center offset 3,-1 notitle, "" u 10:103 with linespoints title "GMG" lt 1, \
+     "weak_scaling_mb" u 10:103:(sprintf("%0.2f",$103)) with labels center offset 3,-1 notitle, "" u 10:103 with linespoints title "AMG" lt 2, \
+     (16<x && x<1024) ? 0.19*x/x : 1/0 with lines dt 2 lt -1 title "O(p)",\
+     (16<x && x<1024) ? 1.36*x/x : 1/0 with lines dt 2 lt -1 notitle,\
+     for [i=1:5] "weak_scaling_mf" u 10:(column(99+i)) with points notitle lt 1 lw 2,\
+     for [i=1:5] "weak_scaling_mb" u 10:(column(99+i)) with points notitle lt 2 lw 2
+
 
 
 #total time
 set logscale xy
 set xtics (16,32,64,128,256,512,1024)
-set xrange [96:1536]
-set yrange [2:100]
-set title "Total Time - 43M"
+set xrange [12:1536]
+set yrange [10:200]
+set title "Total Time"
 set xlabel "# of processors"
 set ylabel "median of 5 runs"
-
-plot "weak_scaling_mf" u 10:($20+$26):(sprintf("%0.2f",$20+$26)) with labels center offset -3,0 notitle, "" u 10:($20+$26) with linespoints title "matrix-free" lt 1,\
-     "weak_scaling_mb" u 10:($20+$26):(sprintf("%0.2f",$20+$26)) with labels center offset -3,0 notitle, "" u 10:($20+$26) with linespoints title "matrix-based" lt 2,\
-     (128<x && x<1024) ? 128*23.62/x : 1/0 with lines dt 2 lt -1 title "O(p)",\
+set key left top
+plot "weak_scaling_mf" u 10:($20+$26):(sprintf("%0.2f",$20+$26)) with labels center offset 3,-1 notitle, "" u 10:($20+$26) with linespoints title "GMG" lt 1,\
+     "weak_scaling_mb" u 10:($20+$26):(sprintf("%0.2f",$20+$26)) with labels center offset 3,-1 notitle, "" u 10:($20+$26) with linespoints title "AMG" lt 2,\
+     (16<x && x<1024) ? 14.99*x/x : 1/0 with lines dt 2 lt -1 title "O(p)",\
+     (16<x && x<1024) ? 52.33*x/x : 1/0 with lines dt 2 lt -1 notitle,\
      for [i=1:5] "weak_scaling_mf" u 10:(column(17+i) + column(23+i)) with points notitle lt 1 lw 2,\
      for [i=1:5] "weak_scaling_mb" u 10:(column(17+i) + column(23+i)) with points notitle lt 2 lw 2,\
-     "weak_scaling_mf" u 10:(((128*23.6)/$10)*($98/2.6511)) with lines title "imbalance O(p)" dt 2 lt 7
-
+     "weak_scaling_mf" u 10:(14.99*($98/1.72787)) with lines title "imbalance O(p)" dt 2 lt 7
 
 
 
@@ -374,19 +404,10 @@ set yrange [0:100]
 set title "GMRES iterations for adaptive refinement"
 set xlabel "# of processors"
 set ylabel "GMRES iterations"
-plot "weak_scaling_mf" u 10:($96-0.4) with linespoints lt 1 pt 1 dt 1 notitle, \
-     "weak_scaling_mb" u 10:($96-0.4) with linespoints lt 1 pt 3 dt 2 notitle, \
-     "mf/mf-adaptive-11ref" u 10:($96+0.4) with linespoints lt 2 pt 1 dt 1 notitle,\
-     "mb/mb-adaptive-11ref" u 10:($96+0.4) with linespoints lt 2 pt 3 dt 2 notitle,\
-     "mf/mf-adaptive-10ref" u 10:96 with linespoints lt 3 pt 1 dt 1 notitle, \
-     "mb/mb-adaptive-10ref" u 10:96 with linespoints lt 3 pt 3 dt 2 notitle,\
-     "mf/mf-adaptive-9ref" u 10:96 with linespoints lt 4 pt 1 dt 1 notitle, \
-     "mb/mb-adaptive-9ref" u 10:96 with linespoints lt 4 pt 3 dt 2 notitle,\
-     1/0 lt 1 title "43M DoFs",\
-     1/0 lt 2 title "15M DoFs",\
-     1/0 lt 3 title "5.5M DoFs",\
-     1/0 lt 4 title "1.9M DoFs",\
-     1/0 lt -1 dt 1 title "matrix-free",\
-     1/0 lt -1 dt 2 title "matrix-based"
+plot "weak_scaling_mf" u 10:($96-0.4) with linespoints lt 1 pt 1 dt 1 title "GMG", \
+     "weak_scaling_mb" u 10:($96-0.4) with linespoints lt 2 pt 3 dt 2 title "AMG"
+
+
+
 
 
