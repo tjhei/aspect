@@ -949,14 +949,23 @@ namespace aspect
     {
       dealii::LinearAlgebra::distributed::BlockVector<double> tmp_dst = solution_copy;
       dealii::LinearAlgebra::distributed::BlockVector<double> tmp_scr = rhs_copy;
-      sim.stokes_timer.enter_subsection("preconditioner_vmult");
       preconditioner_cheap.vmult(tmp_dst, tmp_scr);
+      tmp_scr = tmp_dst;
+
+      sim.stokes_timer.enter_subsection("preconditioner_vmult");
+      for (unsigned int i=0; i<5; ++i)
+        {
+          preconditioner_cheap.vmult(tmp_dst, tmp_scr);
+          tmp_scr = tmp_dst;
+        }
       sim.stokes_timer.leave_subsection("preconditioner_vmult");
     }
 
     {
       dealii::LinearAlgebra::distributed::BlockVector<double> tmp_dst = solution_copy;
       dealii::LinearAlgebra::distributed::BlockVector<double> tmp_scr = rhs_copy;
+      stokes_matrix.vmult(tmp_dst, tmp_scr);
+      tmp_scr = tmp_dst;
 
       sim.stokes_timer.enter_subsection("operator_vmult");
       for (unsigned int i=0; i<10; ++i)
