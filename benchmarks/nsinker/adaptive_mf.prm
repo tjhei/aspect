@@ -82,7 +82,7 @@ subsection Mesh refinement
   set Strategy = velocity
   set Run postprocessors on initial refinement = true
   set Coarsening fraction       = 0.0
-  set Refinement fraction       = 0.14285714285
+  set Refinement fraction       = 0.147 #0.14285714285
 end
 
 
