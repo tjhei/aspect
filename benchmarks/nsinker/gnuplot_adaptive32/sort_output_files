@@ -1,7 +1,6 @@
 #!/bin/bash
 
-cat ../timings-adaptive32/mb-adaptive-5ref-16procs.dat <(echo) ../timings-adaptive32/mb-adaptive-6ref-32procs.dat <(echo) ../timings-adaptive32/mb-adaptive-7ref-64procs.dat <(echo) ../timings-adaptive32/mb-adaptive-8ref-128procs.dat <(echo) ../timings-adaptive32/mb-adaptive-9ref-256procs.dat <(echo) > weak_scaling_mb
-#../timings-adaptive32/mb-adaptive-10ref-512procs.dat <(echo) ../timings-adaptive32/mb-adaptive-11ref-1024procs.dat > weak_scaling_mb
+cat ../timings-adaptive32/mb-adaptive-5ref-16procs.dat <(echo) ../timings-adaptive32/mb-adaptive-6ref-32procs.dat <(echo) ../timings-adaptive32/mb-adaptive-7ref-64procs.dat <(echo) ../timings-adaptive32/mb-adaptive-8ref-128procs.dat <(echo) ../timings-adaptive32/mb-adaptive-9ref-256procs.dat <(echo) ../timings-adaptive32/mb-adaptive-10ref-512procs.dat <(echo) ../timings-adaptive32/mb-adaptive-11ref-1024procs.dat > weak_scaling_mb
 
 cat ../timings-adaptive32/mf-adaptive-5ref-16procs.dat <(echo) ../timings-adaptive32/mf-adaptive-6ref-32procs.dat <(echo) ../timings-adaptive32/mf-adaptive-7ref-64procs.dat <(echo) ../timings-adaptive32/mf-adaptive-8ref-128procs.dat <(echo) ../timings-adaptive32/mf-adaptive-9ref-256procs.dat <(echo) ../timings-adaptive32/mf-adaptive-10ref-512procs.dat <(echo) ../timings-adaptive32/mf-adaptive-11ref-1024procs.dat > weak_scaling_mf
 
