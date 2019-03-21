@@ -972,13 +972,13 @@ namespace aspect
                   << std::setw(8) << "output:"
                   << std::setw(15) << "MPI_Ranks"
                   << std::setw(15) << "Active Cells"
-                  << std::setw(15) << "DoFs"
+                  << std::setw(15) << "Stokes DoFs"
                   << std::setw(15) << "GMRES iterations: "
                   << std::endl
                   << std::setw(8) << "output:"
                   << std::setw(15) << Utilities::MPI::n_mpi_processes(mpi_communicator)
                   << std::setw(15) << triangulation.n_global_active_cells()
-                  << std::setw(15) << dof_handler.n_dofs()
+                  << std::setw(15) << introspection.system_dofs_per_block[0]+introspection.system_dofs_per_block[1]
                   << std::setw(15)
                   << (solver_control_cheap.last_step() != numbers::invalid_unsigned_int ?
                       solver_control_cheap.last_step():

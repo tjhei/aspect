@@ -398,17 +398,16 @@ namespace aspect
   template <int dim>
   StokesMatrixFreeHandler<dim>::StokesMatrixFreeHandler (Simulator<dim> &simulator,
                                                          ParameterHandler &prm)
-    : sim(simulator),
+    : dof_handler_v(simulator.triangulation),
+      dof_handler_p(simulator.triangulation),
+      dof_handler_projection(simulator.triangulation),
+
+      sim(simulator),
 
       stokes_fe (FE_Q<dim>(sim.parameters.stokes_velocity_degree),dim,
                  FE_Q<dim>(sim.parameters.stokes_velocity_degree-1),1),
       fe_v (FE_Q<dim>(sim.parameters.stokes_velocity_degree), dim),
       fe_p (FE_Q<dim>(sim.parameters.stokes_velocity_degree-1),1),
-
-      dof_handler_v(sim.triangulation),
-      dof_handler_p(sim.triangulation),
-
-      dof_handler_projection(sim.triangulation),
       fe_projection(FE_DGQ<dim>(0),1)
   {
     parse_parameters(prm);
@@ -681,7 +680,6 @@ namespace aspect
     prm.leave_subsection ();
     prm.leave_subsection ();
   }
-
 
 
   template <int dim>
@@ -1075,12 +1073,12 @@ namespace aspect
                   << std::setw(8) << "output:"
                   << std::setw(15) << "MPI_Ranks"
                   << std::setw(15) << "Active Cells"
-                  << std::setw(15) << "DoFs"
+                  << std::setw(15) << "Stokes DoFs"
                   << std::setw(15) << "GMRES iterations: " << std::endl
                   << std::setw(8) << "output:"
                   << std::setw(15) << Utilities::MPI::n_mpi_processes(sim.mpi_communicator)
                   << std::setw(15) << sim.triangulation.n_global_active_cells()
-                  << std::setw(15) << sim.dof_handler.n_dofs()
+                  << std::setw(15) << dof_handler_v.n_dofs() + dof_handler_p.n_dofs()
                   << std::setw(15)
                   << (solver_control_cheap.last_step() != numbers::invalid_unsigned_int ?
                       solver_control_cheap.last_step():

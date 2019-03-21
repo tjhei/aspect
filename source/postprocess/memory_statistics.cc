@@ -38,9 +38,33 @@ namespace aspect
       // memory consumption:
       const double mb = 1024*1024; // convert from bytes into mb
       statistics.add_value ("System matrix memory consumption (MB) ", this->get_system_matrix().memory_consumption()/mb);
+      if (!this->using_stokes_matrix_free())
+      {
+          statistics.add_value ("System matrix (0,0) memory consumption (MB) ", this->get_system_matrix().block(0,0).memory_consumption()/mb);
+          statistics.add_value ("System matrix (1,0) memory consumption (MB) ", 2.0*this->get_system_matrix().block(1,0).memory_consumption()/mb);
+          statistics.add_value ("Preconditioner matrix (0,0) memory consumption (MB) ", this->get_system_preconditioner_matrix().block(0,0).memory_consumption()/mb);
+          statistics.add_value ("Preconditioner matrix (1,1) memory consumption (MB) ", this->get_system_preconditioner_matrix().block(1,1).memory_consumption()/mb);
+      }
+      else
+      {
+          statistics.add_value ("System matrix (0,0) memory consumption (MB) ", 0.0);
+          statistics.add_value ("System matrix (1,0) memory consumption (MB) ", 0.0);
+          statistics.add_value ("Preconditioner matrix (0,0) memory consumption (MB) ", 0.0);
+          statistics.add_value ("Preconditioner matrix (1,1) memory consumption (MB) ", 0.0);
+      }
       statistics.add_value ("Triangulation memory consumption (MB) ", this->get_triangulation().memory_consumption()/mb);
       statistics.add_value ("p4est memory consumption (MB) ", this->get_triangulation().memory_consumption_p4est()/mb);
       statistics.add_value ("DoFHandler memory consumption (MB) ", this->get_dof_handler().memory_consumption()/mb);
+      if (this->using_stokes_matrix_free())
+      {
+           statistics.add_value ("Matrix-free DoFHandler memory consumption (MB) ",
+                                (this->get_velocity_dof_handler().memory_consumption()+
+                                 this->get_pressure_dof_handler().memory_consumption())/mb);
+      }
+      else
+      {
+          statistics.add_value ("Matrix-free DoFHandler memory consumption (MB) ",0.0);
+      }
       statistics.add_value ("current_constraints memory consumption (MB) ", this->get_current_constraints().memory_consumption()/mb);
       statistics.add_value ("Solution vector memory consumption (MB) ", this->get_solution().memory_consumption()/mb);
 

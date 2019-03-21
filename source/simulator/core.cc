@@ -937,7 +937,8 @@ namespace aspect
               coupling[x.pressure][x.velocities[d]] = DoFTools::always;
             }
         }
-      coupling[x.temperature][x.temperature] = DoFTools::always;
+      if (!(parameters.nonlinear_solver == NonlinearSolver::Kind::no_Advection_iterated_Stokes))
+        coupling[x.temperature][x.temperature] = DoFTools::always;
 
       // If we have at least one compositional field that is a FEM field, we
       // create a matrix block in the first compositional block. Its sparsity
@@ -1905,7 +1906,7 @@ namespace aspect
                                      problem_type,
                                      ref_number,
                                      triangulation.n_global_active_cells(),
-                                     dof_handler.n_dofs(),
+                                     introspection.system_dofs_per_block[0]+introspection.system_dofs_per_block[1],
                                      nprocs,
                                      gmres_iterations,
                                      workload_imbalance);

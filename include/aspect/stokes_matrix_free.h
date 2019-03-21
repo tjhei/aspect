@@ -679,6 +679,12 @@ namespace aspect
 
       void parse_parameters (ParameterHandler &prm);
 
+
+      DoFHandler<dim> dof_handler_v;
+      DoFHandler<dim> dof_handler_p;
+      DoFHandler<dim> dof_handler_projection;
+
+
     private:
       /**
                  * Reference to the Simulator object to which a FreeSurfaceHandler
@@ -695,9 +701,7 @@ namespace aspect
       FESystem<dim> stokes_fe;
       FESystem<dim> fe_v;
       FESystem<dim> fe_p;
-
-      DoFHandler<dim> dof_handler_v;
-      DoFHandler<dim> dof_handler_p;
+      const FESystem<dim> fe_projection;
 
       StokesMatrixType stokes_matrix;
       ABlockMatrixType velocity_matrix;
@@ -706,15 +710,11 @@ namespace aspect
       ConstraintMatrix stokes_constraints;
       ConstraintMatrix constraints_v;
       ConstraintMatrix constraints_p;
+      ConstraintMatrix constraints_projection;
 
       MGLevelObject<ABlockMatrixType> mg_matrices;
       MGConstrainedDoFs              mg_constrained_dofs;
-
-      // Stuff for coefficient projection
-      DoFHandler<dim> dof_handler_projection;
-      ConstraintMatrix constraints_projection;
       MGConstrainedDoFs mg_constrained_dofs_projection;
-      const FESystem<dim> fe_projection;
 
       dealii::LinearAlgebra::distributed::Vector<double> active_coef_dof_vec;
       MGLevelObject<dealii::LinearAlgebra::distributed::Vector<double> > level_coef_dof_vec;

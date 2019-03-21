@@ -490,6 +490,19 @@ namespace aspect
       const DoFHandler<dim> &
       get_dof_handler () const;
 
+
+      bool using_stokes_matrix_free () const;
+
+      const DoFHandler<dim> &
+      get_velocity_dof_handler () const;
+
+      const DoFHandler<dim> &
+      get_pressure_dof_handler () const;
+
+      const DoFHandler<dim> &
+      get_proj_dof_handler () const;
+
+
       /**
        * Return a reference to the finite element that the DoFHandler that is
        * used to discretize the variables at the current time step is built
