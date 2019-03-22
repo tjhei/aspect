@@ -1,0 +1,23 @@
+# 1: Time step number
+# 2: Time (seconds)
+# 3: Time step size (seconds)
+# 4: Number of mesh cells
+# 5: Number of Stokes degrees of freedom
+# 6: Number of temperature degrees of freedom
+# 7: Number of nonlinear iterations
+# 8: Iterations for Stokes solver
+# 9: Velocity iterations in Stokes preconditioner
+# 10: Schur complement iterations in Stokes preconditioner
+# 11: System matrix memory consumption (MB) 
+# 12: System matrix (0,0) memory consumption (MB) 
+# 13: System matrix (1,0) memory consumption (MB) 
+# 14: Preconditioner matrix (0,0) memory consumption (MB) 
+# 15: Preconditioner matrix (1,1) memory consumption (MB) 
+# 16: Triangulation memory consumption (MB) 
+# 17: p4est memory consumption (MB) 
+# 18: DoFHandler memory consumption (MB) 
+# 19: Matrix-free DoFHandler memory consumption (MB) 
+# 20: current_constraints memory consumption (MB) 
+# 21: Solution vector memory consumption (MB) 
+# 22: Peak virtual memory usage (VmPeak) (MB) 
+0 0.000000000000e+00 0.000000000000e+00 4096 112724 35937 1 55 63 186 206.8364 174.1894 31.3873 58.4787 1.3662 1.8275 0.1454 2.8002 0.0000 1.0444 1.7020 2895.3984 
