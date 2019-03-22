@@ -27,6 +27,9 @@ subsection Solver parameters
     set Linear solver tolerance                         = 1e-6
     set GMRES solver restart length                     = 100
   end
+  subsection AMG parameters
+    set AMG output details = true
+  end
 end
 
 

@@ -263,7 +263,7 @@
                 "pattern_description": "[Double 0...1 (inclusive)]"
             },
             "AMG_20output_20details": {
-                "value": "false",
+                "value": "true",
                 "default_value": "false",
                 "documentation": "Turns on extra information on the AMG solver. Note that this will generate much more output.",
                 "pattern": "37",
