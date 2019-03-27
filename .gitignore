@@ -47,7 +47,6 @@
 /doc/manual/prmindexfull.ind
 /doc/manual/cookbooks/**/*.out
 /doc/modules/changes.h
-/output/
 /tests/CMakeFiles/
 /tests/CTestTestfile.cmake
 /tests/Makefile

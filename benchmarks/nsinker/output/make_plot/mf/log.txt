@@ -1,0 +1,49 @@
+-----------------------------------------------------------------------------
+-- This is ASPECT, the Advanced Solver for Problems in Earth's ConvecTion.
+--     . version 2.1.0-pre (gmg, 6b0034dbd)
+--     . using deal.II 9.1.0-pre (master, f5375c10e7)
+--     . using Trilinos 12.10.1
+--     . using p4est 2.0.0
+--     . running in OPTIMIZED mode
+--     . running with 64 MPI processes
+-----------------------------------------------------------------------------
+
+Vectorization over 4 doubles = 256 bits (AVX), VECTORIZATION_LEVEL=2
+-----------------------------------------------------------------------------
+-- For information on how to cite ASPECT, see:
+--   https://aspect.geodynamics.org/citing.html?ver=2.1.0-pre&sha=6b0034dbd&src=code
+-----------------------------------------------------------------------------
+Number of active cells: 4,096 (on 5 levels)
+Number of degrees of freedom: 148,661 (107,811+4,913+35,937)
+
+*** Timestep 0:  t=0 seconds
+output: MPI_Ranks      Active Cells   Stokes DoFs    GMRES iterations: 
+output: 64             4096           112724         27             
+output: 
+      Relative nonlinear residual (Stokes system) after nonlinear iteration 1: 0.999966
+
+
+   Postprocessing:
+     System matrix memory consumption:  0.05 MB
+     Writing graphical output:          output/make_plot/mf/solution/solution-00000
+
+Termination requested by criterion: end time
+
+
++---------------------------------------------+------------+------------+
+| Total wallclock time elapsed since start    |     0.649s |            |
+|                                             |            |            |
+| Section                         | no. calls |  wall time | % of total |
++---------------------------------+-----------+------------+------------+
+| Assemble Stokes system rhs      |         1 |    0.0206s |       3.2% |
+| Initialization                  |         1 |     0.038s |       5.9% |
+| Postprocessing                  |         1 |    0.0115s |       1.8% |
+| Setup dof systems               |         1 |     0.252s |        39% |
+| Setup initial conditions        |         1 |    0.0232s |       3.6% |
+| Solve Stokes system             |         1 |     0.178s |        27% |
++---------------------------------+-----------+------------+------------+
+
+-----------------------------------------------------------------------------
+-- For information on how to cite ASPECT, see:
+--   https://aspect.geodynamics.org/citing.html?ver=2.1.0-pre&sha=6b0034dbd&src=code
+-----------------------------------------------------------------------------

@@ -1,0 +1,21 @@
+# 1: Time step number
+# 2: Time (seconds)
+# 3: Time step size (seconds)
+# 4: Number of mesh cells
+# 5: Number of Stokes degrees of freedom
+# 6: Number of temperature degrees of freedom
+# 7: Number of nonlinear iterations
+# 8: System matrix memory consumption (MB) 
+# 9: System matrix (0,0) memory consumption (MB) 
+# 10: System matrix (1,0) memory consumption (MB) 
+# 11: Preconditioner matrix (0,0) memory consumption (MB) 
+# 12: Preconditioner matrix (1,1) memory consumption (MB) 
+# 13: Triangulation memory consumption (MB) 
+# 14: p4est memory consumption (MB) 
+# 15: DoFHandler memory consumption (MB) 
+# 16: Matrix-free DoFHandler memory consumption (MB) 
+# 17: current_constraints memory consumption (MB) 
+# 18: Solution vector memory consumption (MB) 
+# 19: Peak virtual memory usage (VmPeak) (MB) 
+# 20: Visualization file name
+0 0.000000000000e+00 0.000000000000e+00 4096 112724 35937 0 0.0527 0.0000 0.0000 0.0000 0.0000 0.1569 0.0089 0.3012 0.3021 0.0504 0.0641 3253.9219 output/make_plot/mf/solution/solution-00000 
