@@ -22,6 +22,8 @@
 #ifndef _aspect_stokes_matrix_free_h
 #define _aspect_stokes_matrix_free_h
 
+#include <aspect/global.h>
+
 #include <aspect/simulator.h>
 
 #include <deal.II/matrix_free/matrix_free.h>
@@ -40,6 +42,7 @@
 #include <deal.II/lac/block_vector.h>
 #include <deal.II/lac/la_parallel_vector.h>
 #include <deal.II/lac/la_parallel_block_vector.h>
+
 
 namespace aspect
 {
@@ -622,6 +625,10 @@ namespace aspect
     }
   }
 
+
+
+
+
   template<int dim>
   class StokesMatrixFreeHandler
   {
@@ -649,6 +656,8 @@ namespace aspect
                  * is called by Simulator<dim>::setup_dofs()
                  */
       void setup_dofs();
+
+      void setup_coarse_matrix();
 
       /**
              * Evalute the MaterialModel to query for the viscosity on the active cells
@@ -706,6 +715,8 @@ namespace aspect
       StokesMatrixType stokes_matrix;
       ABlockMatrixType velocity_matrix;
       MassMatrixType mass_matrix;
+
+      LinearAlgebra::SparseMatrix coarse_matrix_amg;
 
       ConstraintMatrix stokes_constraints;
       ConstraintMatrix constraints_v;

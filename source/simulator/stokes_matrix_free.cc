@@ -20,7 +20,6 @@
 
 
 #include <aspect/stokes_matrix_free.h>
-#include <aspect/global.h>
 #include <aspect/citation_info.h>
 
 #include <deal.II/dofs/dof_renumbering.h>
@@ -35,10 +34,9 @@
 #include <deal.II/base/signaling_nan.h>
 #include <deal.II/lac/solver_gmres.h>
 
+
 // remove after fixing linker error?
 #include <deal.II/lac/read_write_vector.templates.h>
-
-
 
 
 
@@ -125,6 +123,7 @@ namespace aspect
 
 
 
+
     namespace ChangeVectorTypes
     {
       void import(TrilinosWrappers::MPI::Vector &out,
@@ -188,6 +187,94 @@ namespace aspect
           copy(out.block(b),in.block(b));
       }
     }
+
+
+
+
+
+    namespace CoarseSolver
+    {
+      class MGCoarseAMG : public MGCoarseGridBase<dealii::LinearAlgebra::distributed::Vector<double> >
+      {
+        public:
+          MGCoarseAMG()
+          {}
+
+          MGCoarseAMG(const LinearAlgebra::SparseMatrix &coarse,
+                      const LinearAlgebra::PreconditionAMG::AdditionalData additional_data)
+            :
+            count(0)
+          {
+            coarse_matrix.copy_from(coarse);
+            precondition_amg.initialize(coarse, additional_data);
+          }
+
+
+          void initialize (const LinearAlgebra::SparseMatrix &coarse,
+                           const LinearAlgebra::PreconditionAMG::AdditionalData additional_data,
+                           const MPI_Comm mpi_comm,
+                           const IndexSet local,
+                           const IndexSet ghost)
+          {
+            count = 0;
+            coarse_matrix.copy_from(coarse);
+            precondition_amg.initialize(coarse,additional_data);
+
+            mpi_communicator = mpi_comm;
+            local_partition = local;
+            ghost_partition = ghost;
+          }
+
+          virtual void operator() (const unsigned int,
+                                   dealii::LinearAlgebra::distributed::Vector<double> &dst,
+                                   const dealii::LinearAlgebra::distributed::Vector<double> &src) const
+          {
+            ++count;
+
+            aspect::LinearAlgebra::Vector dst_tril;
+            aspect::LinearAlgebra::Vector src_tril;
+            dst_tril.reinit(local_partition,
+                            ghost_partition,
+                            mpi_communicator);
+            src_tril.reinit(local_partition,
+                            ghost_partition,
+                            mpi_communicator);
+
+            ChangeVectorTypes::copy(dst_tril,dst);
+            ChangeVectorTypes::copy(src_tril,src);
+
+//                SolverControl coarse_solver_control (1000, 1e-10, false, false);
+//                SolverCG<LinearAlgebra::Vector> coarse_solver(coarse_solver_control);
+//                coarse_solver.solve(coarse_matrix,dst_tril,src_tril,precondition_amg);
+//                if (Utilities::MPI::this_mpi_process(mpi_communicator) == 0)
+//                   std::cout << "Coarse Solver iterations: " << coarse_solver_control.last_step() << std::endl;
+
+
+            precondition_amg.vmult(dst_tril, src_tril);
+
+            ChangeVectorTypes::copy(dst,dst_tril);
+          }
+
+          mutable int count;
+
+        private:
+          LinearAlgebra::SparseMatrix coarse_matrix;
+          LinearAlgebra::PreconditionAMG precondition_amg;
+          double solver_tolerance;
+
+          MPI_Comm mpi_communicator;
+          IndexSet local_partition;
+          IndexSet ghost_partition;
+      };
+
+
+
+
+
+    }
+
+
+
 
     /**
              * Implement the block Schur preconditioner for the Stokes system.
@@ -723,9 +810,51 @@ namespace aspect
 
 
     // Coarse Solver
-    // TODO: This could help with tangential boundary
-    MGCoarseGridApplySmoother<vector_t> mg_coarse;
-    mg_coarse.initialize(mg_smoother);
+//    MGCoarseGridApplySmoother<vector_t> mg_coarse;
+//    mg_coarse.initialize(mg_smoother);
+
+    internal::CoarseSolver::MGCoarseAMG mg_coarse;
+
+    LinearAlgebra::PreconditionAMG::AdditionalData Amg_data;
+
+    std::vector<std::vector<bool> > constant_modes(dim);
+    for (unsigned int d=0; d<dim; ++d)
+      {
+        constant_modes[d].resize(dof_handler_v.locally_owned_mg_dofs(sim.parameters.coarse_level).size());
+        for (unsigned int i=0; i<dof_handler_v.locally_owned_mg_dofs(sim.parameters.coarse_level).size(); ++i)
+          constant_modes[d][i] = (i%dim==d ? true : false);
+      }
+
+    Amg_data.constant_modes = constant_modes;
+    Amg_data.elliptic = true;
+    Amg_data.higher_order_elements = true;
+    Amg_data.smoother_type = sim.parameters.AMG_smoother_type.c_str();
+    Amg_data.smoother_sweeps = sim.parameters.AMG_smoother_sweeps;
+    Amg_data.aggregation_threshold = sim.parameters.AMG_aggregation_threshold;
+    Amg_data.output_details = sim.parameters.AMG_output_details;
+
+    IndexSet locally_relevant_dofs;
+    DoFTools::extract_locally_relevant_level_dofs(dof_handler_v, sim.parameters.coarse_level, locally_relevant_dofs);
+    mg_coarse.initialize(coarse_matrix_amg,Amg_data,
+                         sim.mpi_communicator,
+                         dof_handler_v.locally_owned_mg_dofs(sim.parameters.coarse_level),
+                         locally_relevant_dofs);
+
+
+//    dealii::LinearAlgebra::distributed::Vector<double> test_src;
+//    dealii::LinearAlgebra::distributed::Vector<double> test_dst;
+//    mg_matrices[sim.parameters.coarse_level].initialize_dof_vector(test_src);
+//    mg_matrices[sim.parameters.coarse_level].initialize_dof_vector(test_dst);
+//    for (unsigned int i=0; i<test_src.size(); ++i)
+//        test_src[i] = 1.0;
+
+//    mg_coarse(sim.parameters.coarse_level,test_dst,test_src);
+//    test_dst.print(std::cout);
+//    sim.pcout << test_dst.norm_sqr() << std::endl;
+
+
+
+
 
     // Interface matrices
     MGLevelObject<MatrixFreeOperators::MGInterfaceOperator<ABlockMatrixType> > mg_interface_matrices;
@@ -742,11 +871,9 @@ namespace aspect
                             mg_coarse,
                             mg_transfer,
                             mg_smoother,
-                            mg_smoother);
+                            mg_smoother,
+                            sim.parameters.coarse_level);
     mg.set_edge_matrices(mg_interface, mg_interface);
-
-    //mg.set_debug(10);
-
 
     // MG Preconditioner
     typedef PreconditionMG<dim, vector_t, MGTransferMatrixFree<dim,double> > APreconditioner;
@@ -761,8 +888,6 @@ namespace aspect
     prec_S_data.eig_cg_n_iterations = mass_matrix.m();
     prec_S_data.preconditioner = mass_matrix.get_matrix_diagonal_inverse();
     prec_S.initialize(mass_matrix,prec_S_data);
-
-
 
 
     // Many parts of the solver depend on the block layout (velocity = 0,
@@ -994,7 +1119,7 @@ namespace aspect
         SolverFGMRES<dealii::LinearAlgebra::distributed::BlockVector<double> >
         solver(solver_control_cheap, mem,
                SolverFGMRES<dealii::LinearAlgebra::distributed::BlockVector<double> >::
-               AdditionalData(50));
+               AdditionalData(sim.parameters.stokes_gmres_restart_length));
 
         solver.solve (stokes_matrix,
                       solution_copy,
@@ -1302,6 +1427,137 @@ namespace aspect
       mg_transfer.build(dof_handler_v);
     }
     sim.stokes_timer.leave_subsection("setup_mg_transfer");
+
+    this->evaluate_viscosity();
+    this->setup_coarse_matrix();
+  }
+
+
+  namespace
+  {
+    template <typename DoFHandlerType, typename SparsityPatternType>
+    void
+    make_sparsity_pattern (const DoFHandlerType &dof_handler,
+                           SparsityPatternType  &sparsity,
+                           const unsigned int    level,
+                           Table<2,DoFTools::Coupling> couplings)
+    {
+      const unsigned int dofs_per_cell = dof_handler.get_fe().dofs_per_cell;
+      std::vector<types::global_dof_index> dofs_on_this_cell(dofs_per_cell);
+      typename DoFHandlerType::level_cell_iterator cell = dof_handler.begin_mg(level),
+                                                   endc = dof_handler.end_mg(level);
+      for (; cell!=endc; ++cell)
+        if (cell->is_locally_owned_on_level())
+          {
+            cell->get_active_or_mg_dof_indices (dofs_on_this_cell);
+            for (unsigned int i=0; i<dofs_per_cell; ++i)
+              for (unsigned int j=0; j<dofs_per_cell; ++j)
+                if (couplings
+                    [dof_handler.get_fe().system_to_component_index(i).first]
+                    [dof_handler.get_fe().system_to_component_index(j).first]
+                    == DoFTools::always)
+                  sparsity.add (dofs_on_this_cell[i],
+                                dofs_on_this_cell[j]);
+          }
+    }
+  }
+
+
+  template <int dim>
+  void StokesMatrixFreeHandler<dim>::setup_coarse_matrix()
+  {
+    const unsigned int level = sim.parameters.coarse_level;
+
+    Assert(level<=MGTools::max_level_for_coarse_mesh(sim.triangulation),
+           ExcIndexRange(level,0,MGTools::max_level_for_coarse_mesh(sim.triangulation)+1));
+
+//      Table<2,DoFTools::Coupling> coupling (dim, dim);
+//      for (unsigned int c=0; c<dim; ++c)
+//        for (unsigned int d=0; d<dim; ++d)
+//          if (c==d)
+//            coupling[c][d] = DoFTools::always;
+//          else
+//            coupling[c][d] = DoFTools::none;
+
+    DynamicSparsityPattern dsp(dof_handler_v.n_dofs(level),
+                               dof_handler_v.n_dofs(level));
+    //make_sparsity_pattern(dof_handler_v, dsp, level,coupling);
+    MGTools::make_sparsity_pattern(dof_handler_v, dsp, level);
+    coarse_matrix_amg.reinit(dof_handler_v.locally_owned_mg_dofs(level),
+                             dof_handler_v.locally_owned_mg_dofs(level),
+                             dsp,
+                             sim.mpi_communicator, true);
+
+
+
+//      SparsityPattern sparse;
+//      sparse.copy_from(dsp);
+
+//      std::ofstream output_file("sparse.svg");
+//      sparse.print_svg(output_file);
+
+
+    QGauss<dim>  quadrature_formula(sim.parameters.stokes_velocity_degree+1);
+    FEValues<dim> fe_values (fe_v, quadrature_formula,
+                             update_values   | update_gradients |
+                             update_quadrature_points | update_JxW_values);
+
+    const unsigned int   dofs_per_cell   = fe_v.dofs_per_cell;
+    const unsigned int   n_q_points      = quadrature_formula.size();
+
+    FullMatrix<double>   cell_matrix (dofs_per_cell, dofs_per_cell);
+
+    std::vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
+    const FEValuesExtractors::Vector velocities (0);
+
+    std::vector<SymmetricTensor<2,dim> > symgrad_phi_u (dofs_per_cell);
+
+    ConstraintMatrix boundary_constraints;
+    IndexSet dofset;
+    DoFTools::extract_locally_relevant_level_dofs (dof_handler_v, level, dofset);
+    boundary_constraints.reinit(dofset);
+    boundary_constraints.add_lines (mg_constrained_dofs.get_refinement_edge_indices(level));
+    boundary_constraints.add_lines (mg_constrained_dofs.get_boundary_indices(level));
+    boundary_constraints.close ();
+
+    typename DoFHandler<dim>::level_cell_iterator cell = dof_handler_v.begin(level),
+                                                  endc = dof_handler_v.end(level);
+    for (; cell!=endc; ++cell)
+      if (cell->level_subdomain_id()==sim.triangulation.locally_owned_subdomain())
+        {
+          cell_matrix = 0;
+          fe_values.reinit (cell);
+
+
+          typename DoFHandler<dim>::level_cell_iterator DG_cell(&(sim.triangulation),
+                                                                level,
+                                                                cell->index(),
+                                                                &dof_handler_projection);
+          std::vector<types::global_dof_index> dg_dof_indices(dof_handler_projection.get_fe(0).dofs_per_cell);
+          DG_cell->get_active_or_mg_dof_indices(dg_dof_indices);
+          double viscosity = level_coef_dof_vec[level](dg_dof_indices[0]);
+
+          for (unsigned int q=0; q<n_q_points; ++q)
+            {
+              for (unsigned int k=0; k<dofs_per_cell; ++k)
+                symgrad_phi_u[k] = fe_values[velocities].symmetric_gradient (k, q);
+
+              for (unsigned int i=0; i<dofs_per_cell; ++i)
+                for (unsigned int j=0; j<dofs_per_cell; ++j)
+                  {
+                    cell_matrix(i,j) += (2*viscosity*(symgrad_phi_u[i]*symgrad_phi_u[j])
+                                         * fe_values.JxW(q));
+                  }
+            }
+
+          cell->get_active_or_mg_dof_indices (local_dof_indices);
+
+          boundary_constraints.distribute_local_to_global (cell_matrix,
+                                                           local_dof_indices,
+                                                           coarse_matrix_amg);
+        }
+
+    coarse_matrix_amg.compress(VectorOperation::add);
   }
 
 }

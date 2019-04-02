@@ -29,7 +29,8 @@
 #include <deal.II/base/work_stream.h>
 #include <deal.II/base/signaling_nan.h>
 #include <deal.II/lac/full_matrix.h>
-#include <deal.II/lac/constraint_matrix.h>
+//#include <deal.II/lac/constraint_matrix.h>
+#include <deal.II/lac/affine_constraints.h>
 #include <deal.II/grid/tria_iterator.h>
 #include <deal.II/grid/filtered_iterator.h>
 #include <deal.II/dofs/dof_accessor.h>

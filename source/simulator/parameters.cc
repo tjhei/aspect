@@ -52,8 +52,8 @@ namespace aspect
                        "Number of times to run each function for timing purposes in sinker and inclusion.");
     prm.declare_entry ("Timing output directory","timings-tmp/",Patterns::DirectoryName(),
                        "Directory where timing information should be output.");
-    prm.declare_entry ("Coarse level","0",Patterns::Integer (0),
-                       "For GMG, level at which we switch to AMG If -1, then use chebyshev on level 0.");
+    prm.declare_entry ("Coarse level","0",Patterns::Integer(0),
+                       "For GMG, level at which we switch to AMG.");
 
     prm.declare_entry ("Dimension", "2",
                        Patterns::Integer (2,3),
