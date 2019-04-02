@@ -352,6 +352,7 @@ namespace aspect
 
     unsigned int n_timings;
     std::string timings_directory;
+    int coarse_level;
 
     typename NonlinearSolver::Kind nonlinear_solver;
 
