@@ -94,7 +94,7 @@ subsection Postprocess
 end
 
 
-set Output directory = output/memory-stats/mf
+set Output directory = output/make_plot/mf
 
 
 

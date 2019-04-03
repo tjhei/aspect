@@ -653,6 +653,8 @@ namespace aspect
     // constraints. Of course we need to force assembly too.
     if (rebuild_sparsity_and_matrices)
       {
+        TimerOutput::Scope timer (computing_timer, "Setup sparsity patterns");
+
         rebuild_sparsity_and_matrices = false;
 
         // Timings for: sparsity pattern
@@ -1898,7 +1900,7 @@ namespace aspect
         const unsigned int nprocs =
           dealii::Utilities::MPI::n_mpi_processes(mpi_communicator);
         const double workload_imbalance =
-          (stokes_matrix_free ? stokes_matrix_free->get_workload_imbalance() : 0.0);
+          (stokes_matrix_free ? stokes_matrix_free->get_workload_imbalance() : 1.0);
         stokes_timer.print_data_file(parameters.timings_directory +
                                      problem_type + "-" +
                                      dealii::Utilities::int_to_string(ref_number) + "ref-" +

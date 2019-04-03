@@ -1,0 +1,39 @@
+#!/bin/bash                                                                                                      
+#PBS -l select=64:ncpus=16:mpiprocs=16:chip_type=e5-2665:interconnect=fdr:mem=61gb                                   
+#PBS -l walltime=1:00:00                                                                                            
+#PBS -j oe                                                                                                          
+#PBS -N test                                                                                                        
+##PBS -q compmath                                                                                                   
+
+# load profile and modules:                                                                                         
+source /etc/profile.d/modules.sh
+source ~/.bash_profile
+source /home/heister/shared-dealii/modules_9.0.0pre1
+
+ulimit -c 0
+
+# compute processor count and print it:                                                                             
+Nproc=`qstat -xf $PBS_JOBID | grep List.ncpus | sed 's/^.\{26\}//'`
+cd $PBS_O_WORKDIR
+echo "Job $PBS_JOBID started at `date` on `hostname` using $Nproc processors"
+echo
+echo
+
+cd ../
+
+echo "MatrixFree, 4 sinkers, 1e4 visc jump"
+for c in 0 1 2 3 4 5 6 7; do # 4 5 6 7
+  cp nsinker_coarse_amg.prm temp1024.prm
+
+  echo "set Coarse level = $c" >> temp1024.prm
+  echo "subsection Mesh refinement" >> temp1024.prm
+  echo "  set Initial global refinement = 7" >> temp1024.prm
+  echo "end" >> temp1024.prm
+        
+  echo "set Output directory = output/coarse_amg/global-mf-1024-7ref-${c}level" >> temp1024.prm
+  echo "set Timing output directory = output/coarse_amg/global-mf-1024-7ref-${c}level" >> temp1024.prm
+  mpirun -np $Nproc ./aspect temp1024.prm
+  rm temp1024.prm
+done
+
+

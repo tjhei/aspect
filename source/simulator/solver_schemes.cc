@@ -328,7 +328,14 @@ namespace aspect
               stokes_matrix_free->evaluate_viscosity();
               stokes_matrix_free->correct_stokes_rhs();
               stokes_timer.leave_subsection("assemble_mf_coef_rhs");
+
+
+              // Construct coarse grid for matrix-free
+              stokes_timer.enter_subsection("assemble_coarse_mat");
+              stokes_matrix_free->assemble_coarse_matrix();
+              stokes_timer.leave_subsection("assemble_coarse_mat");
             }
+
 
 
           //Timings for: assemble preconditioner (inside function)

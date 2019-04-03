@@ -813,8 +813,6 @@ namespace aspect
 
 
 
-
-
         // create an expensive preconditioner that solves for the A block with CG
         const internal::BlockSchurPreconditioner<LinearAlgebra::PreconditionAMG,
               LinearAlgebra::PreconditionBase>

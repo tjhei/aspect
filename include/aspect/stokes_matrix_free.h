@@ -43,7 +43,6 @@
 #include <deal.II/lac/la_parallel_vector.h>
 #include <deal.II/lac/la_parallel_block_vector.h>
 
-
 namespace aspect
 {
   using namespace dealii;
@@ -627,8 +626,6 @@ namespace aspect
 
 
 
-
-
   template<int dim>
   class StokesMatrixFreeHandler
   {
@@ -657,7 +654,7 @@ namespace aspect
                  */
       void setup_dofs();
 
-      void setup_coarse_matrix();
+      void assemble_coarse_matrix();
 
       /**
              * Evalute the MaterialModel to query for the viscosity on the active cells

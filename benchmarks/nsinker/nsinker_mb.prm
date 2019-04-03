@@ -57,6 +57,12 @@ end
 
 subsection Material model
   set Model name = nsinker
+  set Material averaging = harmonic average
+
+  subsection NSinker
+    set Number of sinkers = 4
+    set Dynamic viscosity ratio = 1e4
+  end
 end
 
 subsection Gravity model
