@@ -1441,6 +1441,7 @@ namespace aspect
 
     sim.stokes_timer.enter_subsection("setup_coarse_sparsity");
     {
+      coarse_matrix_amg.clear();
       const unsigned int level = sim.parameters.coarse_level;
 
       Assert(level<=MGTools::max_level_for_coarse_mesh(sim.triangulation),
@@ -1476,6 +1477,7 @@ namespace aspect
   template <int dim>
   void StokesMatrixFreeHandler<dim>::assemble_coarse_matrix()
   {
+    coarse_matrix_amg = 0;
     const unsigned int level = sim.parameters.coarse_level;
 
     Assert(level<=MGTools::max_level_for_coarse_mesh(sim.triangulation),
@@ -1545,6 +1547,36 @@ namespace aspect
 
     coarse_matrix_amg.compress(VectorOperation::add);
   }
+
+
+//template <int dim>
+//std::unique_ptr<MGCoarseGridBase<dealii::LinearAlgebra::distributed::Vector<double>>>
+//StokesMatrixFreeHandler<dim>::create_coarse_solver()
+//{
+//    if (sim.parameters.coarse_level == -1)
+//    {
+//        auto mg_coarse =
+//          std_cxx14::make_unique<MGCoarseGridBase<dealii::LinearAlgebra::distributed::Vector<double>>>();
+
+//        typedef dealii::LinearAlgebra::distributed::Vector<double> vector_t;
+
+//        //Chebyshev smoother
+//        typedef PreconditionChebyshev<ABlockMatrixType,vector_t> SmootherType;
+//        mg::SmootherRelaxation<SmootherType, vector_t>
+//                mg_smoother;
+//        MGLevelObject<typename SmootherType::AdditionalData> smoother_data;
+//        smoother_data.resize(0, 0);
+//        smoother_data[0].smoothing_range = 1e-3;
+//        smoother_data[0].degree = numbers::invalid_unsigned_int;
+//        smoother_data[0].eig_cg_n_iterations = mg_matrices[0].m();
+//        smoother_data[0].preconditioner = mg_matrices[0].get_matrix_diagonal_inverse();
+//        mg_smoother.initialize(mg_matrices, smoother_data);
+
+
+//        MGCoarseGridApplySmoother<vector_t> mg_coarse;
+//        mg_coarse.initialize(mg_smoother);
+//    }
+//}
 
 }
 

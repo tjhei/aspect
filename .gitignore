@@ -60,3 +60,4 @@
 
 .idea/
 cmake-build-debug/
+/benchmarks/nsinker/timings-tmp/*

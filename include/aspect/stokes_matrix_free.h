@@ -656,6 +656,9 @@ namespace aspect
 
       void assemble_coarse_matrix();
 
+      std::unique_ptr<MGCoarseGridBase<dealii::LinearAlgebra::distributed::Vector<double>>>
+      create_coarse_solver();
+
       /**
              * Evalute the MaterialModel to query for the viscosity on the active cells
              * and cache the information for later usage.
