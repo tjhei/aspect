@@ -20,9 +20,10 @@
 
 
 # enabled checks:
-Checks: '-*,modernize-use-emplace,modernize-make-shared,mpi-*,modernize-use-nullptr,modernize-replace-autoptr,modernize-make-unique,performance-*,-performance-inefficient-string-concatenation'
+#Checks: '-*,modernize-use-emplace,modernize-make-shared,mpi-*,modernize-use-nullptr,modernize-replace-autoptr,modernize-make-unique,performance-*,-performance-inefficient-string-concatenation'
 
 
 # other options to be used in the future as soon as we compile cleanly:
 #
 # modernize-avoid-bind
+Checks:          '-*,clang-diagnostic-*,-clang-diagnostic-unused-command-line-argument,clang-analyzer-*,-clang-analyzer-core.NullDereference,-clang-analyzer-unix.Malloc,google-*,misc-*,-misc-noexcept*,modernize-*,-modernize-deprecated-headers,-modernize-raw-string-literal,-modernize-return-braced-init-list,-modernize-use-auto,-modernize-use-equals-delete,-modernize-use-equals-default,performance-*,-performance-unnecessary-value-param,readability-*,-readability-implicit-bool-conversion'
