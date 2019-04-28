@@ -1911,7 +1911,8 @@ namespace aspect
                                      introspection.system_dofs_per_block[0]+introspection.system_dofs_per_block[1],
                                      nprocs,
                                      gmres_iterations,
-                                     workload_imbalance);
+                                     workload_imbalance,
+                                     parameters.coarse_level);
 
         stokes_timer.initialize_sections();
         ++step_number;

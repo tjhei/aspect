@@ -164,6 +164,98 @@ namespace aspect
       }
 
 
+
+
+//      Tensor<2,3>
+//      hollow_sphere_velocity_gradient (const Point<3> &pos,
+//                              const double mmm)
+//      {
+
+//        const std::array<double,3> spos =
+//          aspect::Utilities::Coordinates::cartesian_to_spherical_coordinates(pos);
+
+//        const double r=spos[0];
+//        const double  phi=spos[1];
+//        const double theta=spos[2];
+
+
+//        double alpha,beta,fr,gr,dr_gr,dr_fr;
+
+//        if (mmm == -1)
+//          {
+//            alpha=-gammma*(pow(R2,3)-pow(R1,3))/(pow(R2,3)*log(R1)-pow(R1,3)*log(R2));
+//            beta=-3*gammma*(log(R2)-log(R1))/(pow(R1,3)*log(R2)-pow(R2,3)*log(R1)) ;
+
+
+//            fr=alpha/(r*r)+beta*r;
+//            gr=-2/(r*r)*(alpha*log(r)+beta/3*pow(r,3)+gammma);
+
+//            dr_gr = 4/pow(r,3)*(alpha*log(r)+beta/3*pow(r,3)+gamma) + -2/(r*r)*(alpha/r+beta*r*r);
+//            dr_fr = -2*alpha/pow(r,3)+beta;
+//          }
+//        else
+//          {
+//            AssertThrow(false,ExcNotImplemented());
+////            alpha=gammma*(mmm+1)*(pow(R1,-3)-pow(R2,-3))/(pow(R1,-mmm-4)-pow(R2,-mmm-4));
+////            beta=-3*gammma*(pow(R1,mmm+1)-pow(R2,mmm+1))/(pow(R1,mmm+4)-pow(R2,mmm+4));
+////            fr=alpha/pow(r,mmm+3)+beta*r;
+////            gr=-2/(r*r)*(-alpha/(mmm+1)*pow(r,-mmm-1)+beta/3*pow(r,3)+gammma);
+//          }
+
+//        const double vr    =gr*cos(theta);
+//        const double vtheta=fr*sin(theta);
+//        const double vphi  =fr*sin(theta);
+
+//        const double dr_vr = cos(theta)*dr_gr;
+//        const double dtheta_vr = -sin(theta)*gr;
+//        const double dr_vtheta = sin(theta)*dr_fr;
+//        const double dtheta_vtheta = cos(theta)*fr;
+//        const double dr_vphi = dr_vtheta;
+//        const double dtheta_vphi = dtheta_vtheta;
+
+////        const double v_x=sin(theta)*cos(phi)*vr + cos(theta)*cos(phi)*vtheta-sin(phi)*vphi;
+////        const double v_y=sin(theta)*sin(phi)*vr + cos(theta)*sin(phi)*vtheta+cos(phi)*vphi;
+////        const double v_z=cos(theta)*vr - sin(theta)*vtheta;
+
+//        const double dr_vx = sin(theta)*cos(phi)*dr_vr + cos(theta)*cos(phi)*dr_vtheta - sin(phi)*dr_vphi;
+//        const double dtheta_vx = cos(phi)*(cos(theta)*vr + sin(theta)*dtheta_vr+cos(theta)*dtheta_vtheta-sin(theta)*vtheta)-sin(phi)*dtheta_vphi;
+//        const double dphi_vx = -sin(theta)*sin(phi)*vr - cos(theta)*sin(phi)*vtheta - cos(phi)*vphi;
+
+//        const double dr_vy = sin(theta)*sin(phi)*dr_vr + cos(theta)*sin(phi)*dr_vtheta + cos(phi)*dr_vphi;
+//        const double dtheta_vy = sin(phi)*(cos(theta)*vr + sin(theta)*dtheta_vr+cos(theta)*dtheta_vtheta-sin(theta)*vtheta)+cos(phi)*dtheta_vphi;
+//        const double dphi_vy = sin(theta)*cos(phi)*vr + cos(theta)*cos(phi)*vtheta - sin(phi)*vphi;
+
+//        const double dr_vz = cos(theta)*dr_vr - sin(theta)*dr_vtheta;
+//        const double dtheta_vz = cos(theta)*(dtheta_vr - vtheta) - sin(theta)*(vr + dtheta_vtheta);
+
+
+//        const double dx_vx = cos(theta)*sin(phi)*dr_vx - sin(theta)/(r*sin(phi))*dtheta_vx + cos(theta)*cos(phi)/r*dphi_vx;
+//        const double dy_vx = sin(theta)*sin(phi)*dr_vx + cos(theta)/(r*sin(phi))*dtheta_vx + sin(theta)*cos(phi)/r*dphi_vx;
+//        const double dz_dx = cos(phi)*dr_vx - sin(phi)/r*dphi_vx;
+
+//        const double dx_vy = cos(theta)*sin(phi)*dr_vy - sin(theta)/(r*sin(phi))*dtheta_vy + cos(theta)*cos(phi)/r*dphi_vy;
+//        const double dy_vy = sin(theta)*sin(phi)*dr_vy + cos(theta)/(r*sin(phi))*dtheta_vy + sin(theta)*cos(phi)/r*dphi_vy;
+//        const double dz_dy = cos(phi)*dr_vy - sin(phi)/r*dphi_vy;
+
+//        const double dx_vz = cos(theta)*sin(phi)*dr_vz - sin(theta)/(r*sin(phi))*dtheta_vz;
+//        const double dy_vz = sin(theta)*sin(phi)*dr_vz + cos(theta)/(r*sin(phi))*dtheta_vz;
+//        const double dz_dz = cos(phi)*dr_vz;
+
+
+//        Tensor<2,3> gradient;
+//        gradient[0][0] = dx_vx;
+//        gradient[0][1] = dy_vx;
+//        gradient[0][2] = dz_dx;
+//        gradient[1][0] = dx_vy;
+//        gradient[1][1] = dy_vy;
+//        gradient[1][2] = dz_dy;
+//        gradient[2][0] = dx_vz;
+//        gradient[2][1] = dy_vz;
+//        gradient[3][2] = dz_dz;
+//        return gradient;
+//      }
+
+
       /**
        * The exact solution for the HollowSphere benchmark.
        */
@@ -262,7 +354,6 @@ namespace aspect
     {
       return AnalyticSolutions::hollow_sphere_velocity (p, mmm);
     }
-
 
 
 

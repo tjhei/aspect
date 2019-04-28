@@ -192,6 +192,18 @@ namespace aspect
                 internal::Assembly::CopyData::CopyDataBase<dim> &data) const;
     };
 
+
+    template <int dim>
+    class StokesBoundaryNEW : public Assemblers::Interface<dim>,
+      public SimulatorAccess<dim>
+    {
+      public:
+        virtual
+        void
+        execute(internal::Assembly::Scratch::ScratchBase<dim>   &scratch,
+                internal::Assembly::CopyData::CopyDataBase<dim> &data) const;
+    };
+
     /**
      * This class computes the local pressure shape function integrals that
      * are later used to make the Stokes equations compatible to its right hand

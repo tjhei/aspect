@@ -179,6 +179,10 @@ namespace aspect
           std_cxx14::make_unique<aspect::Assemblers::StokesBoundaryTraction<dim> >());
       }
 
+    //Hacked in:
+    assemblers->stokes_system_on_boundary_face.push_back(
+      std_cxx14::make_unique<aspect::Assemblers::StokesBoundaryNEW<dim> >());
+
     // add the terms necessary to normalize the pressure
     if (do_pressure_rhs_compatibility_modification)
       assemblers->stokes_system.push_back(
@@ -669,6 +673,7 @@ namespace aspect
                 assemblers->stokes_system_on_boundary_face[i]->execute(scratch,data);
             }
       }
+
   }
 
 
@@ -761,7 +766,9 @@ namespace aspect
          :
          update_default)
         |
-        assemblers->stokes_system_assembler_on_boundary_face_properties.needed_update_flags;
+        assemblers->stokes_system_assembler_on_boundary_face_properties.needed_update_flags
+        |
+        update_normal_vectors | update_values | update_quadrature_points | update_JxW_values;
 
     unsigned int stokes_dofs_per_cell = dim * finite_element.base_element(introspection.base_elements.velocities).dofs_per_cell
                                         + finite_element.base_element(introspection.base_elements.pressure).dofs_per_cell;

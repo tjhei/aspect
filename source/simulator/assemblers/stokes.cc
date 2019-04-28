@@ -653,6 +653,180 @@ namespace aspect
             }
         }
     }
+
+
+    namespace
+    {
+      Tensor<2,2>
+      hollow_sphere_velocity_gradient (const Point<2> &pos,
+                                       const double mmm)
+      {
+        (void)pos;
+        (void)mmm;
+        return Tensor<2,2>();
+      }
+      Tensor<2,3>
+      hollow_sphere_velocity_gradient (const Point<3> &pos,
+                                       const double mmm)
+      {
+        const double gammma = 1.0;
+
+        const double R1 = 0.5;
+        const double R2 = 1.0;
+
+
+        const std::array<double,3> spos =
+          aspect::Utilities::Coordinates::cartesian_to_spherical_coordinates(pos);
+
+        const double r=spos[0];
+        const double  phi=spos[1];
+        const double theta=spos[2];
+
+
+        double alpha,beta,fr,gr,dr_gr,dr_fr;
+
+        if (mmm == -1)
+          {
+            alpha=-gammma*(pow(R2,3)-pow(R1,3))/(pow(R2,3)*log(R1)-pow(R1,3)*log(R2));
+            beta=-3*gammma*(log(R2)-log(R1))/(pow(R1,3)*log(R2)-pow(R2,3)*log(R1)) ;
+
+
+            fr=alpha/(r*r)+beta*r;
+            gr=-2/(r*r)*(alpha*log(r)+beta/3*pow(r,3)+gammma);
+
+            dr_fr = -2*alpha/pow(r,3)+beta;
+            dr_gr = 4/pow(r,3)*(alpha*log(r)+beta/3*pow(r,3)+gammma) - 2/(r*r)*(alpha/r+beta*r*r);
+          }
+        else
+          {
+            //AssertThrow(false,ExcNotImplemented());
+            alpha=gammma*(mmm+1)*(pow(R1,-3)-pow(R2,-3))/(pow(R1,-mmm-4)-pow(R2,-mmm-4));
+            beta=-3*gammma*(pow(R1,mmm+1)-pow(R2,mmm+1))/(pow(R1,mmm+4)-pow(R2,mmm+4));
+
+            fr=alpha/pow(r,mmm+3)+beta*r;
+            gr=-2/(r*r)*(-alpha/(mmm+1)*pow(r,-mmm-1)+beta/3*pow(r,3)+gammma);
+
+            dr_fr = -(mmm+3)*alpha/pow(r,mmm+4)+beta;
+            dr_gr = 4/pow(r,3)*(-alpha/(mmm+1)*pow(r,-mmm-1)+beta/3*pow(r,3)+gammma) - 2/(r*r)*(alpha*pow(r,-mmm-2)+beta*r*r);
+          }
+
+        const double vr    =gr*cos(theta);
+        const double vtheta=fr*sin(theta);
+        const double vphi  =fr*sin(theta);
+
+        const double dr_vr = cos(theta)*dr_gr;
+        const double dtheta_vr = -sin(theta)*gr;
+        const double dr_vtheta = sin(theta)*dr_fr;
+        const double dtheta_vtheta = cos(theta)*fr;
+        const double dr_vphi = dr_vtheta;
+        const double dtheta_vphi = dtheta_vtheta;
+
+        //        const double v_x=sin(theta)*cos(phi)*vr + cos(theta)*cos(phi)*vtheta-sin(phi)*vphi;
+        //        const double v_y=sin(theta)*sin(phi)*vr + cos(theta)*sin(phi)*vtheta+cos(phi)*vphi;
+        //        const double v_z=cos(theta)*vr - sin(theta)*vtheta;
+
+        const double dr_vx = sin(theta)*cos(phi)*dr_vr + cos(theta)*cos(phi)*dr_vtheta - sin(phi)*dr_vphi;
+        const double dtheta_vx = cos(phi)*(cos(theta)*vr + sin(theta)*dtheta_vr+cos(theta)*dtheta_vtheta-sin(theta)*vtheta)-sin(phi)*dtheta_vphi;
+        const double dphi_vx = -sin(theta)*sin(phi)*vr - cos(theta)*sin(phi)*vtheta - cos(phi)*vphi;
+
+        const double dr_vy = sin(theta)*sin(phi)*dr_vr + cos(theta)*sin(phi)*dr_vtheta + cos(phi)*dr_vphi;
+        const double dtheta_vy = sin(phi)*(cos(theta)*vr + sin(theta)*dtheta_vr+cos(theta)*dtheta_vtheta-sin(theta)*vtheta)+cos(phi)*dtheta_vphi;
+        const double dphi_vy = sin(theta)*cos(phi)*vr + cos(theta)*cos(phi)*vtheta - sin(phi)*vphi;
+
+        const double dr_vz = cos(theta)*dr_vr - sin(theta)*dr_vtheta;
+        const double dtheta_vz = cos(theta)*(dtheta_vr - vtheta) - sin(theta)*(vr + dtheta_vtheta);
+
+
+        const double dx_vx = cos(phi)*sin(theta)*dr_vx - sin(phi)/(r*sin(theta))*dphi_vx + cos(phi)*cos(theta)/r*dtheta_vx;
+        const double dy_vx = sin(phi)*sin(theta)*dr_vx + cos(phi)/(r*sin(theta))*dphi_vx + sin(phi)*cos(theta)/r*dtheta_vx;
+        const double dz_vx = cos(theta)*dr_vx - sin(theta)/r*dtheta_vx;
+
+        const double dx_vy = cos(phi)*sin(theta)*dr_vy - sin(phi)/(r*sin(theta))*dphi_vy + cos(phi)*cos(theta)/r*dtheta_vy;
+        const double dy_vy = sin(phi)*sin(theta)*dr_vy + cos(phi)/(r*sin(theta))*dphi_vy + sin(phi)*cos(theta)/r*dtheta_vy;
+        const double dz_vy = cos(theta)*dr_vy - sin(theta)/r*dtheta_vy;
+
+        const double dx_vz = cos(phi)*sin(theta)*dr_vz + cos(phi)*cos(theta)/r*dtheta_vz;
+        const double dy_vz = sin(phi)*sin(theta)*dr_vz + sin(phi)*cos(theta)/r*dtheta_vz;
+        const double dz_vz = cos(theta)*dr_vz - sin(theta)/r*dtheta_vz;
+
+
+        Tensor<2,3> gradient;
+        gradient[0][0] = dx_vx;
+        gradient[0][1] = (dy_vx+dx_vy)/2;
+        gradient[0][2] = (dz_vx+dx_vz)/2;
+        gradient[1][0] = (dx_vy+dy_vx)/2;
+        gradient[1][1] = dy_vy;
+        gradient[1][2] = (dz_vy+dy_vz)/2;
+        gradient[2][0] = (dx_vz+dz_vx)/2;
+        gradient[2][1] = (dy_vz+dz_vy)/2;
+        gradient[2][2] = dz_vz;
+
+        //double gradient_norm = gradient.norm();
+        //if (gradient_norm > 1e10)
+        //std::cout << "(r,theta,phi) = (" << r << "," << theta << "," << phi << ") " << std::endl;
+        //   std::cout << gradient.norm() << std::endl;
+
+        return gradient;
+      }
+
+      template<int dim>
+      Tensor<1,dim>
+      tensor_vmult(const Tensor<2,dim> mat,const Tensor<1,dim> vec)
+      {
+        Tensor<1,dim> return_vec;
+        for (unsigned int i=0; i<dim; ++i)
+          {
+            double val = 0;
+            for (unsigned int j=0; j<dim; ++j)
+              val += mat[i][j]*vec[j];
+            return_vec[i] = val;
+          }
+        return return_vec;
+      }
+    }
+    template <int dim>
+    void
+    StokesBoundaryNEW<dim>::execute (internal::Assembly::Scratch::ScratchBase<dim>   &scratch_base,
+                                     internal::Assembly::CopyData::CopyDataBase<dim> &data_base) const
+    {
+      internal::Assembly::Scratch::StokesSystem<dim> &scratch = dynamic_cast<internal::Assembly::Scratch::StokesSystem<dim>& > (scratch_base);
+      internal::Assembly::CopyData::StokesSystem<dim> &data = dynamic_cast<internal::Assembly::CopyData::StokesSystem<dim>& > (data_base);
+
+      const Introspection<dim> &introspection = this->introspection();
+      const FiniteElement<dim> &fe = scratch.finite_element_values.get_fe();
+
+      const unsigned int stokes_dofs_per_cell = data.local_dof_indices.size();
+
+      const typename DoFHandler<dim>::face_iterator face = scratch.cell->face(scratch.face_number);
+
+      if (face->boundary_id() == 0)
+        {
+          for (unsigned int q=0; q<scratch.face_finite_element_values.n_quadrature_points; ++q)
+            {
+              double eta = 2.0;//scratch.material_model_outputs.viscosities[q];
+              //std::cout << scratch.material_model_outputs.viscosities[q] << std::endl;
+
+              const Tensor<2,dim> gradient = 2.0*eta*hollow_sphere_velocity_gradient(scratch.face_finite_element_values.quadrature_point(q),-2);
+              const Tensor<1,dim> grad_dot_n = gradient*scratch.face_finite_element_values.normal_vector(q);
+              const Tensor<1,dim> grad_dot_n_X_n = cross_product_3d(grad_dot_n, scratch.face_finite_element_values.normal_vector(q));
+
+              for (unsigned int i=0, i_stokes=0; i_stokes<stokes_dofs_per_cell; /*increment at end of loop*/)
+                {
+                  if (introspection.is_stokes_component(fe.system_to_component_index(i).first))
+                    {
+                      const Tensor<1,dim> shape_value(scratch.face_finite_element_values[introspection.extractors.velocities].value(i,q));
+                      const Tensor<1,dim> vXn = cross_product_3d(shape_value,
+                                                                 scratch.face_finite_element_values.normal_vector(q));
+
+                      data.local_rhs(i_stokes) += scalar_product(grad_dot_n_X_n,vXn)
+                                                  *scratch.face_finite_element_values.JxW(q);
+                      ++i_stokes;
+                    }
+                  ++i;
+                }
+            }
+        }
+    }
   }
 } // namespace aspect
 
@@ -671,7 +845,8 @@ namespace aspect
   template class StokesIsothermalCompressionTerm<dim>; \
   template class StokesHydrostaticCompressionTerm<dim>; \
   template class StokesPressureRHSCompatibilityModification<dim>; \
-  template class StokesBoundaryTraction<dim>;
+  template class StokesBoundaryTraction<dim>; \
+  template class StokesBoundaryNEW<dim>;
 
     ASPECT_INSTANTIATE(INSTANTIATE)
   }

@@ -7,7 +7,7 @@
 
 set Additional shared libraries            = ./libnsinker.so
 
-set Dimension                              = 2
+set Dimension                              = 3
 set End time                               = 0
 set Pressure normalization                 = volume
 set Nonlinear solver scheme                = no Advection, iterated Stokes
@@ -17,7 +17,7 @@ set Use years in output instead of seconds = false
 # Follow as closely as possible the parameters from Rudi et al. (2017)
 subsection Solver parameters
   subsection Stokes solver parameters
-    set Use full A block as preconditioner              = true
+    set Use full A block as preconditioner              = false
     set Number of cheap Stokes solver steps             = 200
     set Maximum number of expensive Stokes solver steps = 1000
     set Linear solver tolerance                         = 1e-6
@@ -37,18 +37,18 @@ subsection Geometry model
   subsection Box
     set X extent = 1
     set Y extent = 1
-    #set Z extent = 1
+    set Z extent = 1
   end
 end
 
 
 subsection Boundary velocity model
-  set Tangential velocity boundary indicators = left,right,bottom,top #,front,back
+  set Tangential velocity boundary indicators = left,right,top,bottom,front #,back
 end
 
-#subsection Boundary velocity model
-#  set Zero velocity boundary indicators = left,right,bottom,top #,front,back
-#end
+subsection Boundary velocity model
+  set Zero velocity boundary indicators = back
+end
 
 
 subsection Material model
@@ -77,7 +77,7 @@ end
 
 
 subsection Mesh refinement
-  set Initial global refinement                = 4
+  set Initial global refinement                = 2
   set Initial adaptive refinement              = 5
 
   set Adapt by fraction of cells = true
@@ -85,7 +85,7 @@ subsection Mesh refinement
   set Strategy = velocity
   set Run postprocessors on initial refinement = true
   set Coarsening fraction                      = 0.0
-  set Refinement fraction                      = 0.333
+  set Refinement fraction                      = 0.147 
 end
 
 

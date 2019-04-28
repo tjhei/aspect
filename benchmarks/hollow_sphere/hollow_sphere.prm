@@ -33,8 +33,7 @@ end
 #Boundary conditions
 
 subsection Boundary velocity model
-  set Prescribed velocity boundary indicators = bottom : HollowSphereBoundary, \
-                                                top : HollowSphereBoundary
+  set Prescribed velocity boundary indicators = 1 : HollowSphereBoundary, 0 : HollowSphereBoundary
 end
 
 
@@ -52,7 +51,7 @@ end
 
 subsection HollowSphere benchmark
    #Viscosity parameter is m 
-   set Viscosity parameter             = 3
+   set Viscosity parameter             = -2
 end 
 
 ############### Parameters describing the temperature field
@@ -80,7 +79,7 @@ end
 
 subsection Mesh refinement
   set Initial adaptive refinement        = 0
-  set Initial global refinement          = 4
+  set Initial global refinement          = 2 
   set Refinement fraction                = 0.2
   set Strategy                           = velocity
 end

@@ -48,7 +48,8 @@ namespace aspect
                             const unsigned int dofs,
                             const unsigned int procs,
                             const unsigned int gmres_iterations,
-                            const double workload_imbalance);
+                            const double workload_imbalance,
+                            const unsigned int coarse_level);
 
       void reset ();
 

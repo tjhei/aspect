@@ -1374,6 +1374,8 @@ namespace aspect
 
         velocity_matrix.clear();
         velocity_matrix.initialize(ablock_mf_storage);
+
+        velocity_matrix.initialize_dof_vector(velocity_lumped_mass_matrix);
       }
 
       // Mass matrix...
@@ -1546,6 +1548,56 @@ namespace aspect
         }
 
     coarse_matrix_amg.compress(VectorOperation::add);
+  }
+
+  template <int dim>
+  void StokesMatrixFreeHandler<dim>::assemble_lumped_mass_matrix()
+  {
+    velocity_lumped_mass_matrix = 0;
+
+    QGauss<dim>  quadrature_formula(sim.parameters.stokes_velocity_degree+1);
+    FEValues<dim> fe_values (fe_v, quadrature_formula,
+                             update_values   |
+                             update_quadrature_points | update_JxW_values);
+
+    const unsigned int   dofs_per_cell   = fe_v.dofs_per_cell;
+    const unsigned int   n_q_points      = quadrature_formula.size();
+
+    Vector<double> cell_diag;
+
+    std::vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
+    const FEValuesExtractors::Vector velocities (0);
+
+    typename DoFHandler<dim>::active_cell_iterator cell = dof_handler_v.begin_active(),
+                                                   endc = dof_handler_v.end();
+    for (; cell!=endc; ++cell)
+      if (cell->level_subdomain_id()==sim.triangulation.locally_owned_subdomain())
+        {
+          cell_diag = 0;
+          fe_values.reinit (cell);
+
+          typename DoFHandler<dim>::active_cell_iterator DG_cell(&(sim.triangulation),
+                                                                 cell->level(),
+                                                                 cell->index(),
+                                                                 &dof_handler_projection);
+          std::vector<types::global_dof_index> dg_dof_indices(dof_handler_projection.get_fe(0).dofs_per_cell);
+          DG_cell->get_active_or_mg_dof_indices(dg_dof_indices);
+          double viscosity = active_coef_dof_vec(dg_dof_indices[0]);
+
+          for (unsigned int q=0; q<n_q_points; ++q)
+            for (unsigned int i=0; i<dofs_per_cell; ++i)
+              if (fe_v.system_to_component_index(i).first<dim)
+                cell_diag(i) += (std::sqrt(viscosity)
+                                 *fe_values.shape_value(i,q)*fe_values.shape_value(i,q)
+                                 *fe_values.JxW(q));
+
+          // Constraints? Need distribute_local_to_global_new
+          cell->get_active_or_mg_dof_indices (local_dof_indices);
+          for (unsigned int i=0; i<local_dof_indices.size(); ++i)
+            velocity_lumped_mass_matrix[local_dof_indices[i]] += cell_diag[i];
+        }
+
+    velocity_lumped_mass_matrix.compress(VectorOperation::add);
   }
 
 

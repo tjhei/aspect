@@ -141,7 +141,8 @@ namespace aspect
                                  const unsigned int dofs,
                                  const unsigned int procs,
                                  const unsigned int gmres_iterations,
-                                 const double workload_imbalance)
+                                 const double workload_imbalance,
+                                 const unsigned int coarse_level)
   {
     std::ofstream out;
     out.open(filename_and_path);
@@ -165,7 +166,7 @@ namespace aspect
           out << sections[section_name].time_vec[i] << " ";
       }
 
-    out << "GMRES-its: " << gmres_iterations << " Workload_imbalance: " << workload_imbalance << " ";
+    out << "GMRES-its: " << gmres_iterations << " Workload_imbalance: " << workload_imbalance << " Coarse_level: " << coarse_level;
 
     out.close();
   }
