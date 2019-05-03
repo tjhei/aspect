@@ -354,6 +354,8 @@ namespace aspect
     std::string timings_directory;
     int coarse_level;
 
+    bool use_bfbt;
+
     typename NonlinearSolver::Kind nonlinear_solver;
 
     double                         nonlinear_tolerance;

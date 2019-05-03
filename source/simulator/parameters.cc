@@ -55,6 +55,9 @@ namespace aspect
     prm.declare_entry ("Coarse level","0",Patterns::Integer(0),
                        "For GMG, level at which we switch to AMG.");
 
+    prm.declare_entry ("Use BFBT","false",Patterns::Bool(),
+                       "Use BFBT preconditioner?");
+
     prm.declare_entry ("Dimension", "2",
                        Patterns::Integer (2,3),
                        "The number of space dimensions you want to run this program in. "
@@ -1178,6 +1181,8 @@ namespace aspect
                                  mpi_communicator,
                                  false);
     coarse_level = prm.get_integer("Coarse level");
+
+    use_bfbt = prm.get_bool("Use BFBT");
 
     CFL_number              = prm.get_double ("CFL number");
     use_conduction_timestep = prm.get_bool ("Use conduction timestep");

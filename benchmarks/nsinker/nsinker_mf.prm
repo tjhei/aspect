@@ -7,7 +7,7 @@
 
 set Additional shared libraries            = ./libnsinker.so
 
-set Number of timings = 5
+#set Number of timings = 5
 #set Timing output directory = timings/
 
 set Dimension                              = 3
@@ -76,7 +76,7 @@ end
 
 
 subsection Mesh refinement
-  set Initial global refinement                = 5 
+  set Initial global refinement                = 3
   set Initial adaptive refinement              = 0
 end
 
