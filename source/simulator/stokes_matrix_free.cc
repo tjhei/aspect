@@ -281,11 +281,6 @@ namespace aspect
 
 
 
-
-
-
-
-
     template <class ABlockMatrixType, class StokesMatrixType, class PoissonMatrixType, class PreconditionerMp,class PreconditionerA>
     class BlockSchurBFBTPreconditioner : public Subscriptor
     {
@@ -414,6 +409,7 @@ namespace aspect
               solver.solve(poisson_matrix,
                            p_vec, src.block(1),
                            mp_preconditioner);
+              std::cout << "schur p1: " << solver_control.last_step() << std::endl;
               n_iterations_S_ += solver_control.last_step();
             }
           else
@@ -1965,7 +1961,10 @@ namespace aspect
   template <int dim>
   void StokesMatrixFreeHandler<dim>::assemble_lumped_mass_matrix()
   {
-    velocity_lumped_mass_matrix = velocity_matrix.compute_velocity_lumped_mass_matrix();
+    //velocity_lumped_mass_matrix = velocity_matrix.compute_velocity_lumped_mass_matrix();
+
+    velocity_matrix.compute_diagonal();
+    velocity_lumped_mass_matrix = velocity_matrix.get_matrix_diagonal_inverse()->get_vector();
 
     //velocity_lumped_mass_matrix.print(std::cout);
     return;

@@ -445,7 +445,7 @@ namespace aspect
                                      const unsigned int                               &dummy,
                                      const std::pair<unsigned int,unsigned int>       &cell_range) const;
 
-        Table<2, VectorizedArray<number> > viscosity_x_2;
+        Table<2, VectorizedArray<number> > viscosity;
     };
     template <int dim, int degree_p, typename number>
     PressurePoissonOperator<dim,degree_p,number>::PressurePoissonOperator ()
@@ -456,7 +456,7 @@ namespace aspect
     void
     PressurePoissonOperator<dim,degree_p,number>::clear ()
     {
-      viscosity_x_2.reinit(0, 0);
+      viscosity.reinit(0, 0);
       MatrixFreeOperators::Base<dim,dealii::LinearAlgebra::distributed::Vector<number> >::clear();
     }
 
@@ -470,7 +470,7 @@ namespace aspect
     {
       FEEvaluation<dim,degree_p,degree_p+2,1,number> pressure (*this->data, 0);
       const unsigned int n_cells = this->data->n_macro_cells();
-      viscosity_x_2.reinit(n_cells, pressure.n_q_points);
+      viscosity.reinit(n_cells, pressure.n_q_points);
 
       std::vector<types::global_dof_index> local_dof_indices(dof_handler_for_projection.get_fe().dofs_per_cell);
       for (unsigned int cell=0; cell<n_cells; ++cell)
@@ -499,7 +499,7 @@ namespace aspect
             //TODO: projection with higher degree
             Assert(local_dof_indices.size() == 1, ExcNotImplemented());
             for (unsigned int q=0; q<pressure.n_q_points; ++q)
-              viscosity_x_2(cell,q)[i] = 2.0*visc_vals(local_dof_indices[0]);
+              viscosity(cell,q)[i] = 1.0/sqrt(visc_vals(local_dof_indices[0]));
           }
     }
 
@@ -515,14 +515,14 @@ namespace aspect
 
       for (unsigned int cell=cell_range.first; cell<cell_range.second; ++cell)
         {
-          AssertDimension(viscosity_x_2.size(0), data.n_macro_cells());
-          AssertDimension(viscosity_x_2.size(1), pressure.n_q_points);
+          AssertDimension(viscosity.size(0), data.n_macro_cells());
+          AssertDimension(viscosity.size(1), pressure.n_q_points);
 
           pressure.reinit (cell);
           pressure.read_dof_values(src);
           pressure.evaluate (false, true);
           for (unsigned int q=0; q<pressure.n_q_points; ++q)
-            pressure.submit_gradient(viscosity_x_2(cell,q)*
+            pressure.submit_gradient(viscosity(cell,q)*
                                      pressure.get_gradient(q),q);
           pressure.integrate (false, true);
           pressure.distribute_local_to_global (dst);
@@ -592,7 +592,7 @@ namespace aspect
 
               pressure.evaluate (false,true);
               for (unsigned int q=0; q<pressure.n_q_points; ++q)
-                pressure.submit_gradient(viscosity_x_2(cell,q)*
+                pressure.submit_gradient(viscosity(cell,q)*
                                          pressure.get_gradient(q),q);
               pressure.integrate (false,true);
 
@@ -840,6 +840,15 @@ namespace aspect
                              diag, dummy);
 
       this->set_constrained_entries_to_one(diag);
+
+      for (unsigned int i=0; i<diag.local_size(); ++i)
+        {
+          Assert(diag.local_element(i) > 0.,
+                 ExcMessage("No diagonal entry in a positive definite operator "
+                            "should be zero"));
+          diag.local_element(i) =
+            1./diag.local_element(i);
+        }
 
       return diag;
     }

@@ -768,21 +768,6 @@ namespace aspect
 
         return gradient;
       }
-
-      template<int dim>
-      Tensor<1,dim>
-      tensor_vmult(const Tensor<2,dim> mat,const Tensor<1,dim> vec)
-      {
-        Tensor<1,dim> return_vec;
-        for (unsigned int i=0; i<dim; ++i)
-          {
-            double val = 0;
-            for (unsigned int j=0; j<dim; ++j)
-              val += mat[i][j]*vec[j];
-            return_vec[i] = val;
-          }
-        return return_vec;
-      }
     }
     template <int dim>
     void
