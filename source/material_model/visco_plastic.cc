@@ -390,6 +390,10 @@ namespace aspect
     evaluate(const MaterialModel::MaterialModelInputs<dim> &in,
              MaterialModel::MaterialModelOutputs<dim> &out) const
     {
+
+      MaterialModel::PrescribedCompressionOutputs<dim>
+      *prescribed_compression = out.template get_additional_output<MaterialModel::PrescribedCompressionOutputs<dim> >();
+
       // Store which components do not represent volumetric compositions (e.g. strain components).
       const ComponentMask volumetric_compositions = get_volumetric_composition_mask();
 
@@ -465,6 +469,32 @@ namespace aspect
 
           // Calculate changes in strain invariants and update the reaction terms
           strain_rheology.fill_reaction_outputs(in, i, min_strain_rate, plastic_yielding, out);
+
+          double dilation_rate = 0.;
+          // Calculate terms related to dilation
+          if (in.current_cell.state() == IteratorState::valid && in.strain_rate[i].norm() > std::numeric_limits<double>::min() && use_associated_plasticity == true)
+            {
+              if (plastic_yielding == true)
+                {
+                  const double edot_ii = ( (this->get_timestep_number() == 0 && in.strain_rate[i].norm() <= std::numeric_limits<double>::min())
+                                         ?
+                                         ref_strain_rate
+                                         :
+                                         std::max(std::sqrt(std::fabs(second_invariant(deviator(in.strain_rate[i])))),min_strain_rate) );
+                  double phi = 0.;
+                  for (unsigned int j=0; j < volume_fractions.size(); ++j)
+                    {
+                     const std::array<double, 3> weakened_values = compute_weakened_yield_parameters(j, in.composition[i]);
+                     phi += volume_fractions[j] * weakened_values[1];
+                    }
+                  dilation_rate = 2. * std::sin(phi) * edot_ii;
+                }
+            }
+
+          if (prescribed_compression != nullptr)
+            {
+              prescribed_compression->prescribed_compression[i]=dilation_rate;
+            }
 
           // Fill plastic outputs if they exist.
           fill_plastic_outputs(i,volume_fractions,plastic_yielding,in,out);
@@ -548,6 +578,14 @@ namespace aspect
                              "List of thermal diffusivities, for background material and compositional fields, "
                              "for a total of N+1 values, where N is the number of compositional fields. "
                              "If only one value is given, then all use the same value.  Units: $m^2/s$");
+
+
+          prm.declare_entry ("Use associated plasticity", "false",
+                             Patterns::Bool (),
+                             "Assemble and add terms to the right hand side of the continuity and "
+                             "momentum equation that account for dilation during plastic failure. "
+                             "Taking dilation into account produces an associated plastic flow "
+                             "relationship. This Units: None");
 
           // Rheological parameters
           prm.declare_entry ("Viscosity averaging scheme", "harmonic",
@@ -635,6 +673,8 @@ namespace aspect
           viscosity_averaging = MaterialUtilities::parse_compositional_averaging_operation ("Viscosity averaging scheme",
                                 prm);
 
+          use_associated_plasticity = prm.get_bool("Use associated plasticity");
+
           // Rheological parameters
           if (prm.get ("Viscous flow law") == "composite")
             viscous_flow_law = composite;
@@ -702,6 +742,13 @@ namespace aspect
           const unsigned int n_points = out.viscosities.size();
           out.additional_outputs.push_back(
             std_cxx14::make_unique<MaterialModel::PlasticAdditionalOutputs<dim>> (n_points));
+        }
+
+      if (out.template get_additional_output<MaterialModel::PrescribedCompressionOutputs<dim> >() == nullptr)
+        {
+          const unsigned int n_points = out.viscosities.size();
+          out.additional_outputs.push_back(
+          std_cxx14::make_unique<MaterialModel::PrescribedCompressionOutputs<dim>> (n_points));
         }
     }
 

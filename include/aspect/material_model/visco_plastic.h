@@ -258,6 +258,15 @@ namespace aspect
         double adiabatic_temperature_gradient_for_viscosity;
 
         Rheology::StrainDependent<dim> strain_rheology;
+        /**
+         * Whether to use an associated plasticity, which takes 
+         * the effects of dilation into account. The effects are
+         * taken into account through terms assembled within the
+         * material model and added to the RHS of the continuity
+         * and momentum equations.
+         */
+        bool use_associated_plasticity;
+
 
         /**
          * Objects for computing viscous creep viscosities.
