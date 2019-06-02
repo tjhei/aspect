@@ -171,6 +171,8 @@ namespace aspect
 
       private:
 
+        bool compressible;
+
         double reference_T;
 
         double min_strain_rate;
@@ -259,7 +261,7 @@ namespace aspect
 
         Rheology::StrainDependent<dim> strain_rheology;
         /**
-         * Whether to use an associated plasticity, which takes 
+         * Whether to use an associated plasticity, which takes
          * the effects of dilation into account. The effects are
          * taken into account through terms assembled within the
          * material model and added to the RHS of the continuity
