@@ -967,6 +967,8 @@ namespace aspect
 
     sim.gmres_iterations = 0;
 
+    PrimitiveVectorMemory<dealii::LinearAlgebra::distributed::BlockVector<double> > mem;
+
     sim.stokes_timer.enter_subsection("gmres_solve");
     try
       {
