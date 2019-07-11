@@ -1177,7 +1177,6 @@ namespace aspect
     Utilities::create_directory (timings_directory,
                                  mpi_communicator,
                                  false);
-    coarse_level = prm.get_integer("Coarse level");
 
     CFL_number              = prm.get_double ("CFL number");
     use_conduction_timestep = prm.get_bool ("Use conduction timestep");
