@@ -731,7 +731,7 @@ int main (int argc, char *argv[])
 
       const bool i_am_proc_0 = (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0);
 
-      if (true)
+      if (false)
         {
           int myid = Utilities::MPI::this_mpi_process(MPI_COMM_WORLD);
 
