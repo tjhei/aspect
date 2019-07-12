@@ -7,8 +7,8 @@
 
 set Additional shared libraries            = ./libnsinker.so
 
-set Number of timings = 5
-#set Timing output directory = timings/
+set Number of timings = 0
+set Timing output directory = timings/
 
 set Dimension                              = 3 
 set End time                               = 0
@@ -76,8 +76,8 @@ end
 
 
 subsection Mesh refinement
-  set Initial global refinement = 4
-  set Initial adaptive refinement = 5
+  set Initial global refinement = 6
+  set Initial adaptive refinement = 9
   set Adapt by fraction of cells = true
   set Strategy = velocity
   set Run postprocessors on initial refinement = true
@@ -94,7 +94,7 @@ subsection Postprocess
 end
 
 
-set Output directory = output/mf/adaptive
+set Output directory = output/test_mf
 
 
 
