@@ -720,6 +720,7 @@ namespace aspect
         }
       mg_smoother.initialize(mg_matrices, smoother_data);
     }
+    mg_smoother.set_steps(2);
 
     // Coarse Solver is just an application of the Chebyshev smoother setup
     // in such a way to be a solver
