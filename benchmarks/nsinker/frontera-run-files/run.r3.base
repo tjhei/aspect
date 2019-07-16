@@ -21,12 +21,12 @@ echo "DEAL_II_NUM_THREADS=$DEAL_II_NUM_THREADS"
 
 
 
-echo "MatrixFree, 4 sinkers, 1e4 visc jump"
+echo "MatrixBased, 4 sinkers, 1e4 visc jump"
 TMPPRM=temp.prm.$SLURM_JOB_ID
 
 for refinement in 4 5 6 7 8 9; do # 4 5 6 7
 
-  cp global_mf.prm $TMPPRM
+  cp global_mb.prm $TMPPRM
 
 echo "subsection Mesh refinement" >> $TMPPRM
 echo "  set Initial global refinement = $refinement" >> $TMPPRM
@@ -42,8 +42,8 @@ echo "subsection Postprocess" >> $TMPPRM
 echo "  set List of postprocessors = memory statistics" >> $TMPPRM
 echo "end" >> $TMPPRM
 
-echo "set Output directory = output-frontera/r1-r$refinement-n$SLURM_JOB_NUM_NODES/" >> $TMPPRM
-echo "set Timing output directory = output-frontera/r1-r$refinement-n$SLURM_JOB_NUM_NODES/" >> $TMPPRM
+echo "set Output directory = output-frontera/r3-r$refinement-n$SLURM_JOB_NUM_NODES/" >> $TMPPRM
+echo "set Timing output directory = output-frontera/r3-r$refinement-n$SLURM_JOB_NUM_NODES/" >> $TMPPRM
 
 ibrun ./aspect $TMPPRM
 rm $TMPPRM

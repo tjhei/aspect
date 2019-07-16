@@ -1,7 +1,7 @@
 #!/bin/bash
 #SBATCH -J myjob           # Job name
-#SBATCH -o myjob.o%j       # Name of stdout output file
-#SBATCH -e myjob.e%j       # Name of stderr error file
+#SBATCH -o myjob-%j.o       # Name of stdout output file
+#SBATCH -e myjob-%j.e       # Name of stderr error file
 #SBATCH -p normal      # normal|development|large
 #SBATCH -N &NODES&               # Total # of nodes 
 #SBATCH -n &TASKS&              # Total # of mpi tasks (56 cores/node)
@@ -45,31 +45,4 @@ echo "set Timing output directory = output-frontera/r2-n$SLURM_JOB_NUM_NODES/" >
 
 ibrun ./aspect $TMPPRM
 rm $TMPPRM
-
-
-echo "MatrixBased, 4 sinkers, 1e4 visc jump"
-TMPPRM=temp.prm.$SLURM_JOB_ID
-
-cp adaptive_mb.prm $TMPPRM
-
-echo "subsection Mesh refinement" >> $TMPPRM
-echo "  set Initial global refinement = 6" >> $TMPPRM
-echo "  set Initial adaptive refinement = &ADAPTIVE&" >> $TMPPRM
-echo "  set Adapt by fraction of cells = true" >> $TMPPRM
-echo "  set Strategy = velocity" >> $TMPPRM
-echo "  set Run postprocessors on initial refinement = true" >> $TMPPRM
-echo "  set Coarsening fraction       = 0.0" >> $TMPPRM
-echo "  set Refinement fraction       = 0.14285714285" >> $TMPPRM
-echo "end" >> $TMPPRM
-
-echo "subsection Postprocess" >> $TMPPRM
-echo "  set List of postprocessors = memory statistics" >> $TMPPRM
-echo "end" >> $TMPPRM
-
-echo "set Output directory = output-frontera/run14-n$SLURM_JOB_NUM_NODES-mb/" >> $TMPPRM
-echo "set Timing output directory = output-frontera/run14-n$SLURM_JOB_NUM_NODES-mb/" >> $TMPPRM
-
-ibrun ./aspect $TMPPRM
-rm $TMPPRM
-
 
