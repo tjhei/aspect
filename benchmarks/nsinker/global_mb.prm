@@ -53,7 +53,14 @@ end
 
 subsection Material model
   set Model name = nsinker
+  set Material averaging = harmonic average
+
+  subsection NSinker
+    set Number of sinkers = 4
+    set Dynamic viscosity ratio = 1e4
+  end
 end
+
 
 subsection Gravity model
   set Model name = vertical
@@ -68,11 +75,24 @@ subsection Initial temperature model
   set Model name = function
 end
 
+
+subsection Mesh refinement
+  set Initial global refinement                = 8
+  set Initial adaptive refinement              = 0
+end
+
+
+
 subsection Postprocess
   set List of postprocessors = memory statistics
   subsection Memory statistics
     set Output peak virtual memory (VmPeak) = true
   end
 end
+
+
+set Output directory = output/test_mb
+
+
 
 
