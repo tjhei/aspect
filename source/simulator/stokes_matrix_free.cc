@@ -1079,7 +1079,7 @@ namespace aspect
 
 
     // do some cleanup now that we have the solution
-    if (i == sim.stokes_timer.n_timings)
+    if (i == sim.parameters.n_timings)
       {
         sim.remove_nullspace(sim.solution, distributed_stokes_solution);
         if (!sim.assemble_newton_stokes_system)
