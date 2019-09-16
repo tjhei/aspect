@@ -971,7 +971,7 @@ namespace aspect
     PrimitiveVectorMemory<dealii::LinearAlgebra::distributed::BlockVector<double> > mem;
 
     sim.stokes_timer.enter_subsection("gmres_solve");
-    sim.pcout << solution_copy.linfty_norm() << std::endl;
+    sim.pcout << solution_copy.l2_norm() << std::endl;
     try
       {
         SolverFGMRES<dealii::LinearAlgebra::distributed::BlockVector<double> >
