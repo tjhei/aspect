@@ -785,7 +785,7 @@ namespace aspect
           tmp_scr = tmp_dst;
 
           stokes_timer.enter_subsection("preconditioner_vmult");
-          for (unsigned int j=0; j<5; ++i)
+          for (unsigned int j=0; j<5; ++j)
             {
               preconditioner_cheap.vmult(tmp_dst, tmp_scr);
               tmp_scr = tmp_dst;
@@ -801,7 +801,7 @@ namespace aspect
           tmp_scr = tmp_dst;
 
           stokes_timer.enter_subsection("operator_vmult");
-          for (unsigned int j=0; j<10; ++i)
+          for (unsigned int j=0; j<10; ++j)
             {
               stokes_block.vmult(tmp_dst, tmp_scr);
               tmp_scr = tmp_dst;
