@@ -785,7 +785,7 @@ namespace aspect
           tmp_scr = tmp_dst;
 
           stokes_timer.enter_subsection("preconditioner_vmult");
-          for (unsigned int i=0; i<5; ++i)
+          for (unsigned int j=0; j<5; ++i)
             {
               preconditioner_cheap.vmult(tmp_dst, tmp_scr);
               tmp_scr = tmp_dst;
@@ -801,7 +801,7 @@ namespace aspect
           tmp_scr = tmp_dst;
 
           stokes_timer.enter_subsection("operator_vmult");
-          for (unsigned int i=0; i<10; ++i)
+          for (unsigned int j=0; j<10; ++i)
             {
               stokes_block.vmult(tmp_dst, tmp_scr);
               tmp_scr = tmp_dst;
@@ -1009,9 +1009,12 @@ namespace aspect
 
 
     // do some cleanup now that we have the solution
-    remove_nullspace(solution, distributed_stokes_solution);
-    if (!assemble_newton_stokes_system)
-      this->last_pressure_normalization_adjustment = normalize_pressure(solution);
+    if (i==parameters.n_timings)
+      {
+        remove_nullspace(solution, distributed_stokes_solution);
+        if (!assemble_newton_stokes_system)
+          this->last_pressure_normalization_adjustment = normalize_pressure(solution);
+      }
 
     // convert melt pressures:
     if (parameters.include_melt_transport)
