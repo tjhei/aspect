@@ -831,6 +831,7 @@ namespace aspect
 
           //Timings for: solve
           stokes_timer.enter_subsection("gmres_solve");
+          sim.pcout << distributed_stokes_solution.l2_norm() << std::endl;
           try
             {
               // if this cheaper solver is not desired, then simply short-cut
