@@ -27,7 +27,7 @@ TMPPRM=temp.prm.$SLURM_JOB_ID
 cp adaptive_mf.prm $TMPPRM
 
 echo "subsection Mesh refinement" >> $TMPPRM
-echo "  set Initial global refinement = 6" >> $TMPPRM
+echo "  set Initial global refinement = 5" >> $TMPPRM
 echo "  set Initial adaptive refinement = &ADAPTIVE&" >> $TMPPRM
 echo "  set Adapt by fraction of cells = true" >> $TMPPRM
 echo "  set Strategy = velocity" >> $TMPPRM
