@@ -33,7 +33,7 @@ echo "  set Adapt by fraction of cells = true" >> $TMPPRM
 echo "  set Strategy = velocity" >> $TMPPRM
 echo "  set Run postprocessors on initial refinement = true" >> $TMPPRM
 echo "  set Coarsening fraction       = 0.0" >> $TMPPRM
-echo "  set Refinement fraction       = 0.14" >> $TMPPRM
+echo "  set Refinement fraction       = 0.138571" >> $TMPPRM
 echo "end" >> $TMPPRM
 
 echo "subsection Postprocess" >> $TMPPRM
