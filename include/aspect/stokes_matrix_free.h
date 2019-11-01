@@ -61,7 +61,7 @@ namespace aspect
                                                    const DoFHandler<dim> &dof_handler_for_projection);
         void output_visc (const unsigned int proc);
 
-        Table<2, VectorizedArray<number> > get_visc_table();
+        Table<1, VectorizedArray<number> > get_visc_table();
         virtual void compute_diagonal ();
 
       private:
