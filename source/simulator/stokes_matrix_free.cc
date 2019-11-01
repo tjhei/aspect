@@ -602,7 +602,7 @@ namespace aspect
     sim.current_constraints.distribute(u0);
     u0.update_ghost_values();
 
-    const Table<2, VectorizedArray<double>> viscosity_table = stokes_matrix.get_visc_table();
+    const Table<1, VectorizedArray<double>> viscosity_table = stokes_matrix.get_visc_table();
     FEEvaluation<dim,2,3,dim,double>
     velocity (*stokes_matrix.get_matrix_free(), 0);
     FEEvaluation<dim,1,3,1,double>

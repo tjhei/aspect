@@ -473,7 +473,7 @@ namespace aspect
           {
 
             if (for_mg)
-              {`
+              {
                 typename DoFHandler<dim>::level_cell_iterator FEQ_cell = this->get_matrix_free()->get_cell_iterator(cell,i);
                 typename DoFHandler<dim>::level_cell_iterator DG_cell(&tria,
                                                                       FEQ_cell->level(),
