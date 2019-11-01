@@ -73,7 +73,7 @@ namespace aspect
                           const dealii::LinearAlgebra::distributed::BlockVector<number> &src,
                           const std::pair<unsigned int, unsigned int> &cell_range) const;
 
-        Table<2, VectorizedArray<number> > viscosity_x_2;
+        Table<1, VectorizedArray<number> > viscosity_x_2;
         double pressure_scaling;
     };
     template <int dim, int degree_v, typename number>
@@ -85,7 +85,7 @@ namespace aspect
     void
     StokesOperator<dim,degree_v,number>::clear ()
     {
-      viscosity_x_2.reinit(0, 0);
+      viscosity_x_2.reinit(TableIndices<1>(0));
       MatrixFreeOperators::Base<dim,dealii::LinearAlgebra::distributed::BlockVector<number> >::clear();
     }
 
@@ -97,9 +97,8 @@ namespace aspect
                                            const Triangulation<dim> &tria,
                                            const DoFHandler<dim> &dof_handler_for_projection)
     {
-      FEEvaluation<dim,degree_v,degree_v+1,dim,number> velocity (*this->data, 0);
       const unsigned int n_cells = this->data->n_macro_cells();
-      viscosity_x_2.reinit(n_cells, velocity.n_q_points);
+      viscosity_x_2.reinit(TableIndices<1>(n_cells));
 
       std::vector<types::global_dof_index> local_dof_indices(dof_handler_for_projection.get_fe().dofs_per_cell);
       for (unsigned int cell=0; cell<n_cells; ++cell)
@@ -114,8 +113,7 @@ namespace aspect
 
             //TODO: projection with higher degree
             Assert(local_dof_indices.size() == 1, ExcNotImplemented());
-            for (unsigned int q=0; q<velocity.n_q_points; ++q)
-              viscosity_x_2(cell,q)[i] = 2.0*visc_vals(local_dof_indices[0]);
+            viscosity_x_2(cell)[i] = 2.0*visc_vals(local_dof_indices[0]);
           }
       pressure_scaling = scaling;
     }
@@ -136,13 +134,13 @@ namespace aspect
             for (unsigned int i=0; i<VectorizedArray<double>::n_array_elements; ++i)
               output << velocity.quadrature_point(q)(0)[i] << " "
                      << velocity.quadrature_point(q)(1)[i] << " "
-                     << viscosity_x_2(cell,q)[i] << std::endl;
+                     << viscosity_x_2(cell)[i] << std::endl;
         }
       output << std::endl;
       output.close();
     }
     template <int dim, int degree_v, typename number>
-    Table<2, VectorizedArray<number> >
+    Table<1, VectorizedArray<number> >
     StokesOperator<dim,degree_v,number>::get_visc_table()
     {
       return viscosity_x_2;
@@ -162,6 +160,8 @@ namespace aspect
 
       for (unsigned int cell=cell_range.first; cell<cell_range.second; ++cell)
         {
+          const VectorizedArray<number> visc_val = viscosity_x_2(cell);
+
           velocity.reinit (cell);
           velocity.read_dof_values (src.block(0));
           velocity.evaluate (false,true,false);
@@ -177,7 +177,7 @@ namespace aspect
               vector_t div = -trace(sym_grad_u);
               pressure.submit_value   (pressure_scaling*div, q);
 
-              sym_grad_u *= viscosity_x_2(cell,q);
+              sym_grad_u *= visc_val;
               // subtract p * I
               for (unsigned int d=0; d<dim; ++d)
                 sym_grad_u[d][d] -= pressure_scaling*pres;
@@ -239,7 +239,7 @@ namespace aspect
                                      const unsigned int                               &dummy,
                                      const std::pair<unsigned int,unsigned int>       &cell_range) const;
 
-        Table<2, VectorizedArray<number> > one_over_viscosity;
+        Table<1, VectorizedArray<number> > one_over_viscosity;
         double pressure_scaling;
     };
     template <int dim, int degree_p, typename number>
@@ -251,7 +251,7 @@ namespace aspect
     void
     MassMatrixOperator<dim,degree_p,number>::clear ()
     {
-      one_over_viscosity.reinit(0, 0);
+      one_over_viscosity.reinit(TableIndices<1>(0));
       MatrixFreeOperators::Base<dim,dealii::LinearAlgebra::distributed::Vector<number> >::clear();
     }
 
@@ -263,9 +263,8 @@ namespace aspect
                                            const Triangulation<dim> &tria,
                                            const DoFHandler<dim> &dof_handler_for_projection)
     {
-      FEEvaluation<dim,degree_p,degree_p+2,1,number> pressure (*this->data, 0);
       const unsigned int n_cells = this->data->n_macro_cells();
-      one_over_viscosity.reinit(n_cells, pressure.n_q_points);
+      one_over_viscosity.reinit(TableIndices<1>(n_cells));
 
       std::vector<types::global_dof_index> local_dof_indices(dof_handler_for_projection.get_fe().dofs_per_cell);
       for (unsigned int cell=0; cell<n_cells; ++cell)
@@ -280,8 +279,7 @@ namespace aspect
 
             //TODO: projection with higher degree
             Assert(local_dof_indices.size() == 1, ExcNotImplemented());
-            for (unsigned int q=0; q<pressure.n_q_points; ++q)
-              one_over_viscosity(cell,q)[i] = 1.0/visc_vals(local_dof_indices[0]);
+            one_over_viscosity(cell)[i] = 1.0/visc_vals(local_dof_indices[0]);
           }
       pressure_scaling = scaling;
     }
@@ -303,7 +301,7 @@ namespace aspect
             for (unsigned int i=0; i<VectorizedArray<double>::n_array_elements; ++i)
               output << pressure.quadrature_point(q)(0)[i] << " "
                      << pressure.quadrature_point(q)(1)[i] << " "
-                     << one_over_viscosity(cell,q)[i] << std::endl;
+                     << one_over_viscosity(cell)[i] << std::endl;
         }
       output << std::endl;
       output.close();
@@ -320,14 +318,15 @@ namespace aspect
 
       for (unsigned int cell=cell_range.first; cell<cell_range.second; ++cell)
         {
+          VectorizedArray<number> visc_val = one_over_viscosity(cell);
+
           AssertDimension(one_over_viscosity.size(0), data.n_macro_cells());
-          AssertDimension(one_over_viscosity.size(1), pressure.n_q_points);
 
           pressure.reinit (cell);
           pressure.read_dof_values(src);
           pressure.evaluate (true, false);
           for (unsigned int q=0; q<pressure.n_q_points; ++q)
-            pressure.submit_value(one_over_viscosity(cell,q)*pressure_scaling*pressure_scaling*
+            pressure.submit_value(visc_val*pressure_scaling*pressure_scaling*
                                   pressure.get_value(q),q);
           pressure.integrate (true, false);
           pressure.distribute_local_to_global (dst);
@@ -387,6 +386,8 @@ namespace aspect
       FEEvaluation<dim,degree_p,degree_p+2,1,number> pressure (data, 0);
       for (unsigned int cell=cell_range.first; cell<cell_range.second; ++cell)
         {
+          VectorizedArray<number> visc_val = one_over_viscosity(cell);
+
           pressure.reinit (cell);
           AlignedVector<VectorizedArray<number> > diagonal(pressure.dofs_per_cell);
           for (unsigned int i=0; i<pressure.dofs_per_cell; ++i)
@@ -397,7 +398,7 @@ namespace aspect
 
               pressure.evaluate (true,false,false);
               for (unsigned int q=0; q<pressure.n_q_points; ++q)
-                pressure.submit_value(one_over_viscosity(cell,q)*pressure_scaling*pressure_scaling*
+                pressure.submit_value(visc_val*pressure_scaling*pressure_scaling*
                                       pressure.get_value(q),q);
               pressure.integrate (true,false);
 
@@ -440,7 +441,7 @@ namespace aspect
                                      const unsigned int                               &dummy,
                                      const std::pair<unsigned int,unsigned int>       &cell_range) const;
 
-        Table<2, VectorizedArray<number> > viscosity_x_2;
+        Table<1, VectorizedArray<number> > viscosity_x_2;
     };
     template <int dim, int degree_v, typename number>
     ABlockOperator<dim,degree_v,number>::ABlockOperator ()
@@ -451,7 +452,7 @@ namespace aspect
     void
     ABlockOperator<dim,degree_v,number>::clear ()
     {
-      viscosity_x_2.reinit(0, 0);
+      viscosity_x_2.reinit(TableIndices<1>(0));
       MatrixFreeOperators::Base<dim,dealii::LinearAlgebra::distributed::Vector<number> >::clear();
     }
 
@@ -463,9 +464,8 @@ namespace aspect
                       const DoFHandler<dim> &dof_handler_for_projection,
                       const bool for_mg)
     {
-      FEEvaluation<dim,degree_v,degree_v+1,dim,number> velocity (*this->data, 0);
       const unsigned int n_cells = this->data->n_macro_cells();
-      viscosity_x_2.reinit(n_cells, velocity.n_q_points);
+      viscosity_x_2.reinit(TableIndices<1>(n_cells));
 
       std::vector<types::global_dof_index> local_dof_indices(dof_handler_for_projection.get_fe().dofs_per_cell);
       for (unsigned int cell=0; cell<n_cells; ++cell)
@@ -473,7 +473,7 @@ namespace aspect
           {
 
             if (for_mg)
-              {
+              {`
                 typename DoFHandler<dim>::level_cell_iterator FEQ_cell = this->get_matrix_free()->get_cell_iterator(cell,i);
                 typename DoFHandler<dim>::level_cell_iterator DG_cell(&tria,
                                                                       FEQ_cell->level(),
@@ -493,8 +493,7 @@ namespace aspect
 
             //TODO: projection with higher degree
             Assert(local_dof_indices.size() == 1, ExcNotImplemented());
-            for (unsigned int q=0; q<velocity.n_q_points; ++q)
-              viscosity_x_2(cell,q)[i] = 2.0*visc_vals(local_dof_indices[0]);
+            viscosity_x_2(cell)[i] = 2.0*visc_vals(local_dof_indices[0]);
           }
     }
 
@@ -516,7 +515,7 @@ namespace aspect
             for (unsigned int i=0; i<VectorizedArray<double>::n_array_elements; ++i)
               output << velocity.quadrature_point(q)(0)[i] << " "
                      << velocity.quadrature_point(q)(1)[i] << " "
-                     << viscosity_x_2(cell,q)[i] << std::endl;
+                     << viscosity_x_2(cell)[i] << std::endl;
         }
       output << std::endl;
       output.close();
@@ -536,8 +535,8 @@ namespace aspect
 
       for (unsigned int cell=cell_range.first; cell<cell_range.second; ++cell)
         {
+          VectorizedArray<number> visc_val =  viscosity_x_2(cell);
           AssertDimension(viscosity_x_2.size(0), data.n_macro_cells());
-          AssertDimension(viscosity_x_2.size(1), velocity.n_q_points);
 
           velocity.reinit (cell);
           velocity.read_dof_values(src);
@@ -545,7 +544,7 @@ namespace aspect
           for (unsigned int q=0; q<velocity.n_q_points; ++q)
             {
               velocity.submit_symmetric_gradient
-              (viscosity_x_2(cell,q)*velocity.get_symmetric_gradient(q),q);
+              (visc_val*velocity.get_symmetric_gradient(q),q);
             }
           velocity.integrate (false, true);
           velocity.distribute_local_to_global (dst);
@@ -596,6 +595,8 @@ namespace aspect
       FEEvaluation<dim,degree_v,degree_v+1,dim,number> velocity (data, 0);
       for (unsigned int cell=cell_range.first; cell<cell_range.second; ++cell)
         {
+          VectorizedArray<number> visc_val =  viscosity_x_2(cell);
+
           velocity.reinit (cell);
           AlignedVector<VectorizedArray<number> > diagonal(velocity.dofs_per_cell);
           for (unsigned int i=0; i<velocity.dofs_per_cell; ++i)
@@ -608,7 +609,7 @@ namespace aspect
               for (unsigned int q=0; q<velocity.n_q_points; ++q)
                 {
                   velocity.submit_symmetric_gradient
-                  (viscosity_x_2(cell,q)*velocity.get_symmetric_gradient(q),q);
+                  (visc_val*velocity.get_symmetric_gradient(q),q);
                 }
               velocity.integrate (false,true);
 
