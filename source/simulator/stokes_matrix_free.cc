@@ -625,7 +625,7 @@ namespace aspect
             VectorizedArray<double> div = -trace(sym_grad_u);
             pressure.submit_value   (-1.0*sim.pressure_scaling*div, q);
 
-            sym_grad_u *= viscosity_table(cell,q);
+            sym_grad_u *= viscosity_table(cell);
 
             for (unsigned int d=0; d<dim; ++d)
               sym_grad_u[d][d] -= sim.pressure_scaling*pres;
