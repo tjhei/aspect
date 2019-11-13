@@ -231,7 +231,11 @@ namespace aspect
     assemble_newton_stokes_matrix (true),
     assemble_newton_stokes_system ((parameters.nonlinear_solver == NonlinearSolver::iterated_Advection_and_Newton_Stokes ||
                                     parameters.nonlinear_solver == NonlinearSolver::single_Advection_iterated_Newton_Stokes) ? true : false),
-    rebuild_stokes_preconditioner (true)
+    rebuild_stokes_preconditioner (true),
+
+    stokes_timer(mpi_communicator,
+                 parameters.n_timings,
+                 (parameters.n_timings>0 ? true : false))
   {
     if (Utilities::MPI::this_mpi_process(mpi_communicator) == 0)
       {
@@ -670,8 +674,18 @@ namespace aspect
         TimerOutput::Scope timer (computing_timer, "Setup matrices");
 
         rebuild_sparsity_and_matrices = false;
-        setup_system_matrix (introspection.index_sets.system_partitioning);
-        setup_system_preconditioner (introspection.index_sets.system_partitioning);
+
+        // Timings for: sparsity pattern
+        for (unsigned int i=0; i<parameters.n_timings+1; ++i)
+          {
+            stokes_timer.enter_subsection("total_setup");
+            stokes_timer.enter_subsection("setup_sparsity");
+            setup_system_matrix (introspection.index_sets.system_partitioning);
+            setup_system_preconditioner (introspection.index_sets.system_partitioning);
+            stokes_timer.leave_subsection("setup_sparsity");
+            stokes_timer.leave_subsection("total_setup");
+          }
+
         rebuild_stokes_matrix = rebuild_stokes_preconditioner = true;
       }
 
@@ -1283,104 +1297,113 @@ namespace aspect
 
 
   template <int dim>
-  void Simulator<dim>::setup_dofs ()
+  void Simulator<dim>::setup_dofs (unsigned int i)
   {
     signals.edit_parameters_pre_setup_dofs(*this, parameters);
 
     TimerOutput::Scope timer (computing_timer, "Setup dof systems");
 
-    dof_handler.distribute_dofs(finite_element);
-
-    // Renumber the DoFs hierarchical so that we get the
-    // same numbering if we resume the computation. This
-    // is because the numbering depends on the order the
-    // cells are created.
-    DoFRenumbering::hierarchical (dof_handler);
-    DoFRenumbering::component_wise (dof_handler,
-                                    introspection.get_components_to_blocks());
-
-    // set up the introspection object that stores all sorts of
-    // information about components of the finite element, component
-    // masks, etc
-    setup_introspection();
-
-    // print dof numbers. Do so with 1000s separator since they are frequently
-    // large
+    //Timings for: DOF/CONSTRAINTS
+    stokes_timer.enter_subsection("setup_sys_dofs");
     {
-      std::locale s = pcout.get_stream().getloc();
-      // Creating std::locale with an empty string previously caused problems
-      // on some platforms, so the functionality to catch the exception and ignore
-      // is kept here, even though explicitly setting a facet should always work.
-      try
-        {
-          // Imbue the stream with a locale that does the right thing. The
-          // locale is responsible for later deleting the object pointed
-          // to by the last argument (the "facet"), see
-          // https://en.cppreference.com/w/cpp/locale/locale/locale
-          pcout.get_stream().imbue(std::locale(std::locale(),
-                                               new aspect::Utilities::ThousandSep));
-        }
-      catch (const std::runtime_error &e)
-        {
-          // If the locale doesn't work, just give up
-        }
+      dof_handler.distribute_dofs(finite_element);
 
-      pcout << "Number of active cells: "
-            << triangulation.n_global_active_cells()
-            << " (on "
-            << triangulation.n_global_levels()
-            << " levels)"
-            << std::endl
-            << "Number of degrees of freedom: "
-            << dof_handler.n_dofs()
-            << " ("
-            << introspection.system_dofs_per_block[0];
-      for (unsigned int b=1; b<introspection.system_dofs_per_block.size(); ++b)
-        pcout << '+' << introspection.system_dofs_per_block[b];
-      pcout <<')'
-            << std::endl
-            << std::endl;
+      // Renumber the DoFs hierarchical so that we get the
+      // same numbering if we resume the computation. This
+      // is because the numbering depends on the order the
+      // cells are created.
+      DoFRenumbering::hierarchical (dof_handler);
+      DoFRenumbering::component_wise (dof_handler,
+                                      introspection.get_components_to_blocks());
 
-      pcout.get_stream().imbue(s);
+      // set up the introspection object that stores all sorts of
+      // information about components of the finite element, component
+      // masks, etc
+      setup_introspection();
+
+      // print dof numbers. Do so with 1000s separator since they are frequently
+      // large
+      {
+        std::locale s = pcout.get_stream().getloc();
+        // Creating std::locale with an empty string previously caused problems
+        // on some platforms, so the functionality to catch the exception and ignore
+        // is kept here, even though explicitly setting a facet should always work.
+        try
+          {
+            // Imbue the stream with a locale that does the right thing. The
+            // locale is responsible for later deleting the object pointed
+            // to by the last argument (the "facet"), see
+            // https://en.cppreference.com/w/cpp/locale/locale/locale
+            pcout.get_stream().imbue(std::locale(std::locale(),
+                                                 new aspect::Utilities::ThousandSep));
+          }
+        catch (const std::runtime_error &e)
+          {
+            // If the locale doesn't work, just give up
+          }
+
+        if (i==0)
+          {
+            pcout << "Number of active cells: "
+                  << triangulation.n_global_active_cells()
+                  << " (on "
+                  << triangulation.n_global_levels()
+                  << " levels)"
+                  << std::endl
+                  << "Number of degrees of freedom: "
+                  << dof_handler.n_dofs()
+                  << " ("
+                  << introspection.system_dofs_per_block[0];
+            for (unsigned int b=1; b<introspection.system_dofs_per_block.size(); ++b)
+              pcout << '+' << introspection.system_dofs_per_block[b];
+            pcout <<')'
+                  << std::endl
+                  << std::endl;
+
+            pcout.get_stream().imbue(s);
+          }
+      }
+
+      // We need to set up the mesh deformation degrees of freedom first if mesh deformation
+      // is active, since the mapping must be in place before applying boundary
+      // conditions that rely on it (such as no flux BCs).
+      if (parameters.mesh_deformation_enabled)
+        mesh_deformation->setup_dofs();
+
+
+      // Reconstruct the constraint-matrix:
+      constraints.clear();
+      constraints.reinit(introspection.index_sets.system_relevant_set);
+
+      // Set up the constraints for periodic boundary conditions:
+
+      // Note: this has to happen _before_ we do hanging node constraints,
+      // because inconsistent contraints could be generated in parallel otherwise.
+      {
+        typedef std::set< std::pair< std::pair< types::boundary_id, types::boundary_id>, unsigned int> >
+        periodic_boundary_set;
+        periodic_boundary_set pbs = geometry_model->get_periodic_boundary_pairs();
+
+        for (periodic_boundary_set::iterator p = pbs.begin(); p != pbs.end(); ++p)
+          {
+            DoFTools::make_periodicity_constraints(dof_handler,
+                                                   (*p).first.first,  // first boundary id
+                                                   (*p).first.second, // second boundary id
+                                                   (*p).second,       // cartesian direction for translational symmetry
+                                                   constraints);
+          }
+      }
+
+      //  Make hanging node constraints:
+      DoFTools::make_hanging_node_constraints (dof_handler,
+                                               constraints);
+
+
+      compute_initial_velocity_boundary_constraints(constraints);
+      constraints.close();
     }
+    stokes_timer.leave_subsection("setup_sys_dofs");
 
-    // We need to set up the mesh deformation degrees of freedom first if mesh deformation
-    // is active, since the mapping must be in place before applying boundary
-    // conditions that rely on it (such as no flux BCs).
-    if (parameters.mesh_deformation_enabled)
-      mesh_deformation->setup_dofs();
-
-
-    // Reconstruct the constraint-matrix:
-    constraints.clear();
-    constraints.reinit(introspection.index_sets.system_relevant_set);
-
-    // Set up the constraints for periodic boundary conditions:
-
-    // Note: this has to happen _before_ we do hanging node constraints,
-    // because inconsistent contraints could be generated in parallel otherwise.
-    {
-      typedef std::set< std::pair< std::pair< types::boundary_id, types::boundary_id>, unsigned int> >
-      periodic_boundary_set;
-      periodic_boundary_set pbs = geometry_model->get_periodic_boundary_pairs();
-
-      for (periodic_boundary_set::iterator p = pbs.begin(); p != pbs.end(); ++p)
-        {
-          DoFTools::make_periodicity_constraints(dof_handler,
-                                                 (*p).first.first,  // first boundary id
-                                                 (*p).first.second, // second boundary id
-                                                 (*p).second,       // cartesian direction for translational symmetry
-                                                 constraints);
-        }
-    }
-
-    //  Make hanging node constraints:
-    DoFTools::make_hanging_node_constraints (dof_handler,
-                                             constraints);
-
-
-    compute_initial_velocity_boundary_constraints(constraints);
-    constraints.close();
     signals.post_compute_no_normal_flux_constraints(triangulation);
 
     // Finally initialize vectors. We delay construction of the sparsity
@@ -1607,7 +1630,13 @@ namespace aspect
       triangulation.execute_coarsening_and_refinement ();
     } // leave the timed section
 
-    setup_dofs ();
+    //Timings for: setup_dofs
+    for (unsigned int i=0; i<parameters.n_timings+1; ++i)
+      {
+        stokes_timer.enter_subsection("total_setup");
+        setup_dofs(i);
+        stokes_timer.leave_subsection("total_setup");
+      }
 
     {
       TimerOutput::Scope timer (computing_timer, "Refine mesh structure, part 2");
@@ -1771,6 +1800,10 @@ namespace aspect
   template <int dim>
   void Simulator<dim>::run ()
   {
+    //Start section timing object
+    stokes_timer.initialize_sections();
+    unsigned int step_number = 0;
+
     CitationInfo::print_info_block(pcout);
 
     unsigned int max_refinement_level = parameters.initial_global_refinement +
@@ -1812,7 +1845,13 @@ namespace aspect
             triangulation.execute_coarsening_and_refinement();
           }
 
-        setup_dofs();
+        //Timings for: setup_dofs
+        for (unsigned int i=0; i<parameters.n_timings+1; ++i)
+          {
+            stokes_timer.enter_subsection("total_setup");
+            setup_dofs(i);
+            stokes_timer.leave_subsection("total_setup");
+          }
 
         global_volume = GridTools::volume (triangulation, *mapping);
       }
@@ -1860,6 +1899,33 @@ namespace aspect
             // then do the core work: assemble systems and solve
             solve_timestep ();
           }
+
+        std::string problem_type = std::string(parameters.stokes_solver_type == Parameters<dim>::StokesSolverType::block_gmg ? "mf-" : "mb-") +
+                                   std::string(parameters.initial_adaptive_refinement==0 ? "global" : "adaptive");
+        const std::string ref_number =
+          (parameters.initial_adaptive_refinement == 0 ?
+           std::string(dealii::Utilities::int_to_string(parameters.initial_global_refinement)+"+0")
+           : std::string(dealii::Utilities::int_to_string(parameters.initial_global_refinement)+"+"
+                         +dealii::Utilities::int_to_string(step_number)));
+        const unsigned int nprocs =
+          dealii::Utilities::MPI::n_mpi_processes(mpi_communicator);
+        const double workload_imbalance =
+          (stokes_matrix_free ? stokes_matrix_free->get_workload_imbalance() : 0.0);
+        stokes_timer.print_data_file(parameters.timings_directory +
+                                     problem_type + "-" +
+                                     ref_number + "ref-" +
+                                     dealii::Utilities::int_to_string(nprocs) + "procs.dat",
+                                     problem_type,
+                                     ref_number,
+                                     triangulation.n_global_active_cells(),
+                                     introspection.system_dofs_per_block[0]+introspection.system_dofs_per_block[1],
+                                     nprocs,
+                                     gmres_iterations,
+                                     workload_imbalance);
+
+        stokes_timer.initialize_sections();
+        ++step_number;
+
 
         // See if we have to start over with a new adaptive refinement cycle
         // at the beginning of the simulation. If so, set the

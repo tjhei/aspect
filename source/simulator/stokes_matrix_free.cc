@@ -1414,7 +1414,7 @@ namespace aspect
 
 
   template <int dim, int velocity_degree>
-  std::pair<double,double> StokesMatrixFreeHandlerImplementation<dim,velocity_degree>::solve()
+  std::pair<double,double> StokesMatrixFreeHandlerImplementation<dim,velocity_degree>::solve(const unsigned int j)
   {
     double initial_nonlinear_residual = numbers::signaling_nan<double>();
     double final_linear_residual      = numbers::signaling_nan<double>();
@@ -1658,8 +1658,41 @@ namespace aspect
                               sim.parameters.linear_solver_A_block_tolerance,
                               sim.parameters.linear_solver_S_block_tolerance);
 
+
+
+    {
+      dealii::LinearAlgebra::distributed::BlockVector<double> tmp_dst = solution_copy;
+      dealii::LinearAlgebra::distributed::BlockVector<double> tmp_scr = rhs_copy;
+      preconditioner_cheap.vmult(tmp_dst, tmp_scr);
+      tmp_scr = tmp_dst;
+
+      sim.stokes_timer.enter_subsection("preconditioner_vmult");
+      for (unsigned int j=0; j<5; ++j)
+        {
+          preconditioner_cheap.vmult(tmp_dst, tmp_scr);
+          tmp_scr = tmp_dst;
+        }
+      sim.stokes_timer.leave_subsection("preconditioner_vmult");
+    }
+
+    {
+      dealii::LinearAlgebra::distributed::BlockVector<double> tmp_dst = solution_copy;
+      dealii::LinearAlgebra::distributed::BlockVector<double> tmp_scr = rhs_copy;
+      stokes_matrix.vmult(tmp_dst, tmp_scr);
+      tmp_scr = tmp_dst;
+
+      sim.stokes_timer.enter_subsection("operator_vmult");
+      for (unsigned int j=0; j<10; ++j)
+        {
+          stokes_matrix.vmult(tmp_dst, tmp_scr);
+          tmp_scr = tmp_dst;
+        }
+      sim.stokes_timer.leave_subsection("operator_vmult");
+    }
+
     PrimitiveVectorMemory<dealii::LinearAlgebra::distributed::BlockVector<double> > mem;
 
+    sim.stokes_timer.enter_subsection("gmres_solve");
     // step 1a: try if the simple and fast solver
     // succeeds in n_cheap_stokes_solver_steps steps or less.
     try
@@ -1752,6 +1785,13 @@ namespace aspect
               }
           }
       }
+    sim.stokes_timer.leave_subsection("gmres_solve");
+    sim.gmres_iterations = (solver_control_cheap.last_step() != numbers::invalid_unsigned_int ?
+                            solver_control_cheap.last_step() :
+                            0) +
+                           (solver_control_expensive.last_step() != numbers::invalid_unsigned_int ?
+                            solver_control_expensive.last_step() :
+                            0);
 
     //signal successful solver
     sim.signals.post_stokes_solver(sim,
@@ -1786,9 +1826,12 @@ namespace aspect
     sim.pcout << std::endl;
 
     // do some cleanup now that we have the solution
-    sim.remove_nullspace(sim.solution, distributed_stokes_solution);
-    if (sim.assemble_newton_stokes_system == false)
-      sim.last_pressure_normalization_adjustment = sim.normalize_pressure(sim.solution);
+    if (j == sim.parameters.n_timings)
+      {
+        sim.remove_nullspace(sim.solution, distributed_stokes_solution);
+        if (sim.assemble_newton_stokes_system == false)
+          sim.last_pressure_normalization_adjustment = sim.normalize_pressure(sim.solution);
+      }
 
 
     // convert melt pressures
@@ -1806,211 +1849,230 @@ namespace aspect
   template <int dim, int velocity_degree>
   void StokesMatrixFreeHandlerImplementation<dim, velocity_degree>::setup_dofs()
   {
-    // Velocity DoFHandler
+    // Setup active DoFs
+    sim.stokes_timer.enter_subsection("setup_active_mf_dofs");
     {
-      dof_handler_v.clear();
-      dof_handler_v.distribute_dofs(fe_v);
+      // Velocity DoFHandler
+      {
+        dof_handler_v.clear();
+        dof_handler_v.distribute_dofs(fe_v);
 
-      DoFRenumbering::hierarchical(dof_handler_v);
+        DoFRenumbering::hierarchical(dof_handler_v);
 
-      constraints_v.clear();
-      IndexSet locally_relevant_dofs;
-      DoFTools::extract_locally_relevant_dofs (dof_handler_v,
-                                               locally_relevant_dofs);
-      constraints_v.reinit(locally_relevant_dofs);
-      DoFTools::make_hanging_node_constraints (dof_handler_v, constraints_v);
-      sim.compute_initial_velocity_boundary_constraints(constraints_v);
-      sim.compute_current_velocity_boundary_constraints(constraints_v);
+        constraints_v.clear();
+        IndexSet locally_relevant_dofs;
+        DoFTools::extract_locally_relevant_dofs (dof_handler_v,
+                                                 locally_relevant_dofs);
+        constraints_v.reinit(locally_relevant_dofs);
+        DoFTools::make_hanging_node_constraints (dof_handler_v, constraints_v);
+        sim.compute_initial_velocity_boundary_constraints(constraints_v);
+        sim.compute_current_velocity_boundary_constraints(constraints_v);
 
 
-      VectorTools::compute_no_normal_flux_constraints (dof_handler_v,
-                                                       /* first_vector_component= */
-                                                       0,
-                                                       sim.boundary_velocity_manager.get_tangential_boundary_velocity_indicators(),
-                                                       constraints_v,
-                                                       *sim.mapping);
-      constraints_v.close ();
+        VectorTools::compute_no_normal_flux_constraints (dof_handler_v,
+                                                         /* first_vector_component= */
+                                                         0,
+                                                         sim.boundary_velocity_manager.get_tangential_boundary_velocity_indicators(),
+                                                         constraints_v,
+                                                         *sim.mapping);
+        constraints_v.close ();
+      }
+
+      // Pressure DoFHandler
+      {
+        dof_handler_p.clear();
+        dof_handler_p.distribute_dofs(fe_p);
+
+        DoFRenumbering::hierarchical(dof_handler_p);
+
+        constraints_p.clear();
+        IndexSet locally_relevant_dofs;
+        DoFTools::extract_locally_relevant_dofs (dof_handler_p,
+                                                 locally_relevant_dofs);
+        constraints_p.reinit(locally_relevant_dofs);
+        DoFTools::make_hanging_node_constraints (dof_handler_p, constraints_p);
+        constraints_p.close();
+      }
+
+      // Coefficient transfer objects
+      {
+        dof_handler_projection.clear();
+        dof_handler_projection.distribute_dofs(fe_projection);
+
+        DoFRenumbering::hierarchical(dof_handler_projection);
+
+        active_coef_dof_vec.reinit(dof_handler_projection.locally_owned_dofs(), sim.triangulation.get_communicator());
+      }
     }
+    sim.stokes_timer.leave_subsection("setup_active_mf_dofs");
 
-    // Pressure DoFHandler
-    {
-      dof_handler_p.clear();
-      dof_handler_p.distribute_dofs(fe_p);
-
-      DoFRenumbering::hierarchical(dof_handler_p);
-
-      constraints_p.clear();
-      IndexSet locally_relevant_dofs;
-      DoFTools::extract_locally_relevant_dofs (dof_handler_p,
-                                               locally_relevant_dofs);
-      constraints_p.reinit(locally_relevant_dofs);
-      DoFTools::make_hanging_node_constraints (dof_handler_p, constraints_p);
-      constraints_p.close();
-    }
-
-    // Coefficient transfer objects
-    {
-      dof_handler_projection.clear();
-      dof_handler_projection.distribute_dofs(fe_projection);
-
-      DoFRenumbering::hierarchical(dof_handler_projection);
-
-      active_coef_dof_vec.reinit(dof_handler_projection.locally_owned_dofs(), sim.triangulation.get_communicator());
-    }
 
     // Multigrid DoF setup
-    dof_handler_v.distribute_mg_dofs();
-
-    mg_constrained_dofs.clear();
-    mg_constrained_dofs.initialize(dof_handler_v);
-
-    std::set<types::boundary_id> dirichlet_boundary = sim.boundary_velocity_manager.get_zero_boundary_velocity_indicators();
-    for (auto it: sim.boundary_velocity_manager.get_active_boundary_velocity_names())
-      {
-        int bdryid = it.first;
-        std::string component=it.second.first;
-        Assert(component=="", ExcNotImplemented());
-        dirichlet_boundary.insert(bdryid);
-      }
-    mg_constrained_dofs.make_zero_boundary_constraints(dof_handler_v, dirichlet_boundary);
-
+    sim.stokes_timer.enter_subsection("setup_mg_dofs");
     {
-      std::set<types::boundary_id> no_flux_boundary = sim.boundary_velocity_manager.get_tangential_boundary_velocity_indicators();
-      if (!no_flux_boundary.empty() && !sim.geometry_model->has_curved_elements())
-        for (auto bid : no_flux_boundary)
-          {
-            internal::TangentialBoundaryFunctions::compute_no_normal_flux_constraints_box(dof_handler_v,
-                                                                                          bid,
-                                                                                          0,
-                                                                                          mg_constrained_dofs);
-          }
-    }
+      dof_handler_v.distribute_mg_dofs();
 
-    dof_handler_projection.distribute_mg_dofs();
+      mg_constrained_dofs.clear();
+      mg_constrained_dofs.initialize(dof_handler_v);
+
+      std::set<types::boundary_id> dirichlet_boundary = sim.boundary_velocity_manager.get_zero_boundary_velocity_indicators();
+      for (auto it: sim.boundary_velocity_manager.get_active_boundary_velocity_names())
+        {
+          int bdryid = it.first;
+          std::string component=it.second.first;
+          Assert(component=="", ExcNotImplemented());
+          dirichlet_boundary.insert(bdryid);
+        }
+      mg_constrained_dofs.make_zero_boundary_constraints(dof_handler_v, dirichlet_boundary);
+
+      {
+        std::set<types::boundary_id> no_flux_boundary = sim.boundary_velocity_manager.get_tangential_boundary_velocity_indicators();
+        if (!no_flux_boundary.empty() && !sim.geometry_model->has_curved_elements())
+          for (auto bid : no_flux_boundary)
+            {
+              internal::TangentialBoundaryFunctions::compute_no_normal_flux_constraints_box(dof_handler_v,
+                                                                                            bid,
+                                                                                            0,
+                                                                                            mg_constrained_dofs);
+            }
+      }
+
+      dof_handler_projection.distribute_mg_dofs();
+    }
+    sim.stokes_timer.leave_subsection("setup_mg_dofs");
+
 
     // Setup the matrix-free operators
-    // Stokes matrix
+    sim.stokes_timer.enter_subsection("setup_mf_ops");
     {
-      typename MatrixFree<dim,double>::AdditionalData additional_data;
-      additional_data.tasks_parallel_scheme =
-        MatrixFree<dim,double>::AdditionalData::none;
-      additional_data.mapping_update_flags = (update_values | update_gradients |
-                                              update_JxW_values | update_quadrature_points);
+      // Stokes matrix
+      {
+        typename MatrixFree<dim,double>::AdditionalData additional_data;
+        additional_data.tasks_parallel_scheme =
+          MatrixFree<dim,double>::AdditionalData::none;
+        additional_data.mapping_update_flags = (update_values | update_gradients |
+                                                update_JxW_values | update_quadrature_points);
 
-      std::vector<const DoFHandler<dim>*> stokes_dofs;
-      stokes_dofs.push_back(&dof_handler_v);
-      stokes_dofs.push_back(&dof_handler_p);
-      std::vector<const ConstraintMatrix *> stokes_constraints;
-      stokes_constraints.push_back(&constraints_v);
-      stokes_constraints.push_back(&constraints_p);
+        std::vector<const DoFHandler<dim>*> stokes_dofs;
+        stokes_dofs.push_back(&dof_handler_v);
+        stokes_dofs.push_back(&dof_handler_p);
+        std::vector<const ConstraintMatrix *> stokes_constraints;
+        stokes_constraints.push_back(&constraints_v);
+        stokes_constraints.push_back(&constraints_p);
 
-      std::shared_ptr<MatrixFree<dim,double> >
-      stokes_mf_storage(new MatrixFree<dim,double>());
-      stokes_mf_storage->reinit(*sim.mapping,stokes_dofs, stokes_constraints,
+        std::shared_ptr<MatrixFree<dim,double> >
+        stokes_mf_storage(new MatrixFree<dim,double>());
+        stokes_mf_storage->reinit(*sim.mapping,stokes_dofs, stokes_constraints,
+                                  QGauss<1>(sim.parameters.stokes_velocity_degree+1), additional_data);
+        stokes_matrix.clear();
+        stokes_matrix.initialize(stokes_mf_storage);
+
+      }
+
+      // ABlock matrix
+      {
+        typename MatrixFree<dim,double>::AdditionalData additional_data;
+        additional_data.tasks_parallel_scheme =
+          MatrixFree<dim,double>::AdditionalData::none;
+        additional_data.mapping_update_flags = (update_values | update_gradients |
+                                                update_JxW_values | update_quadrature_points);
+        std::shared_ptr<MatrixFree<dim,double> >
+        ablock_mf_storage(new MatrixFree<dim,double>());
+        ablock_mf_storage->reinit(*sim.mapping,dof_handler_v, constraints_v,
+                                  QGauss<1>(sim.parameters.stokes_velocity_degree+1), additional_data);
+
+        velocity_matrix.clear();
+        velocity_matrix.initialize(ablock_mf_storage);
+      }
+
+      // Mass matrix
+      {
+        typename MatrixFree<dim,double>::AdditionalData additional_data;
+        additional_data.tasks_parallel_scheme =
+          MatrixFree<dim,double>::AdditionalData::none;
+        additional_data.mapping_update_flags = (update_values | update_JxW_values |
+                                                update_quadrature_points);
+        std::shared_ptr<MatrixFree<dim,double> >
+        mass_mf_storage(new MatrixFree<dim,double>());
+        mass_mf_storage->reinit(*sim.mapping,dof_handler_p, constraints_p,
                                 QGauss<1>(sim.parameters.stokes_velocity_degree+1), additional_data);
-      stokes_matrix.clear();
-      stokes_matrix.initialize(stokes_mf_storage);
 
-    }
+        mass_matrix.clear();
+        mass_matrix.initialize(mass_mf_storage);
+      }
 
-    // ABlock matrix
-    {
-      typename MatrixFree<dim,double>::AdditionalData additional_data;
-      additional_data.tasks_parallel_scheme =
-        MatrixFree<dim,double>::AdditionalData::none;
-      additional_data.mapping_update_flags = (update_values | update_gradients |
-                                              update_JxW_values | update_quadrature_points);
-      std::shared_ptr<MatrixFree<dim,double> >
-      ablock_mf_storage(new MatrixFree<dim,double>());
-      ablock_mf_storage->reinit(*sim.mapping,dof_handler_v, constraints_v,
-                                QGauss<1>(sim.parameters.stokes_velocity_degree+1), additional_data);
+      // GMG matrices
+      {
+        const unsigned int n_levels = sim.triangulation.n_global_levels();
+        mg_matrices.clear_elements();
+        mg_matrices.resize(0, n_levels-1);
 
-      velocity_matrix.clear();
-      velocity_matrix.initialize(ablock_mf_storage);
-    }
-
-    // Mass matrix
-    {
-      typename MatrixFree<dim,double>::AdditionalData additional_data;
-      additional_data.tasks_parallel_scheme =
-        MatrixFree<dim,double>::AdditionalData::none;
-      additional_data.mapping_update_flags = (update_values | update_JxW_values |
-                                              update_quadrature_points);
-      std::shared_ptr<MatrixFree<dim,double> >
-      mass_mf_storage(new MatrixFree<dim,double>());
-      mass_mf_storage->reinit(*sim.mapping,dof_handler_p, constraints_p,
-                              QGauss<1>(sim.parameters.stokes_velocity_degree+1), additional_data);
-
-      mass_matrix.clear();
-      mass_matrix.initialize(mass_mf_storage);
-    }
-
-    // GMG matrices
-    {
-      const unsigned int n_levels = sim.triangulation.n_global_levels();
-      mg_matrices.clear_elements();
-      mg_matrices.resize(0, n_levels-1);
-
-      for (unsigned int level=0; level<n_levels; ++level)
-        {
-          IndexSet relevant_dofs;
-          DoFTools::extract_locally_relevant_level_dofs(dof_handler_v, level, relevant_dofs);
-          ConstraintMatrix level_constraints;
-          level_constraints.reinit(relevant_dofs);
-          level_constraints.add_lines(mg_constrained_dofs.get_boundary_indices(level));
-          level_constraints.close();
-
-          std::set<types::boundary_id> no_flux_boundary
-            = sim.boundary_velocity_manager.get_tangential_boundary_velocity_indicators();
-          if (!no_flux_boundary.empty() && sim.geometry_model->has_curved_elements())
-            {
-#if DEAL_II_VERSION_GTE(9,2,0)
-              ConstraintMatrix user_level_constraints;
-              user_level_constraints.reinit(relevant_dofs);
-
-              internal::TangentialBoundaryFunctions::compute_no_normal_flux_constraints_shell(dof_handler_v,
-                                                                                              mg_constrained_dofs,
-                                                                                              *sim.mapping,
-                                                                                              level,
-                                                                                              0,
-                                                                                              no_flux_boundary,
-                                                                                              user_level_constraints);
-              user_level_constraints.close();
-              mg_constrained_dofs.add_user_constraints(level,user_level_constraints);
-
-              // let Dirichlet values win over no normal flux:
-              level_constraints.merge(user_level_constraints, ConstraintMatrix::left_object_wins);
-              level_constraints.close();
-#else
-              AssertThrow(false, ExcMessage("No normal flux for spherical domains requires "
-                                            "a deal.II version newer than 9.1"));
-#endif
-            }
-
+        for (unsigned int level=0; level<n_levels; ++level)
           {
-            typename MatrixFree<dim,double>::AdditionalData additional_data;
-            additional_data.tasks_parallel_scheme =
-              MatrixFree<dim,double>::AdditionalData::none;
-            additional_data.mapping_update_flags = (update_gradients | update_JxW_values |
-                                                    update_quadrature_points);
-            additional_data.level_mg_handler = level;
-            std::shared_ptr<MatrixFree<dim,double> >
-            mg_mf_storage_level(new MatrixFree<dim,double>());
-            mg_mf_storage_level->reinit(*sim.mapping, dof_handler_v, level_constraints,
-                                        QGauss<1>(sim.parameters.stokes_velocity_degree+1),
-                                        additional_data);
+            IndexSet relevant_dofs;
+            DoFTools::extract_locally_relevant_level_dofs(dof_handler_v, level, relevant_dofs);
+            ConstraintMatrix level_constraints;
+            level_constraints.reinit(relevant_dofs);
+            level_constraints.add_lines(mg_constrained_dofs.get_boundary_indices(level));
+            level_constraints.close();
 
-            mg_matrices[level].clear();
-            mg_matrices[level].initialize(mg_mf_storage_level, mg_constrained_dofs, level);
+            std::set<types::boundary_id> no_flux_boundary
+              = sim.boundary_velocity_manager.get_tangential_boundary_velocity_indicators();
+            if (!no_flux_boundary.empty() && sim.geometry_model->has_curved_elements())
+              {
+#if DEAL_II_VERSION_GTE(9,2,0)
+                ConstraintMatrix user_level_constraints;
+                user_level_constraints.reinit(relevant_dofs);
 
+                internal::TangentialBoundaryFunctions::compute_no_normal_flux_constraints_shell(dof_handler_v,
+                                                                                                mg_constrained_dofs,
+                                                                                                *sim.mapping,
+                                                                                                level,
+                                                                                                0,
+                                                                                                no_flux_boundary,
+                                                                                                user_level_constraints);
+                user_level_constraints.close();
+                mg_constrained_dofs.add_user_constraints(level,user_level_constraints);
+
+                // let Dirichlet values win over no normal flux:
+                level_constraints.merge(user_level_constraints, ConstraintMatrix::left_object_wins);
+                level_constraints.close();
+#else
+                AssertThrow(false, ExcMessage("No normal flux for spherical domains requires "
+                                              "a deal.II version newer than 9.1"));
+#endif
+              }
+
+            {
+              typename MatrixFree<dim,double>::AdditionalData additional_data;
+              additional_data.tasks_parallel_scheme =
+                MatrixFree<dim,double>::AdditionalData::none;
+              additional_data.mapping_update_flags = (update_gradients | update_JxW_values |
+                                                      update_quadrature_points);
+              additional_data.level_mg_handler = level;
+              std::shared_ptr<MatrixFree<dim,double> >
+              mg_mf_storage_level(new MatrixFree<dim,double>());
+              mg_mf_storage_level->reinit(*sim.mapping, dof_handler_v, level_constraints,
+                                          QGauss<1>(sim.parameters.stokes_velocity_degree+1),
+                                          additional_data);
+
+              mg_matrices[level].clear();
+              mg_matrices[level].initialize(mg_mf_storage_level, mg_constrained_dofs, level);
+
+            }
           }
-        }
+      }
     }
+    sim.stokes_timer.leave_subsection("setup_mf_ops");
 
     // Build MG transfer
-    mg_transfer.clear();
-    mg_transfer.initialize_constraints(mg_constrained_dofs);
-    mg_transfer.build(dof_handler_v);
+    sim.stokes_timer.enter_subsection("setup_mg_transfer");
+    {
+      mg_transfer.clear();
+      mg_transfer.initialize_constraints(mg_constrained_dofs);
+      mg_transfer.build(dof_handler_v);
+    }
+    sim.stokes_timer.leave_subsection("setup_mg_transfer");
   }
 
 

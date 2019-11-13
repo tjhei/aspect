@@ -319,20 +319,59 @@ namespace aspect
         compute_current_constraints();
         if (rebuild_sparsity_and_matrices)
           {
-            setup_system_matrix (introspection.index_sets.system_partitioning);
-            setup_system_preconditioner (introspection.index_sets.system_partitioning);
+            // Timings for: sparsity pattern
+            for (unsigned int i=0; i<parameters.n_timings+1; ++i)
+              {
+                stokes_timer.enter_subsection("total_setup_dofs");
+                stokes_timer.enter_subsection("setup_sparsity");
+                setup_system_matrix (introspection.index_sets.system_partitioning);
+                setup_system_preconditioner (introspection.index_sets.system_partitioning);
+                stokes_timer.leave_subsection("setup_sparsity");
+                stokes_timer.leave_subsection("total_setup_dofs");
+              }
 
             rebuild_stokes_matrix = rebuild_stokes_preconditioner = true;
           }
       }
 
-    assemble_stokes_system ();
+    //Timings for: assembly
+    {
+      bool need_rebuild = rebuild_stokes_matrix;
+      bool need_rebuild_prec = rebuild_stokes_preconditioner;
+      for (unsigned int i=0; i<parameters.n_timings+1; ++i)
+        {
+          stokes_timer.enter_subsection("total_assembly");
 
-    // build the preconditioner
-    if (stokes_matrix_free)
-      stokes_matrix_free->build_preconditioner();
-    else
-      build_stokes_preconditioner();
+          //Timings for: assemble stokes
+          {
+            stokes_timer.enter_subsection("assemble_sys_mat_rhs");
+            assemble_stokes_system ();
+            stokes_timer.leave_subsection("assemble_sys_mat_rhs");
+
+            if (need_rebuild)
+              rebuild_stokes_matrix = true;
+          }
+
+          // build the preconditioner
+          if (stokes_matrix_free)
+            {
+              stokes_timer.enter_subsection("assemble_mf_obj");
+              stokes_matrix_free->build_preconditioner();
+              stokes_timer.leave_subsection("assemble_mf_obj");
+            }
+          else
+            {
+              //timings inside
+              build_stokes_preconditioner();
+              if (need_rebuild_prec)
+                rebuild_stokes_preconditioner = true;
+            }
+
+          stokes_timer.leave_subsection("total_assembly");
+        }
+      rebuild_stokes_matrix = false;
+      rebuild_stokes_preconditioner = false;
+    }
 
     if (compute_initial_residual)
       {
@@ -340,7 +379,12 @@ namespace aspect
         *initial_nonlinear_residual = compute_initial_stokes_residual();
       }
 
-    const double current_nonlinear_residual = solve_stokes().first;
+    double res = 0;
+    for (unsigned int i=0; i<parameters.n_timings+1; ++i)
+      {
+        res = solve_stokes(i).first;
+      }
+    const double current_nonlinear_residual = res;
 
     current_linearization_point.block(introspection.block_indices.velocities)
       = solution.block(introspection.block_indices.velocities);

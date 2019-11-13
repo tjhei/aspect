@@ -388,6 +388,11 @@ namespace aspect
      * @name Global parameters
      * @{
      */
+
+    unsigned int n_timings;
+    std::string timings_directory;
+
+
     typename NonlinearSolver::Kind nonlinear_solver;
 
     typename AdvectionStabilizationMethod::Kind advection_stabilization_method;

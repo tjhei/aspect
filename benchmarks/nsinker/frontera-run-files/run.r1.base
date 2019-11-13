@@ -1,0 +1,51 @@
+#!/bin/bash
+#SBATCH -J myjob           # Job name
+#SBATCH -o myjob-%j.o       # Name of stdout output file
+#SBATCH -e myjob-%j.e       # Name of stderr error file
+#SBATCH -p normal      # normal|development|large
+#SBATCH -N &NODES&               # Total # of nodes 
+#SBATCH -n &TASKS&              # Total # of mpi tasks (48 cores/node)
+#SBATCH -t 02:00:00        # Run time (hh:mm:ss)
+
+. $SCRATCH/enable3.sh
+
+echo "starting on `date` with n=$SLURM_NTASKS at `pwd`"
+
+echo nodelist is $SLURM_JOB_NODELIST
+echo node count is $SLURM_JOB_NUM_NODES
+
+export OMP_NUM_THREADS=1
+echo "OMP_NUM_THREADS=$OMP_NUM_THREADS"
+echo "DEAL_II_NUM_THREADS=$DEAL_II_NUM_THREADS"
+
+
+
+
+echo "MatrixFree, 4 sinkers, 1e4 visc jump"
+TMPPRM=temp.prm.$SLURM_JOB_ID
+
+for refinement in 4 5 6 7 8 9; do # 4 5 6 7
+
+  cp global_mf.prm $TMPPRM
+
+echo "subsection Mesh refinement" >> $TMPPRM
+echo "  set Initial global refinement = $refinement" >> $TMPPRM
+echo "  set Initial adaptive refinement = 0" >> $TMPPRM
+echo "  set Adapt by fraction of cells = true" >> $TMPPRM
+echo "  set Strategy = velocity" >> $TMPPRM
+echo "  set Run postprocessors on initial refinement = true" >> $TMPPRM
+echo "  set Coarsening fraction       = 0.0" >> $TMPPRM
+echo "  set Refinement fraction       = 0.14285714285" >> $TMPPRM
+echo "end" >> $TMPPRM
+
+echo "subsection Postprocess" >> $TMPPRM
+echo "  set List of postprocessors = memory statistics" >> $TMPPRM
+echo "end" >> $TMPPRM
+
+echo "set Output directory = output-frontera/r1-r$refinement-n$SLURM_JOB_NUM_NODES/" >> $TMPPRM
+echo "set Timing output directory = output-frontera/r1-r$refinement-n$SLURM_JOB_NUM_NODES/" >> $TMPPRM
+
+ibrun ./aspect $TMPPRM
+rm $TMPPRM
+
+done
