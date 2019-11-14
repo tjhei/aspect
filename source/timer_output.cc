@@ -144,7 +144,7 @@ namespace aspect
                                  const std::string  &problem_type,
                                  const std::string  &refinement_step,
                                  const unsigned int cells,
-                                 const unsigned int dofs,
+                                 const types::global_dof_index dofs,
                                  const unsigned int procs,
                                  const unsigned int gmres_iterations,
                                  const double workload_imbalance)
