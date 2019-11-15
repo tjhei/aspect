@@ -1911,17 +1911,19 @@ namespace aspect
           dealii::Utilities::MPI::n_mpi_processes(mpi_communicator);
         const double workload_imbalance =
           (stokes_matrix_free ? stokes_matrix_free->get_workload_imbalance() : 0.0);
-        stokes_timer.print_data_file(parameters.timings_directory +
-                                     problem_type + "-" +
-                                     ref_number + "ref-" +
-                                     dealii::Utilities::int_to_string(nprocs) + "procs.dat",
-                                     problem_type,
-                                     ref_number,
-                                     triangulation.n_global_active_cells(),
-                                     introspection.system_dofs_per_block[0]+introspection.system_dofs_per_block[1],
-                                     nprocs,
-                                     gmres_iterations,
-                                     workload_imbalance);
+
+        if (Utilities::MPI::this_mpi_process(mpi_communicator) == 0)
+          stokes_timer.print_data_file(parameters.timings_directory +
+                                       problem_type + "-" +
+                                       ref_number + "ref-" +
+                                       dealii::Utilities::int_to_string(nprocs) + "procs.dat",
+                                       problem_type,
+                                       ref_number,
+                                       triangulation.n_global_active_cells(),
+                                       introspection.system_dofs_per_block[0]+introspection.system_dofs_per_block[1],
+                                       nprocs,
+                                       gmres_iterations,
+                                       workload_imbalance);
 
         stokes_timer.initialize_sections();
         ++step_number;
