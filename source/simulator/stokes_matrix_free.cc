@@ -627,8 +627,8 @@ namespace aspect
         }
       else
         {
-	  if (Utilities::MPI::this_mpi_process(src.block(0).get_mpi_communicator()) == 0)
-	    std::cout << "vmult" << std::endl;
+          //          if (Utilities::MPI::this_mpi_process(src.block(0).get_mpi_communicator()) == 0)
+          //std::cout << "vmult" << std::endl;
           a_preconditioner.vmult (dst.block(0), utmp.block(0));
           n_iterations_A_ += 1;
         }
