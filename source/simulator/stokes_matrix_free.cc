@@ -1816,6 +1816,10 @@ namespace aspect
     // it in n_expensive_stokes_solver_steps steps or less.
     catch (const SolverControl::NoConvergence &)
       {
+        sim.pcout << "cheap solver did not converge..." << std::endl;
+
+        if (sim.parameters.n_expensive_stokes_solver_steps<1)
+          throw QuietException();
         // use the value defined by the user
         // OR
         // at least a restart length of 100 for melt models
