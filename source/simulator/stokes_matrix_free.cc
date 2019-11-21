@@ -2100,14 +2100,14 @@ namespace aspect
                 user_level_constraints.reinit(relevant_dofs);
 
                 internal::TangentialBoundaryFunctions::compute_no_normal_flux_constraints_shell(dof_handler_v,
-                                                                                                mg_constrained_dofs,
+                                                                                                mg_constrained_dofs_A,
                                                                                                 *sim.mapping,
                                                                                                 level,
                                                                                                 0,
                                                                                                 no_flux_boundary,
                                                                                                 user_level_constraints);
                 user_level_constraints.close();
-                mg_constrained_dofs.add_user_constraints(level,user_level_constraints);
+                mg_constrained_dofs_A.add_user_constraints(level,user_level_constraints);
 
                 // let Dirichlet values win over no normal flux:
                 level_constraints.merge(user_level_constraints, ConstraintMatrix::left_object_wins);
@@ -2244,7 +2244,7 @@ namespace aspect
             boundary_constraints.add_lines (mg_constrained_dofs_A.get_boundary_indices(level));
 #if DEAL_II_VERSION_GTE(9,2,0)
             // let Dirichlet values win over no normal flux:
-            boundary_constraints.merge(mg_constrained_dofs.get_user_constraint_matrix(level),
+            boundary_constraints.merge(mg_constrained_dofs_A.get_user_constraint_matrix(level),
                                        ConstraintMatrix::left_object_wins);
 #endif
             boundary_constraints.close();
