@@ -1514,7 +1514,7 @@ namespace aspect
     mg::Matrix<vector_t > mg_interface_A(mg_interface_matrices_A);
 
     // Mass matrix GMG
-    MGLevelObject<MatrixFreeOperators::MGInterfaceOperator<ABlockMatrixType> > mg_interface_matrices_mass;
+    MGLevelObject<MatrixFreeOperators::MGInterfaceOperator<MassMatrixType> > mg_interface_matrices_mass;
     mg_interface_matrices_mass.resize(0, sim.triangulation.n_global_levels()-1);
     for (unsigned int level=0; level<sim.triangulation.n_global_levels(); ++level)
       mg_interface_matrices_mass[level].initialize(mg_matrices_mass[level]);
