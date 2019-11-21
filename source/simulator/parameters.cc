@@ -53,6 +53,13 @@ namespace aspect
     prm.declare_entry ("Timing output directory","timings-tmp/",Patterns::DirectoryName(),
                        "Directory where timing information should be output.");
 
+    prm.declare_entry ("Krylov solver", "fgmres",
+                       Patterns::Selection ("gmres|fgmres|idr"),
+                       "Which Krylov solver for the cheap solve.");
+    prm.declare_entry ("IDR(s) s value", "2",
+                       Patterns::Integer (1),
+                       "Parameter s for IDR(s) solve");
+
     prm.declare_entry ("Dimension", "2",
                        Patterns::Integer (2,3),
                        "The number of space dimensions you want to run this program in. "
@@ -1267,6 +1274,10 @@ namespace aspect
     Utilities::create_directory (timings_directory,
                                  mpi_communicator,
                                  false);
+
+    krylov_solver = prm.get("Krylov solver");
+    idr_s_value = prm.get_integer("IDR(s) s value");
+
 
     CFL_number              = prm.get_double ("CFL number");
     use_conduction_timestep = prm.get_bool ("Use conduction timestep");

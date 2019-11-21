@@ -392,6 +392,9 @@ namespace aspect
     unsigned int n_timings;
     std::string timings_directory;
 
+    std::string krylov_solver;
+    unsigned int idr_s_value;
+
 
     typename NonlinearSolver::Kind nonlinear_solver;
 

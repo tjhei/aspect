@@ -36,6 +36,8 @@
 #include <deal.II/lac/solver_gmres.h>
 #include <deal.II/lac/read_write_vector.templates.h>
 
+#include <aspect/solver_idr.h>
+
 
 
 namespace aspect
@@ -1529,17 +1531,17 @@ namespace aspect
     // MG object
     // ABlock GMG
     Multigrid<vector_t > mg_A(mg_matrix_A,
-                            mg_coarse_A,
-                            mg_transfer_A,
-                            mg_smoother_A,
-                            mg_smoother_A);
+                              mg_coarse_A,
+                              mg_transfer_A,
+                              mg_smoother_A,
+                              mg_smoother_A);
     mg_A.set_edge_matrices(mg_interface_A, mg_interface_A);
     // Mass matrix GMG
     Multigrid<vector_t > mg_mass(mg_matrix_mass,
-                            mg_coarse_mass,
-                            mg_transfer_mass,
-                            mg_smoother_mass,
-                            mg_smoother_mass);
+                                 mg_coarse_mass,
+                                 mg_transfer_mass,
+                                 mg_smoother_mass,
+                                 mg_smoother_mass);
     mg_mass.set_edge_matrices(mg_interface_mass, mg_interface_mass);
 
     // GMG Preconditioner
@@ -1767,15 +1769,42 @@ namespace aspect
         if (sim.parameters.n_cheap_stokes_solver_steps == 0)
           throw SolverControl::NoConvergence(0,0);
 
-        SolverFGMRES<dealii::LinearAlgebra::distributed::BlockVector<double> >
-        solver(solver_control_cheap, mem,
-               SolverFGMRES<dealii::LinearAlgebra::distributed::BlockVector<double> >::
-               AdditionalData(sim.parameters.stokes_gmres_restart_length));
+        if (sim.parameters.krylov_solver == "fgmres")
+          {
+            SolverFGMRES<dealii::LinearAlgebra::distributed::BlockVector<double> >
+            solver(solver_control_cheap, mem,
+                   SolverFGMRES<dealii::LinearAlgebra::distributed::BlockVector<double> >::
+                   AdditionalData(sim.parameters.stokes_gmres_restart_length));
 
-        solver.solve (stokes_matrix,
-                      solution_copy,
-                      rhs_copy,
-                      preconditioner_cheap);
+            solver.solve (stokes_matrix,
+                          solution_copy,
+                          rhs_copy,
+                          preconditioner_cheap);
+          }
+        else if (sim.parameters.krylov_solver == "gmres")
+          {
+            SolverGMRES<dealii::LinearAlgebra::distributed::BlockVector<double> >
+            solver(solver_control_cheap, mem,
+                   SolverGMRES<dealii::LinearAlgebra::distributed::BlockVector<double> >::
+                   AdditionalData(sim.parameters.stokes_gmres_restart_length+2));
+
+            solver.solve (stokes_matrix,
+                          solution_copy,
+                          rhs_copy,
+                          preconditioner_cheap);
+          }
+        else if (sim.parameters.krylov_solver == "idr")
+          {
+            SolverIDR<dealii::LinearAlgebra::distributed::BlockVector<double> >
+            solver(solver_control_cheap, mem,
+                   SolverGMRES<dealii::LinearAlgebra::distributed::BlockVector<double> >::
+                   AdditionalData(sim.parameters.idr_s_value));
+
+            solver.solve (stokes_matrix,
+                          solution_copy,
+                          rhs_copy,
+                          preconditioner_cheap);
+          }
 
         final_linear_residual = solver_control_cheap.last_value();
       }
