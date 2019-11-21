@@ -1503,7 +1503,7 @@ namespace aspect
     mg_coarse_A.initialize(mg_smoother_A);
     //Mass matrix GMG
     MGCoarseGridApplySmoother<vector_t> mg_coarse_mass;
-    mg_coarse_A.initialize(mg_smoother_mass);
+    mg_coarse_mass.initialize(mg_smoother_mass);
 
     // Interface matrices
     // Ablock GMG
