@@ -1786,7 +1786,8 @@ namespace aspect
             SolverGMRES<dealii::LinearAlgebra::distributed::BlockVector<double> >
             solver(solver_control_cheap, mem,
                    SolverGMRES<dealii::LinearAlgebra::distributed::BlockVector<double> >::
-                   AdditionalData(sim.parameters.stokes_gmres_restart_length+2));
+                   AdditionalData(sim.parameters.stokes_gmres_restart_length+2,
+                                  true));
 
             solver.solve (stokes_matrix,
                           solution_copy,
