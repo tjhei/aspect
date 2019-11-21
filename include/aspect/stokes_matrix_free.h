@@ -152,7 +152,8 @@ namespace aspect
         void fill_cell_data (const dealii::LinearAlgebra::distributed::Vector<number> &viscosity_values,
                              const double pressure_scaling,
                              const Triangulation<dim> &tria,
-                             const DoFHandler<dim> &dof_handler_for_projection);
+                             const DoFHandler<dim> &dof_handler_for_projection,
+                             const bool for_mg);
 
 
         /**
@@ -430,14 +431,17 @@ namespace aspect
       ConstraintMatrix constraints_p;
       ConstraintMatrix constraints_projection;
 
-      MGLevelObject<ABlockMatrixType> mg_matrices;
-      MGConstrainedDoFs mg_constrained_dofs;
+      MGLevelObject<ABlockMatrixType> mg_matrices_A;
+      MGLevelObject<ABlockMatrixType> mg_matrices_mass;
+      MGConstrainedDoFs mg_constrained_dofs_A;
+      MGConstrainedDoFs mg_constrained_dofs_mass;
       MGConstrainedDoFs mg_constrained_dofs_projection;
 
       dealii::LinearAlgebra::distributed::Vector<double> active_coef_dof_vec;
       MGLevelObject<dealii::LinearAlgebra::distributed::Vector<double> > level_coef_dof_vec;
 
-      MGTransferMatrixFree<dim,double> mg_transfer;
+      MGTransferMatrixFree<dim,double> mg_transfer_A;
+      MGTransferMatrixFree<dim,double> mg_transfer_mass;
   };
 }
 

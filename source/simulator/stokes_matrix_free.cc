@@ -536,53 +536,57 @@ namespace aspect
            const dealii::LinearAlgebra::distributed::BlockVector<double>  &src) const
     {
       dealii::LinearAlgebra::distributed::BlockVector<double> utmp(src);
+      dealii::LinearAlgebra::distributed::BlockVector<double> ptmp(src);
 
       // first solve with the bottom left block, which we have built
       // as a mass matrix with the inverse of the viscosity
       {
-        SolverControl solver_control(100, src.block(1).l2_norm() * S_block_tolerance,true);
+//        SolverControl solver_control(100, src.block(1).l2_norm() * S_block_tolerance,true);
 
-        SolverCG<dealii::LinearAlgebra::distributed::Vector<double> > solver(solver_control);
-        // Trilinos reports a breakdown
-        // in case src=dst=0, even
-        // though it should return
-        // convergence without
-        // iterating. We simply skip
-        // solving in this case.
-        if (src.block(1).l2_norm() > 1e-50)
-          {
-            try
-              {
-                dst.block(1) = 0.0;
-                solver.solve(mass_matrix,
-                             dst.block(1), src.block(1),
-                             mp_preconditioner);
-                n_iterations_S_ += solver_control.last_step();
-              }
-            // if the solver fails, report the error from processor 0 with some additional
-            // information about its location, and throw a quiet exception on all other
-            // processors
-            catch (const std::exception &exc)
-              {
-                if (Utilities::MPI::this_mpi_process(src.block(0).get_mpi_communicator()) == 0)
-                  AssertThrow (false,
-                               ExcMessage (std::string("The iterative (bottom right) solver in BlockSchurGMGPreconditioner::vmult "
-                                                       "did not converge to a tolerance of "
-                                                       + Utilities::to_string(solver_control.tolerance()) +
-                                                       ". It reported the following error:\n\n")
-                                           +
-                                           exc.what()))
-                  else
-                    throw QuietException();
-              }
-          }
+//        SolverCG<dealii::LinearAlgebra::distributed::Vector<double> > solver(solver_control);
+//        // Trilinos reports a breakdown
+//        // in case src=dst=0, even
+//        // though it should return
+//        // convergence without
+//        // iterating. We simply skip
+//        // solving in this case.
+//        if (src.block(1).l2_norm() > 1e-50)
+//          {
+//            try
+//              {
+//                dst.block(1) = 0.0;
+//                solver.solve(mass_matrix,
+//                             dst.block(1), src.block(1),
+//                             mp_preconditioner);
+//                n_iterations_S_ += solver_control.last_step();
+//              }
+//            // if the solver fails, report the error from processor 0 with some additional
+//            // information about its location, and throw a quiet exception on all other
+//            // processors
+//            catch (const std::exception &exc)
+//              {
+//                if (Utilities::MPI::this_mpi_process(src.block(0).get_mpi_communicator()) == 0)
+//                  AssertThrow (false,
+//                               ExcMessage (std::string("The iterative (bottom right) solver in BlockSchurGMGPreconditioner::vmult "
+//                                                       "did not converge to a tolerance of "
+//                                                       + Utilities::to_string(solver_control.tolerance()) +
+//                                                       ". It reported the following error:\n\n")
+//                                           +
+//                                           exc.what()))
+//                  else
+//                    throw QuietException();
+//              }
+//          }
+
+        mp_preconditioner.vmult(dst.block(1),src.block(1));
+        n_iterations_S_ += 1;
         dst.block(1) *= -1.0;
       }
 
       {
-        dealii::LinearAlgebra::distributed::BlockVector<double>  dst_tmp(dst);
-        dst_tmp.block(0) = 0.0;
-        stokes_matrix.vmult(utmp, dst_tmp); // B^T
+        ptmp = dst;
+        ptmp.block(0) = 0.0;
+        stokes_matrix.vmult(utmp, ptmp); // B^T
         utmp.block(0) *= -1.0;
         utmp.block(0) += src.block(0);
       }
@@ -778,7 +782,8 @@ namespace aspect
   fill_cell_data (const dealii::LinearAlgebra::distributed::Vector<number> &viscosity_values,
                   const double pressure_scaling,
                   const Triangulation<dim> &tria,
-                  const DoFHandler<dim> &dof_handler_for_projection)
+                  const DoFHandler<dim> &dof_handler_for_projection,
+                  const bool for_mg)
   {
     const unsigned int n_cells = this->data->n_macro_cells();
     one_over_viscosity.reinit(TableIndices<1>(n_cells));
@@ -787,12 +792,24 @@ namespace aspect
     for (unsigned int cell=0; cell<n_cells; ++cell)
       for (unsigned int i=0; i<this->get_matrix_free()->n_components_filled(cell); ++i)
         {
-          typename DoFHandler<dim>::active_cell_iterator FEQ_cell = this->get_matrix_free()->get_cell_iterator(cell,i);
-          typename DoFHandler<dim>::active_cell_iterator DG_cell(&tria,
-                                                                 FEQ_cell->level(),
-                                                                 FEQ_cell->index(),
-                                                                 &dof_handler_for_projection);
-          DG_cell->get_active_or_mg_dof_indices(local_dof_indices);
+          if (for_mg)
+            {
+              typename DoFHandler<dim>::level_cell_iterator FEQ_cell = this->get_matrix_free()->get_cell_iterator(cell,i);
+              typename DoFHandler<dim>::level_cell_iterator DG_cell(&tria,
+                                                                    FEQ_cell->level(),
+                                                                    FEQ_cell->index(),
+                                                                    &dof_handler_for_projection);
+              DG_cell->get_active_or_mg_dof_indices(local_dof_indices);
+            }
+          else
+            {
+              typename DoFHandler<dim>::active_cell_iterator FEQ_cell = this->get_matrix_free()->get_cell_iterator(cell,i);
+              typename DoFHandler<dim>::active_cell_iterator DG_cell(&tria,
+                                                                     FEQ_cell->level(),
+                                                                     FEQ_cell->index(),
+                                                                     &dof_handler_for_projection);
+              DG_cell->get_active_or_mg_dof_indices(local_dof_indices);
+            }
 
           //TODO: projection with higher degree
           Assert(local_dof_indices.size() == 1, ExcNotImplemented());
@@ -1321,16 +1338,15 @@ namespace aspect
     mass_matrix.fill_cell_data(active_coef_dof_vec,
                                sim.pressure_scaling,
                                sim.triangulation,
-                               dof_handler_projection);
-    mass_matrix.compute_diagonal();
-
+                               dof_handler_projection,
+                               /*for_mg*/ false);
 
     // Project to MG
     const unsigned int n_levels = sim.triangulation.n_global_levels();
     level_coef_dof_vec = 0.;
     level_coef_dof_vec.resize(0,n_levels-1);
 
-    MGTransferMatrixFree<dim,double> transfer(mg_constrained_dofs);
+    MGTransferMatrixFree<dim,double> transfer(mg_constrained_dofs_A);
     transfer.build(dof_handler_projection);
     transfer.interpolate_to_mg(dof_handler_projection,
                                level_coef_dof_vec,
@@ -1338,11 +1354,17 @@ namespace aspect
 
     for (unsigned int level=0; level<n_levels; ++level)
       {
-        mg_matrices[level].fill_cell_data(level_coef_dof_vec[level],
-                                          sim.triangulation,
-                                          dof_handler_projection,
-                                          /*for_mg*/ true,
-                                          is_compressible);
+        mg_matrices_A[level].fill_cell_data(level_coef_dof_vec[level],
+                                            sim.triangulation,
+                                            dof_handler_projection,
+                                            /*for_mg*/ true,
+                                            is_compressible);
+
+        mg_matrices_mass[level].fill_cell_data(level_coef_dof_vec[level],
+                                               sim.pressure_scaling,
+                                               sim.triangulation,
+                                               dof_handler_projection,
+                                               /*for_mg*/ true);
       }
   }
 
@@ -1421,12 +1443,12 @@ namespace aspect
     // Below we define all the objects needed to build the GMG preconditioner:
     using vector_t = dealii::LinearAlgebra::distributed::Vector<double>;
 
-    // We choose a Chebyshev smoother, degree 4
-    typedef PreconditionChebyshev<ABlockMatrixType,vector_t> SmootherType;
-    mg::SmootherRelaxation<SmootherType, vector_t>
-    mg_smoother;
+    // ABlock GMG Smoother: Chebyshev, degree 4
+    typedef PreconditionChebyshev<ABlockMatrixType,vector_t> ABlockSmootherType;
+    mg::SmootherRelaxation<ABlockSmootherType, vector_t>
+    mg_smoother_A;
     {
-      MGLevelObject<typename SmootherType::AdditionalData> smoother_data;
+      MGLevelObject<typename ABlockSmootherType::AdditionalData> smoother_data;
       smoother_data.resize(0, sim.triangulation.n_global_levels()-1);
       for (unsigned int level = 0; level<sim.triangulation.n_global_levels(); ++level)
         {
@@ -1440,50 +1462,94 @@ namespace aspect
             {
               smoother_data[0].smoothing_range = 1e-3;
               smoother_data[0].degree = numbers::invalid_unsigned_int;
-              smoother_data[0].eig_cg_n_iterations = mg_matrices[0].m();
+              smoother_data[0].eig_cg_n_iterations = mg_matrices_A[0].m();
             }
-          smoother_data[level].preconditioner = mg_matrices[level].get_matrix_diagonal_inverse();
+          smoother_data[level].preconditioner = mg_matrices_A[level].get_matrix_diagonal_inverse();
         }
-      mg_smoother.initialize(mg_matrices, smoother_data);
+      mg_smoother_A.initialize(mg_matrices_A, smoother_data);
     }
+
+    // Mass matrix GMG Smoother: Chebyshev, degree 4
+    typedef PreconditionChebyshev<MassMatrixType,vector_t> MassSmootherType;
+    mg::SmootherRelaxation<MassSmootherType, vector_t>
+    mg_smoother_mass;
+    {
+      MGLevelObject<typename MassSmootherType::AdditionalData> smoother_data;
+      smoother_data.resize(0, sim.triangulation.n_global_levels()-1);
+      for (unsigned int level = 0; level<sim.triangulation.n_global_levels(); ++level)
+        {
+          if (level > 0)
+            {
+              smoother_data[level].smoothing_range = 15.;
+              smoother_data[level].degree = 4;
+              smoother_data[level].eig_cg_n_iterations = 10;
+            }
+          else
+            {
+              smoother_data[0].smoothing_range = 1e-3;
+              smoother_data[0].degree = numbers::invalid_unsigned_int;
+              smoother_data[0].eig_cg_n_iterations = mg_matrices_mass[0].m();
+            }
+          smoother_data[level].preconditioner = mg_matrices_mass[level].get_matrix_diagonal_inverse();
+        }
+      mg_smoother_mass.initialize(mg_matrices_mass, smoother_data);
+    }
+
 
     // Coarse Solver is just an application of the Chebyshev smoother setup
     // in such a way to be a solver
-    MGCoarseGridApplySmoother<vector_t> mg_coarse;
-    mg_coarse.initialize(mg_smoother);
+    //ABlock GMG
+    MGCoarseGridApplySmoother<vector_t> mg_coarse_A;
+    mg_coarse_A.initialize(mg_smoother_A);
+    //Mass matrix GMG
+    MGCoarseGridApplySmoother<vector_t> mg_coarse_mass;
+    mg_coarse_A.initialize(mg_smoother_mass);
 
     // Interface matrices
-    MGLevelObject<MatrixFreeOperators::MGInterfaceOperator<ABlockMatrixType> > mg_interface_matrices;
-    mg_interface_matrices.resize(0, sim.triangulation.n_global_levels()-1);
+    // Ablock GMG
+    MGLevelObject<MatrixFreeOperators::MGInterfaceOperator<ABlockMatrixType> > mg_interface_matrices_A;
+    mg_interface_matrices_A.resize(0, sim.triangulation.n_global_levels()-1);
     for (unsigned int level=0; level<sim.triangulation.n_global_levels(); ++level)
-      mg_interface_matrices[level].initialize(mg_matrices[level]);
-    mg::Matrix<vector_t > mg_interface(mg_interface_matrices);
+      mg_interface_matrices_A[level].initialize(mg_matrices_A[level]);
+    mg::Matrix<vector_t > mg_interface_A(mg_interface_matrices_A);
+
+    // Mass matrix GMG
+    MGLevelObject<MatrixFreeOperators::MGInterfaceOperator<ABlockMatrixType> > mg_interface_matrices_mass;
+    mg_interface_matrices_mass.resize(0, sim.triangulation.n_global_levels()-1);
+    for (unsigned int level=0; level<sim.triangulation.n_global_levels(); ++level)
+      mg_interface_matrices_mass[level].initialize(mg_matrices_mass[level]);
+    mg::Matrix<vector_t > mg_interface_mass(mg_interface_matrices_A);
+
+
 
     // MG Matrix
-    mg::Matrix<vector_t > mg_matrix(mg_matrices);
+    mg::Matrix<vector_t > mg_matrix_A(mg_matrices_A);
+    mg::Matrix<vector_t > mg_matrix_mass(mg_matrices_mass);
 
     // MG object
-    Multigrid<vector_t > mg(mg_matrix,
-                            mg_coarse,
-                            mg_transfer,
-                            mg_smoother,
-                            mg_smoother);
-    mg.set_edge_matrices(mg_interface, mg_interface);
+    // ABlock GMG
+    Multigrid<vector_t > mg_A(mg_matrix_A,
+                            mg_coarse_A,
+                            mg_transfer_A,
+                            mg_smoother_A,
+                            mg_smoother_A);
+    mg_A.set_edge_matrices(mg_interface_A, mg_interface_A);
+    // Mass matrix GMG
+    Multigrid<vector_t > mg_mass(mg_matrix_mass,
+                            mg_coarse_mass,
+                            mg_transfer_mass,
+                            mg_smoother_mass,
+                            mg_smoother_mass);
+    mg_mass.set_edge_matrices(mg_interface_mass, mg_interface_mass);
 
     // GMG Preconditioner
+    // Ablock GMG
     typedef PreconditionMG<dim, vector_t, MGTransferMatrixFree<dim,double> > APreconditioner;
-    APreconditioner prec_A(dof_handler_v, mg, mg_transfer);
+    APreconditioner prec_A(dof_handler_v, mg_A, mg_transfer_A);
 
-    // For the Mass matrix Preconditioner we choose a Chebyshev smoother setup
-    // in a similar way to the coarse grid solver.
-    typedef PreconditionChebyshev<MassMatrixType,vector_t> MassPreconditioner;
-    MassPreconditioner prec_S;
-    typename MassPreconditioner::AdditionalData prec_S_data;
-    prec_S_data.smoothing_range = 1e-3;
-    prec_S_data.degree = numbers::invalid_unsigned_int;
-    prec_S_data.eig_cg_n_iterations = mass_matrix.m();
-    prec_S_data.preconditioner = mass_matrix.get_matrix_diagonal_inverse();
-    prec_S.initialize(mass_matrix,prec_S_data);
+    // Mass matrix GMG
+    typedef PreconditionMG<dim, vector_t, MGTransferMatrixFree<dim,double> > MassPreconditioner;
+    APreconditioner prec_S(dof_handler_p, mg_mass, mg_transfer_mass);
 
 
     // Many parts of the solver depend on the block layout (velocity = 0,
@@ -1909,10 +1975,11 @@ namespace aspect
     // Multigrid DoF setup
     sim.stokes_timer.enter_subsection("setup_mg_dofs");
     {
+      // ABlock GMG
       dof_handler_v.distribute_mg_dofs();
 
-      mg_constrained_dofs.clear();
-      mg_constrained_dofs.initialize(dof_handler_v);
+      mg_constrained_dofs_A.clear();
+      mg_constrained_dofs_A.initialize(dof_handler_v);
 
       std::set<types::boundary_id> dirichlet_boundary = sim.boundary_velocity_manager.get_zero_boundary_velocity_indicators();
       for (auto it: sim.boundary_velocity_manager.get_active_boundary_velocity_names())
@@ -1922,7 +1989,7 @@ namespace aspect
           Assert(component=="", ExcNotImplemented());
           dirichlet_boundary.insert(bdryid);
         }
-      mg_constrained_dofs.make_zero_boundary_constraints(dof_handler_v, dirichlet_boundary);
+      mg_constrained_dofs_A.make_zero_boundary_constraints(dof_handler_v, dirichlet_boundary);
 
       {
         std::set<types::boundary_id> no_flux_boundary = sim.boundary_velocity_manager.get_tangential_boundary_velocity_indicators();
@@ -1932,10 +1999,17 @@ namespace aspect
               internal::TangentialBoundaryFunctions::compute_no_normal_flux_constraints_box(dof_handler_v,
                                                                                             bid,
                                                                                             0,
-                                                                                            mg_constrained_dofs);
+                                                                                            mg_constrained_dofs_A);
             }
       }
 
+      //Mass matrix GMG
+      dof_handler_p.distribute_mg_dofs();
+
+      mg_constrained_dofs_mass.clear();
+      mg_constrained_dofs_mass.initialize(dof_handler_p);
+
+      //Coefficient transfer
       dof_handler_projection.distribute_mg_dofs();
     }
     sim.stokes_timer.leave_subsection("setup_mg_dofs");
@@ -2003,8 +2077,10 @@ namespace aspect
       // GMG matrices
       {
         const unsigned int n_levels = sim.triangulation.n_global_levels();
-        mg_matrices.clear_elements();
-        mg_matrices.resize(0, n_levels-1);
+
+        //ABlock GMG
+        mg_matrices_A.clear_elements();
+        mg_matrices_A.resize(0, n_levels-1);
 
         for (unsigned int level=0; level<n_levels; ++level)
           {
@@ -2012,7 +2088,7 @@ namespace aspect
             DoFTools::extract_locally_relevant_level_dofs(dof_handler_v, level, relevant_dofs);
             ConstraintMatrix level_constraints;
             level_constraints.reinit(relevant_dofs);
-            level_constraints.add_lines(mg_constrained_dofs.get_boundary_indices(level));
+            level_constraints.add_lines(mg_constrained_dofs_A.get_boundary_indices(level));
             level_constraints.close();
 
             std::set<types::boundary_id> no_flux_boundary
@@ -2055,8 +2131,39 @@ namespace aspect
                                           QGauss<1>(sim.parameters.stokes_velocity_degree+1),
                                           additional_data);
 
-              mg_matrices[level].clear();
-              mg_matrices[level].initialize(mg_mf_storage_level, mg_constrained_dofs, level);
+              mg_matrices_A[level].clear();
+              mg_matrices_A[level].initialize(mg_mf_storage_level, mg_constrained_dofs_A, level);
+
+            }
+          }
+
+        //Mass matrix GMG
+        mg_matrices_mass.clear_elements();
+        mg_matrices_mass.resize(0, n_levels-1);
+
+        for (unsigned int level=0; level<n_levels; ++level)
+          {
+            IndexSet relevant_dofs;
+            DoFTools::extract_locally_relevant_level_dofs(dof_handler_p, level, relevant_dofs);
+            ConstraintMatrix level_constraints;
+            level_constraints.reinit(relevant_dofs);
+            level_constraints.close();
+
+            {
+              typename MatrixFree<dim,double>::AdditionalData additional_data;
+              additional_data.tasks_parallel_scheme =
+                MatrixFree<dim,double>::AdditionalData::none;
+              additional_data.mapping_update_flags = (update_values | update_JxW_values |
+                                                      update_quadrature_points);
+              additional_data.level_mg_handler = level;
+              std::shared_ptr<MatrixFree<dim,double> >
+              mg_mf_storage_level(new MatrixFree<dim,double>());
+              mg_mf_storage_level->reinit(*sim.mapping, dof_handler_p, level_constraints,
+                                          QGauss<1>(sim.parameters.stokes_velocity_degree+1),
+                                          additional_data);
+
+              mg_matrices_mass[level].clear();
+              mg_matrices_mass[level].initialize(mg_mf_storage_level, mg_constrained_dofs_mass, level);
 
             }
           }
@@ -2067,9 +2174,13 @@ namespace aspect
     // Build MG transfer
     sim.stokes_timer.enter_subsection("setup_mg_transfer");
     {
-      mg_transfer.clear();
-      mg_transfer.initialize_constraints(mg_constrained_dofs);
-      mg_transfer.build(dof_handler_v);
+      mg_transfer_A.clear();
+      mg_transfer_A.initialize_constraints(mg_constrained_dofs_A);
+      mg_transfer_A.build(dof_handler_v);
+
+      mg_transfer_mass.clear();
+      mg_transfer_mass.initialize_constraints(mg_constrained_dofs_mass);
+      mg_transfer_mass.build(dof_handler_p);
     }
     sim.stokes_timer.leave_subsection("setup_mg_transfer");
   }
@@ -2091,6 +2202,10 @@ namespace aspect
   {
     for (unsigned int level=0; level < sim.triangulation.n_global_levels(); ++level)
       {
+        //Mass matrix GMG
+        mg_matrices_mass[level].compute_diagonal();
+
+        // ABlock GMG
         // If we have a tangential boundary we must compute the diagonal
         // outside of the matrix-free object
         if (!(sim.boundary_velocity_manager.get_tangential_boundary_velocity_indicators().empty())
@@ -2125,8 +2240,8 @@ namespace aspect
 
             ConstraintMatrix boundary_constraints;
             boundary_constraints.reinit(locally_relevant_dofs);
-            boundary_constraints.add_lines (mg_constrained_dofs.get_refinement_edge_indices(level));
-            boundary_constraints.add_lines (mg_constrained_dofs.get_boundary_indices(level));
+            boundary_constraints.add_lines (mg_constrained_dofs_A.get_refinement_edge_indices(level));
+            boundary_constraints.add_lines (mg_constrained_dofs_A.get_boundary_indices(level));
 #if DEAL_II_VERSION_GTE(9,2,0)
             // let Dirichlet values win over no normal flux:
             boundary_constraints.merge(mg_constrained_dofs.get_user_constraint_matrix(level),
@@ -2169,11 +2284,11 @@ namespace aspect
                                                                    diagonal_matrix);
                 }
 
-            mg_matrices[level].set_diagonal(diagonal_matrix.get_vector());
+            mg_matrices_A[level].set_diagonal(diagonal_matrix.get_vector());
           }
         else
           {
-            mg_matrices[level].compute_diagonal();
+            mg_matrices_A[level].compute_diagonal();
           }
       }
   }
