@@ -1797,7 +1797,7 @@ namespace aspect
           {
             SolverIDR<dealii::LinearAlgebra::distributed::BlockVector<double> >
             solver(solver_control_cheap, mem,
-                   SolverGMRES<dealii::LinearAlgebra::distributed::BlockVector<double> >::
+                   SolverIDR<dealii::LinearAlgebra::distributed::BlockVector<double> >::
                    AdditionalData(sim.parameters.idr_s_value));
 
             solver.solve (stokes_matrix,
