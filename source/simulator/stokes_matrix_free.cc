@@ -1518,7 +1518,7 @@ namespace aspect
     mg_interface_matrices_mass.resize(0, sim.triangulation.n_global_levels()-1);
     for (unsigned int level=0; level<sim.triangulation.n_global_levels(); ++level)
       mg_interface_matrices_mass[level].initialize(mg_matrices_mass[level]);
-    mg::Matrix<vector_t > mg_interface_mass(mg_interface_matrices_A);
+    mg::Matrix<vector_t > mg_interface_mass(mg_interface_matrices_mass);
 
 
 
