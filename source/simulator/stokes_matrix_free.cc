@@ -1466,7 +1466,7 @@ namespace aspect
             {
               smoother_data[0].smoothing_range = 1e-3;
               smoother_data[0].degree = numbers::invalid_unsigned_int;
-              smoother_data[0].eig_cg_n_iterations = mg_matrices_A[0].m();
+              smoother_data[0].eig_cg_n_iterations = 100; /*mg_matrices_A[0].m();*/
             }
           smoother_data[level].preconditioner = mg_matrices_A[level].get_matrix_diagonal_inverse();
         }
@@ -1492,7 +1492,7 @@ namespace aspect
             {
               smoother_data[0].smoothing_range = 1e-3;
               smoother_data[0].degree = numbers::invalid_unsigned_int;
-              smoother_data[0].eig_cg_n_iterations = mg_matrices_mass[0].m();
+              smoother_data[0].eig_cg_n_iterations = 100; /*mg_matrices_mass[0].m();*/
             }
           smoother_data[level].preconditioner = mg_matrices_mass[level].get_matrix_diagonal_inverse();
         }
