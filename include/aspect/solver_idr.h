@@ -288,12 +288,12 @@ SolverIDR<VectorType>::solve(const MatrixType         &A,
             r.add(-1.0 * beta, G[k]);
             x.add(beta, U[k]);
 
-            // Check for zero residual to avoid breakdown later
-            res = r.l2_norm();
-            if (res < 1e-14)
+            // Check for early convergence
+            res             = r.l2_norm();
+            iteration_state = this->iteration_status(step, res, x);
+            if (iteration_state != SolverControl::iterate)
               {
                 early_exit = true;
-                iteration_state = SolverControl::success;
                 break;
               }
 
@@ -308,11 +308,7 @@ SolverIDR<VectorType>::solve(const MatrixType         &A,
           }
         }
       if (early_exit == true)
-        {
-          res             = r.l2_norm();
-          iteration_state = this->iteration_status(step, res, x);
-          break;
-        }
+        break;
 
       // Update r and x
       preconditioner.vmult(vhat, r);

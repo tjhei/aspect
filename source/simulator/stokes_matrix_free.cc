@@ -1566,7 +1566,6 @@ namespace aspect
 
     LinearAlgebra::BlockVector distributed_stokes_solution (sim.introspection.index_sets.stokes_partitioning,
                                                             sim.mpi_communicator);
-    distributed_stokes_solution = 0;
     // extract Stokes parts of rhs vector
     LinearAlgebra::BlockVector distributed_stokes_rhs(sim.introspection.index_sets.stokes_partitioning,
                                                       sim.mpi_communicator);
@@ -1637,6 +1636,11 @@ namespace aspect
         stokes_matrix.initialize_dof_vector(initial_copy);
         stokes_matrix.initialize_dof_vector(rhs_copy);
 
+        solution_copy.collect_sizes();
+        initial_copy.collect_sizes();
+        rhs_copy.collect_sizes();
+
+        internal::ChangeVectorTypes::copy(solution_copy,distributed_stokes_solution);
         internal::ChangeVectorTypes::copy(initial_copy,linearized_stokes_initial_guess);
         internal::ChangeVectorTypes::copy(rhs_copy,distributed_stokes_rhs);
 
@@ -1691,6 +1695,9 @@ namespace aspect
 
     stokes_matrix.initialize_dof_vector(solution_copy);
     stokes_matrix.initialize_dof_vector(rhs_copy);
+
+    solution_copy.collect_sizes();
+    rhs_copy.collect_sizes();
 
     internal::ChangeVectorTypes::copy(solution_copy,distributed_stokes_solution);
     internal::ChangeVectorTypes::copy(rhs_copy,distributed_stokes_rhs);
@@ -1827,8 +1834,6 @@ namespace aspect
 
         try
           {
-            internal::ChangeVectorTypes::copy(solution_copy,distributed_stokes_solution);
-
             solver.solve(stokes_matrix,
                          solution_copy,
                          rhs_copy,
@@ -1889,30 +1894,6 @@ namespace aspect
                             solver_control_expensive.last_step() :
                             0);
 
-    //signal successful solver
-    sim.signals.post_stokes_solver(sim,
-                                   preconditioner_cheap.n_iterations_S() + preconditioner_expensive.n_iterations_S(),
-                                   preconditioner_cheap.n_iterations_A() + preconditioner_expensive.n_iterations_A(),
-                                   solver_control_cheap,
-                                   solver_control_expensive);
-
-    // distribute hanging node and other constraints
-    solution_copy.update_ghost_values();
-    internal::ChangeVectorTypes::copy(distributed_stokes_solution,solution_copy);
-
-    sim.current_constraints.distribute (distributed_stokes_solution);
-
-    // now rescale the pressure back to real physical units
-    distributed_stokes_solution.block(block_p) *= sim.pressure_scaling;
-
-    // then copy back the solution from the temporary (non-ghosted) vector
-    // into the ghosted one with all solution components
-    if (j == sim.parameters.n_timings)
-      {
-        sim.solution.block(block_vel) = distributed_stokes_solution.block(block_vel);
-        sim.solution.block(block_p) = distributed_stokes_solution.block(block_p);
-      }
-
     // print the number of iterations to screen
     sim.pcout << (solver_control_cheap.last_step() != numbers::invalid_unsigned_int ?
                   solver_control_cheap.last_step():
@@ -1924,20 +1905,41 @@ namespace aspect
               << " iterations.";
     sim.pcout << std::endl;
 
-    // do some cleanup now that we have the solution
     if (j == sim.parameters.n_timings)
       {
+        //signal successful solver
+        sim.signals.post_stokes_solver(sim,
+                                       preconditioner_cheap.n_iterations_S() + preconditioner_expensive.n_iterations_S(),
+                                       preconditioner_cheap.n_iterations_A() + preconditioner_expensive.n_iterations_A(),
+                                       solver_control_cheap,
+                                       solver_control_expensive);
+
+        // distribute hanging node and other constraints
+        solution_copy.update_ghost_values();
+        internal::ChangeVectorTypes::copy(distributed_stokes_solution,solution_copy);
+
+        sim.current_constraints.distribute (distributed_stokes_solution);
+
+        // now rescale the pressure back to real physical units
+        distributed_stokes_solution.block(block_p) *= sim.pressure_scaling;
+
+        // then copy back the solution from the temporary (non-ghosted) vector
+        // into the ghosted one with all solution components
+        sim.solution.block(block_vel) = distributed_stokes_solution.block(block_vel);
+        sim.solution.block(block_p) = distributed_stokes_solution.block(block_p);
+
+        // do some cleanup now that we have the solution
         sim.remove_nullspace(sim.solution, distributed_stokes_solution);
         if (sim.assemble_newton_stokes_system == false)
           sim.last_pressure_normalization_adjustment = sim.normalize_pressure(sim.solution);
+
+
+        // convert melt pressures
+        // TODO: We assert in the StokesMatrixFreeHandler constructor that we
+        //       are not including melt transport.
+        if (sim.parameters.include_melt_transport)
+          sim.melt_handler->compute_melt_variables(sim.solution);
       }
-
-
-    // convert melt pressures
-    // TODO: We assert in the StokesMatrixFreeHandler constructor that we
-    //       are not including melt transport.
-    if (sim.parameters.include_melt_transport)
-      sim.melt_handler->compute_melt_variables(sim.solution);
 
     return std::pair<double,double>(initial_nonlinear_residual,
                                     final_linear_residual);
