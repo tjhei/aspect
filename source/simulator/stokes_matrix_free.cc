@@ -1773,9 +1773,6 @@ namespace aspect
 
         if (sim.parameters.krylov_solver == "fgmres")
           {
-            internal::ChangeVectorTypes::copy(solution_copy,distributed_stokes_solution);
-
-
             SolverFGMRES<dealii::LinearAlgebra::distributed::BlockVector<double> >
             solver(solver_control_cheap, mem,
                    SolverFGMRES<dealii::LinearAlgebra::distributed::BlockVector<double> >::
@@ -1788,8 +1785,6 @@ namespace aspect
           }
         else if (sim.parameters.krylov_solver == "gmres")
           {
-            internal::ChangeVectorTypes::copy(solution_copy,distributed_stokes_solution);
-
             SolverGMRES<dealii::LinearAlgebra::distributed::BlockVector<double> >
             solver(solver_control_cheap, mem,
                    SolverGMRES<dealii::LinearAlgebra::distributed::BlockVector<double> >::
@@ -1803,7 +1798,7 @@ namespace aspect
           }
         else if (sim.parameters.krylov_solver == "idr")
           {
-            internal::ChangeVectorTypes::copy(solution_copy,distributed_stokes_solution);
+            sim.pcout << solution_copy.l2_norm() << std::endl;
 
             SolverIDR<dealii::LinearAlgebra::distributed::BlockVector<double> >
             solver(solver_control_cheap, mem,
