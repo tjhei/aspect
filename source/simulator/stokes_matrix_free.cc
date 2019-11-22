@@ -1566,6 +1566,7 @@ namespace aspect
 
     LinearAlgebra::BlockVector distributed_stokes_solution (sim.introspection.index_sets.stokes_partitioning,
                                                             sim.mpi_communicator);
+    distributed_stokes_solution = 0;
     // extract Stokes parts of rhs vector
     LinearAlgebra::BlockVector distributed_stokes_rhs(sim.introspection.index_sets.stokes_partitioning,
                                                       sim.mpi_communicator);
@@ -1636,11 +1637,6 @@ namespace aspect
         stokes_matrix.initialize_dof_vector(initial_copy);
         stokes_matrix.initialize_dof_vector(rhs_copy);
 
-        solution_copy.collect_sizes();
-        initial_copy.collect_sizes();
-        rhs_copy.collect_sizes();
-
-        internal::ChangeVectorTypes::copy(solution_copy,distributed_stokes_solution);
         internal::ChangeVectorTypes::copy(initial_copy,linearized_stokes_initial_guess);
         internal::ChangeVectorTypes::copy(rhs_copy,distributed_stokes_rhs);
 
@@ -1695,9 +1691,6 @@ namespace aspect
 
     stokes_matrix.initialize_dof_vector(solution_copy);
     stokes_matrix.initialize_dof_vector(rhs_copy);
-
-    solution_copy.collect_sizes();
-    rhs_copy.collect_sizes();
 
     internal::ChangeVectorTypes::copy(solution_copy,distributed_stokes_solution);
     internal::ChangeVectorTypes::copy(rhs_copy,distributed_stokes_rhs);
@@ -1798,8 +1791,6 @@ namespace aspect
           }
         else if (sim.parameters.krylov_solver == "idr")
           {
-            sim.pcout << solution_copy.l2_norm() << std::endl;
-
             SolverIDR<dealii::LinearAlgebra::distributed::BlockVector<double> >
             solver(solver_control_cheap, mem,
                    SolverIDR<dealii::LinearAlgebra::distributed::BlockVector<double> >::
@@ -1916,8 +1907,11 @@ namespace aspect
 
     // then copy back the solution from the temporary (non-ghosted) vector
     // into the ghosted one with all solution components
-    sim.solution.block(block_vel) = distributed_stokes_solution.block(block_vel);
-    sim.solution.block(block_p) = distributed_stokes_solution.block(block_p);
+    if (j == sim.parameters.n_timings)
+      {
+        sim.solution.block(block_vel) = distributed_stokes_solution.block(block_vel);
+        sim.solution.block(block_p) = distributed_stokes_solution.block(block_p);
+      }
 
     // print the number of iterations to screen
     sim.pcout << (solver_control_cheap.last_step() != numbers::invalid_unsigned_int ?
