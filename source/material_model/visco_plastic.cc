@@ -103,7 +103,7 @@ namespace aspect
     ViscoPlastic<dim>::
     second_moment_invariant(const SymmetricTensor<2,dim> &sr) const
     {
-      return (0.5*(sr[0][0]*sr[0][0]+sr[1][1]*sr[1][1]) + sr[0][1]*sr[0][1]);  
+      return (0.5*(sr[0][0]*sr[0][0]+sr[1][1]*sr[1][1]) + sr[0][1]*sr[0][1]);
     }
 
     template <int dim>
@@ -129,36 +129,36 @@ namespace aspect
 //                             ref_strain_rate
 //                             :
 //                             std::max(std::sqrt(std::fabs(second_invariant(deviator(strain_rate)))),min_strain_rate) );
-                  double edot_ii = ref_strain_rate;
-                  if (strain_rate.norm() > std::numeric_limits<double>::min())
-                    {
-                      if (use_full_strain_rate == false)
-                        {
-                          if (use_second_moment_invariant == false)
-                            {
-                              edot_ii = std::max(std::sqrt(std::fabs(second_invariant(deviator(strain_rate)))),
-                                                 min_strain_rate);
-                            }
-                          else
-                            {
-                              edot_ii = std::max(std::sqrt(std::fabs(second_moment_invariant(deviator(strain_rate)))),
-                                                 min_strain_rate);
-                            }
-                        }
-                      else
-                        {
-                          if (use_second_moment_invariant == false)
-                            {
-                              edot_ii = std::max(std::sqrt(std::fabs(second_invariant(strain_rate))),
-                                                 min_strain_rate);
-                            }
-                          else
-                            {
-                              edot_ii = std::max(std::sqrt(std::fabs(second_moment_invariant(strain_rate))),
-                                                 min_strain_rate);
-                            }
-                        }
-                    }
+      double edot_ii = ref_strain_rate;
+      if (strain_rate.norm() > std::numeric_limits<double>::min())
+        {
+          if (use_full_strain_rate == false)
+            {
+              if (use_second_moment_invariant == false)
+                {
+                  edot_ii = std::max(std::sqrt(std::fabs(second_invariant(deviator(strain_rate)))),
+                                     min_strain_rate);
+                }
+              else
+                {
+                  edot_ii = std::max(std::sqrt(std::fabs(second_moment_invariant(deviator(strain_rate)))),
+                                     min_strain_rate);
+                }
+            }
+          else
+            {
+              if (use_second_moment_invariant == false)
+                {
+                  edot_ii = std::max(std::sqrt(std::fabs(second_invariant(strain_rate))),
+                                     min_strain_rate);
+                }
+              else
+                {
+                  edot_ii = std::max(std::sqrt(std::fabs(second_moment_invariant(strain_rate))),
+                                     min_strain_rate);
+                }
+            }
+        }
       // Choice of activation volume depends on whether there is an adiabatic temperature
       // gradient used when calculating the viscosity. This allows the same activation volume
       // to be used in incompressible and compressible models.
@@ -544,8 +544,8 @@ namespace aspect
                   double phi = 0.;
                   for (unsigned int j=0; j < volume_fractions.size(); ++j)
                     {
-                     const std::array<double, 3> weakened_values = compute_weakened_yield_parameters(j, in.composition[i]);
-                     phi += volume_fractions[j] * weakened_values[1];
+                      const std::array<double, 3> weakened_values = compute_weakened_yield_parameters(j, in.composition[i]);
+                      phi += volume_fractions[j] * weakened_values[1];
                     }
                   dilation_rate = 2. * std::sin(phi) * edot_ii;
                 }
@@ -577,7 +577,8 @@ namespace aspect
     ViscoPlastic<dim>::
     is_compressible () const
     {
-      return equation_of_state.is_compressible();
+      return true;
+      //return equation_of_state.is_compressible();
     }
 
     template <int dim>

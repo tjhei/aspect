@@ -171,8 +171,6 @@ namespace aspect
 
       private:
 
-        bool compressible;
-
         double reference_T;
 
         double min_strain_rate;
@@ -191,12 +189,12 @@ namespace aspect
          */
         bool use_second_moment_invariant;
 
-         /**
-         * Whether to use the full strain rate tensor when calculating the second invariant.
-         *
-         */
+        /**
+        * Whether to use the full strain rate tensor when calculating the second invariant.
+        *
+        */
         bool use_full_strain_rate;
-       
+
 
         /**
          * Enumeration for selecting which viscosity averaging scheme to use.
