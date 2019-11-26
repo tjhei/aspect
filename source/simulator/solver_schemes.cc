@@ -342,12 +342,30 @@ namespace aspect
 
     const double current_nonlinear_residual = solve_stokes().first;
 
-    current_linearization_point.block(introspection.block_indices.velocities)
-      = solution.block(introspection.block_indices.velocities);
+    if (false)
+      {
+        const double damp = 0.1;
+        current_linearization_point.block(introspection.block_indices.velocities).sadd(1.0-damp, damp,
+                                                                                       solution.block(introspection.block_indices.velocities));
+        solution.block(introspection.block_indices.velocities) = current_linearization_point.block(introspection.block_indices.velocities);
 
-    if (introspection.block_indices.velocities != introspection.block_indices.pressure)
-      current_linearization_point.block(introspection.block_indices.pressure)
-        = solution.block(introspection.block_indices.pressure);
+        if (introspection.block_indices.velocities != introspection.block_indices.pressure)
+          {
+            current_linearization_point.block(introspection.block_indices.pressure).sadd(1.0-damp, damp,
+                                                                                         solution.block(introspection.block_indices.pressure));
+            solution.block(introspection.block_indices.pressure) = current_linearization_point.block(introspection.block_indices.pressure);
+          }
+      }
+    else
+      {
+
+        current_linearization_point.block(introspection.block_indices.velocities)
+          = solution.block(introspection.block_indices.velocities);
+
+        if (introspection.block_indices.velocities != introspection.block_indices.pressure)
+          current_linearization_point.block(introspection.block_indices.pressure)
+            = solution.block(introspection.block_indices.pressure);
+      }
 
     if (parameters.include_melt_transport)
       {
