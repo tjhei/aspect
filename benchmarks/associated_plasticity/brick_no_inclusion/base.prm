@@ -16,14 +16,19 @@ subsection Geometry model
   subsection Box
     set X extent  = 100000
     set Y extent  = 10000
-    set X repetitions = 10
+    set X repetitions = 50
+    set Y repetitions = 5
   end
+end
+
+subsection Nullspace removal
+  set Remove nullspace = 
 end
 
 subsection Material model
   set Model name = visco plastic
   subsection Visco Plastic
-    set Compressible = false
+#    set Compressible = false
 
     set Reference temperature  = 273 
     set Reference viscosity    = 1e21
@@ -52,6 +57,8 @@ subsection Material model
     set Cohesions                   =    1.e7
     set Use associated plasticity = true
 
+    set Use second moment invariant = true
+    set Use full strain rate = true
   end 
 end 
 
@@ -103,10 +110,11 @@ end
 # postprocessing step.
 subsection Mesh refinement
   set Initial adaptive refinement        = 2
-  set Initial global refinement          = 3
-  set Refinement fraction                = 1.0
+  set Initial global refinement          = 2
+  set Refinement fraction                = 0.5
   set Coarsening fraction                = 0.0
-  set Strategy                           = strain rate # viscosity # velocity
+  set Strategy                           = strain rate  #strain rate # viscosity # velocity
+  set  Time steps between mesh refinement =1
   set Run postprocessors on initial refinement            = true
 end
 

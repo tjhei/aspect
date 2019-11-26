@@ -1,0 +1,36 @@
+include base.prm
+
+set Nonlinear solver tolerance             = 1e-5
+
+set Dimension                              = 2
+
+set Output directory                       = output_implicit
+
+set Pressure normalization = no
+
+subsection Material model
+  subsection Visco Plastic
+#    set Compressible = true
+    set Use second moment invariant = true
+    set Use full strain rate = true
+  end 
+end 
+
+subsection Formulation
+  set Enable prescribed compression = true
+end
+
+
+subsection Postprocess
+  set List of postprocessors = visualization, depth average
+  subsection Visualization
+    set List of output variables = viscosity, strain rate, stress, strain rate tensor, named additional outputs,  gravity, density, averaged strain rate
+    set Time between graphical output = 0
+  end
+
+  subsection Depth average
+    set Time between graphical output = 0
+  end
+
+  set Run postprocessors on nonlinear iterations = true
+end
