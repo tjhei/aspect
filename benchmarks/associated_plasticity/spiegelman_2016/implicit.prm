@@ -1,13 +1,17 @@
 include base.prm
 
 set Dimension                              = 2
+set Nonlinear solver tolerance             = 1e-5
 
 set Output directory                       = output_implicit
 
 subsection Material model
+  set Material averaging = harmonic average
   subsection Visco Plastic
-    set Compressible              = true
+    #set Compressible              = true
     set Use associated plasticity = true
+    set Use second moment invariant = true
+    set Use full strain rate = true
   end 
 end 
 

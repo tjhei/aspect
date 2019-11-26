@@ -6,8 +6,10 @@ set Output directory                       = output_disabled
 
 subsection Material model
   subsection Visco Plastic
-    set Compressible              = false
+    #set Compressible              = false
     set Use associated plasticity = false
+    set Use second moment invariant = true
+    set Use full strain rate = true
   end 
 end 
 

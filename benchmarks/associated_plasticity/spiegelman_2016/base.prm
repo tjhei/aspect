@@ -1,20 +1,33 @@
 ############### Global parameters
 set Dimension                              = 2
 set Start time                             = 0
-set End time                               = 10e3
+set End time                               = 0
 set Use years in output instead of seconds = true
 set CFL number                             = 0.1
 set Maximum time step                      = 1e3 
 set Nonlinear solver tolerance             = 1e-5
 set Output directory                       = output_base
-set Nonlinear solver scheme                = single Advection, iterated Stokes
+set Nonlinear solver scheme                = single Advection, iterated Newton Stokes
 set Max nonlinear iterations               = 150
+set Pressure normalization                 = no
 
 ############### Parameters describing the solvers
 subsection Solver parameters
   subsection Stokes solver parameters
     set Linear solver tolerance             = 1e-9
     set Number of cheap Stokes solver steps = 0
+  end
+  subsection Newton solver parameters
+    set Max Newton line search iterations        = 5
+    set Max pre-Newton nonlinear iterations      = 300
+    set Maximum linear Stokes solver tolerance   = 0.9
+    set Nonlinear Newton solver switch tolerance = 1e-5
+    set SPD safety factor                        = 0.9
+    set Stabilization preconditioner             = SPD
+    set Stabilization velocity block             = SPD
+    set Use Newton failsafe                      = false
+    set Use Newton residual scaling method       = true
+    set Use Eisenstat Walker method for Picard iterations = true
   end
 end
 
@@ -32,7 +45,7 @@ end
 ############### Parameters describing the discretization
 subsection Mesh refinement
   set Initial adaptive refinement              = 0
-  set Initial global refinement                = 3
+  set Initial global refinement                = 5
   set Refinement fraction                      = 1.0
   set Coarsening fraction                      = 0.0
   set Strategy                                 = strain rate 
@@ -45,7 +58,7 @@ subsection Material model
   set Model name = visco plastic
   subsection Visco Plastic
 
-    set Compressible = false
+    #set Compressible = false
     set Use second moment invariant = true
     set Use full strain rate = true
 
@@ -158,9 +171,9 @@ end
 subsection Postprocess
   set List of postprocessors = visualization
   subsection Visualization
-    set List of output variables = viscosity, strain rate, named additional outputs
+    set List of output variables = viscosity, strain rate, stress, strain rate tensor, named additional outputs, gravity, density, averaged strain rate
     set Time between graphical output = 0
   end
-  set Run postprocessors on nonlinear iterations = false
+  set Run postprocessors on nonlinear iterations = true
 end
 

@@ -6,8 +6,10 @@ set Output directory                       = output_implicit
 
 subsection Material model
   subsection Visco Plastic
-    set Compressible              = true
+    #set Compressible              = true
     set Use associated plasticity = true
+    set Use second moment invariant = true
+    set Use full strain rate = true
   end 
 end 
 

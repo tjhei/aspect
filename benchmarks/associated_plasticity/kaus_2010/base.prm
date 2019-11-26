@@ -1,9 +1,9 @@
 #  Global parameters
 set Dimension                              = 2
 set Start time                             = 0
-set End time                               = 10e3
+set End time                               = 0
 set Use years in output instead of seconds = true
-set Nonlinear solver scheme                = single Advection, iterated Stokes
+set Nonlinear solver scheme                = single Advection, iterated Newton Stokes
 set Nonlinear solver tolerance             = 1e-5
 set Max nonlinear iterations               = 150
 set CFL number                             = 0.1
@@ -17,6 +17,18 @@ subsection Solver parameters
   subsection Stokes solver parameters
     set Linear solver tolerance             = 1e-9
     set Number of cheap Stokes solver steps = 0
+  end
+  subsection Newton solver parameters
+    set Max Newton line search iterations        = 5
+    set Max pre-Newton nonlinear iterations      = 300
+    set Maximum linear Stokes solver tolerance   = 0.9
+    set Nonlinear Newton solver switch tolerance = 1e-5
+    set SPD safety factor                        = 0.9
+    set Stabilization preconditioner             = SPD
+    set Stabilization velocity block             = SPD
+    set Use Newton failsafe                      = false
+    set Use Newton residual scaling method       = true
+    set Use Eisenstat Walker method for Picard iterations = false
   end
 end
 
@@ -110,7 +122,7 @@ subsection Material model
   set Model name = visco plastic
   subsection Visco Plastic
 
-    set Compressible = false
+    #set Compressible = false
     set Use second moment invariant = true
     set Use full strain rate = true
 
@@ -153,19 +165,12 @@ end
 
 # Post processing
 subsection Postprocess
-  set List of postprocessors = basic statistics, composition statistics, temperature statistics, velocity statistics, visualization
-
+  set List of postprocessors = visualization
   subsection Visualization
-    set List of output variables = material properties, strain rate
-
-    subsection Material properties
-      set List of material properties = density, viscosity
-    end
-
+    set List of output variables = viscosity, strain rate, stress, strain rate tensor, named additional outputs, gravity, density, averaged strain rate
     set Time between graphical output = 0e3
-    set Interpolate output = true
   end
-
+  set Run postprocessors on nonlinear iterations = true
 end
 
 # Termination criteria
