@@ -545,7 +545,7 @@ namespace aspect
                   for (unsigned int j=0; j < volume_fractions.size(); ++j)
                     {
                       const std::array<double, 3> weakened_values = strain_rheology.compute_strain_weakening_factors(j, in.composition[i]);
-                      phi += volume_fractions[j] * weakened_values[1];
+                      phi += volume_fractions[j] * drucker_prager_parameters.angles_internal_friction[j] * weakened_values[1];
                     }
                   dilation_rate = 2. * std::sin(phi) * edot_ii;
                 }
