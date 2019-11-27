@@ -249,6 +249,10 @@ namespace aspect
           virtual
           std::pair<std::string, Vector<float> *>
           execute () const = 0;
+
+          virtual
+          std::list<std::pair<std::string, Vector<float> *>>
+          execute2 () const;
       };
     }
 

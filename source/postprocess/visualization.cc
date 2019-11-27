@@ -160,6 +160,16 @@ namespace aspect
 
 
       template <int dim>
+      std::list<std::pair<std::string, Vector<float> *>>
+      CellDataVectorCreator<dim>::execute2 () const
+      {
+        std::list<std::pair<std::string, Vector<float> *>> return_value;
+        return_value.push_back(this->execute());
+        return return_value;
+      }
+
+
+      template <int dim>
       Interface<dim>::~Interface ()
       {}
 
@@ -602,8 +612,16 @@ namespace aspect
                          (& **p))
                 {
                   // get the data produced here
+
+                  const std::list<std::pair<std::string, Vector<float> *>> values
+                      = cell_data_creator->execute2();
+
+                  for (const auto & item : values)
+                    {
+
                   const std::pair<std::string, Vector<float> *>
-                  cell_data = cell_data_creator->execute();
+                  cell_data = item;
+
                   Assert (cell_data.second->size() ==
                           this->get_triangulation().n_active_cells(),
                           ExcMessage ("Cell data visualization postprocessors must generate "
@@ -617,6 +635,7 @@ namespace aspect
                   data_out.add_data_vector (*cell_data.second,
                                             cell_data.first,
                                             DataOut<dim>::type_cell_data);
+                    }
                 }
               else
                 // A viz postprocessor not derived from either DataPostprocessor
@@ -1301,7 +1320,8 @@ namespace aspect
     namespace VisualizationPostprocessors
     {
 #define INSTANTIATE(dim) \
-  template class Interface<dim>;
+  template class Interface<dim>; \
+  template class CellDataVectorCreator<dim>;
 
       ASPECT_INSTANTIATE(INSTANTIATE)
     }

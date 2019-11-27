@@ -35,16 +35,23 @@ namespace aspect
       AveragedStrainRate<dim>::AveragedStrainRate()
       {}
 
-
       template <int dim>
       std::pair<std::string, Vector<float> *>
       AveragedStrainRate<dim>::execute() const
       {
+        return std::make_pair(std::string("bla"), nullptr);
+      }
+
+      template <int dim>
+      std::pair<std::string, Vector<float> *>
+      AveragedStrainRate<dim>::      compute (const unsigned int quadrature_degree, const bool compressible, const std::string &name) const
+      {
         std::pair<std::string, Vector<float> *>
-        return_value ("avg_strain_rate",
+        return_value (name,
                       new Vector<float>(this->get_triangulation().n_active_cells()));
 
-        const QMidpoint<dim> quadrature_formula;
+        const QMidpoint<1> quadrature_formula_mp;
+        const QIterated<dim> quadrature_formula(quadrature_formula_mp, quadrature_degree);
         const unsigned int n_q_points = quadrature_formula.size(); // this is 1 for QMidpoint
 
         FEValues<dim> fe_values(this->get_mapping(), this->get_fe(),
@@ -97,11 +104,25 @@ namespace aspect
 
                   }
 
-                (*return_value.second)(cell->active_cell_index()) = incompressible_strain_rate_value/area;
+                (*return_value.second)(cell->active_cell_index()) = (compressible?compressible_strain_rate_value:incompressible_strain_rate_value)/area;
               }
 
           }
 
+
+        return return_value;
+      }
+
+
+      template <int dim>
+      std::list<std::pair<std::string, Vector<float> *>>
+      AveragedStrainRate<dim>::      execute2 () const
+      {
+        std::list<std::pair<std::string, Vector<float> *>> return_value;
+        return_value.push_back(this->compute(1, true, "asr_compr_midp"));
+        return_value.push_back(this->compute(1, false, "asr_incompr_midp"));
+        return_value.push_back(this->compute(5, true, "asr_compr_avg"));
+        return_value.push_back(this->compute(5, false, "asr_incompr_avg"));
 
         return return_value;
       }

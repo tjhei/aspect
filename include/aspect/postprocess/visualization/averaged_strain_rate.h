@@ -52,6 +52,13 @@ namespace aspect
           std::pair<std::string, Vector<float> *>
           execute () const;
 
+          virtual
+          std::list<std::pair<std::string, Vector<float> *>>
+          execute2 () const;
+
+      private:
+          std::pair<std::string, Vector<float> *>
+          compute (const unsigned int quadrature_degree, const bool compressible, const std::string &name) const;
       };
     }
   }
