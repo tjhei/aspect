@@ -103,7 +103,13 @@ namespace aspect
     ViscoPlastic<dim>::
     second_moment_invariant(const SymmetricTensor<2,dim> &sr) const
     {
-      return (0.5*(sr[0][0]*sr[0][0]+sr[1][1]*sr[1][1]) + sr[0][1]*sr[0][1]);
+      double edot_ii = (dim == 3
+                        ?
+                        (0.5*(sr[0][0]*sr[0][0]+sr[1][1]*sr[1][1]+sr[2][2]*sr[2][2]) 
+                         + sr[0][1]*sr[0][1] + sr[0][2]*sr[0][2] + sr[1][2]*sr[1][2])
+                        :
+                        (0.5*(sr[0][0]*sr[0][0]+sr[1][1]*sr[1][1]) + sr[0][1]*sr[0][1]) );
+      return edot_ii;
     }
 
     template <int dim>
