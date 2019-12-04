@@ -1,6 +1,6 @@
 include base.prm
 
-set Nonlinear solver tolerance             = 1e-5
+set Nonlinear solver tolerance             = 2e-5
 
 set Dimension                              = 2
 
@@ -22,7 +22,7 @@ end
 
 
 subsection Postprocess
-  set List of postprocessors = visualization, depth average
+  set List of postprocessors = visualization, depth average, cell values
   subsection Visualization
     set List of output variables = viscosity, strain rate, stress, strain rate tensor, named additional outputs,  gravity, density, averaged strain rate
     set Time between graphical output = 0
