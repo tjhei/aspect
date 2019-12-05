@@ -1,9 +1,9 @@
-#  Global parameters
+#  Globa parameters
 set Dimension                              = 2
 set Start time                             = 0
 set End time                               = 0
 set Use years in output instead of seconds = true
-set Nonlinear solver scheme                = single Advection, iterated Newton Stokes
+set Nonlinear solver scheme                = single Advection, iterated Stokes
 set Nonlinear solver tolerance             = 1e-5
 set Max nonlinear iterations               = 150
 set CFL number                             = 0.1
@@ -17,18 +17,6 @@ subsection Solver parameters
   subsection Stokes solver parameters
     set Linear solver tolerance             = 1e-9
     set Number of cheap Stokes solver steps = 0
-  end
-  subsection Newton solver parameters
-    set Max Newton line search iterations        = 5
-    set Max pre-Newton nonlinear iterations      = 300
-    set Maximum linear Stokes solver tolerance   = 0.9
-    set Nonlinear Newton solver switch tolerance = 1e-5
-    set SPD safety factor                        = 0.9
-    set Stabilization preconditioner             = SPD
-    set Stabilization velocity block             = SPD
-    set Use Newton failsafe                      = false
-    set Use Newton residual scaling method       = true
-    set Use Eisenstat Walker method for Picard iterations = false
   end
 end
 
@@ -59,14 +47,14 @@ subsection Discretization
 end
 
 # Velocity boundary conditions
-# The imposed velocity produces a background strain-rate of 2e-15.
+# The imposed velocity produces a background strain-rate of 1e-15.
 subsection Boundary velocity model
   set Tangential velocity boundary indicators = bottom
   set Prescribed velocity boundary indicators = left x: function, right x:function
   subsection Function
     set Variable names      = x,y
-    set Function constants  = cm=0.01, year=1, vel=0.12616
-    set Function expression = if (x<20e3 , -vel*cm/year, vel*cm/year); 0;
+    set Function constants  = vel=0.000631138519
+    set Function expression = if (x<20e3 , -vel, vel); 0;
   end
 end
 
@@ -150,7 +138,7 @@ subsection Material model
 
     set Yield mechanism = drucker
     set Angles of internal friction =    30., 0
-    set Cohesions                   =    1e7, 1e20
+    set Cohesions                   =    4e7, 1e20
 
     set Use associated plasticity = false
 

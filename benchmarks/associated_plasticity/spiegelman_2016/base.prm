@@ -7,7 +7,7 @@ set CFL number                             = 0.1
 set Maximum time step                      = 1e3 
 set Nonlinear solver tolerance             = 1e-5
 set Output directory                       = output_base
-set Nonlinear solver scheme                = single Advection, iterated Newton Stokes
+set Nonlinear solver scheme                = single Advection, iterated Stokes
 set Max nonlinear iterations               = 150
 set Pressure normalization                 = no
 
@@ -16,18 +16,6 @@ subsection Solver parameters
   subsection Stokes solver parameters
     set Linear solver tolerance             = 1e-9
     set Number of cheap Stokes solver steps = 0
-  end
-  subsection Newton solver parameters
-    set Max Newton line search iterations        = 5
-    set Max pre-Newton nonlinear iterations      = 300
-    set Maximum linear Stokes solver tolerance   = 0.9
-    set Nonlinear Newton solver switch tolerance = 1e-5
-    set SPD safety factor                        = 0.9
-    set Stabilization preconditioner             = SPD
-    set Stabilization velocity block             = SPD
-    set Use Newton failsafe                      = false
-    set Use Newton residual scaling method       = true
-    set Use Eisenstat Walker method for Picard iterations = true
   end
 end
 
