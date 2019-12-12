@@ -116,12 +116,12 @@ namespace aspect
 
       template <int dim>
       std::list<std::pair<std::string, Vector<float> *>>
-      AveragedStrainRate<dim>::      execute2 () const
+                                                      AveragedStrainRate<dim>::      execute2 () const
       {
         std::list<std::pair<std::string, Vector<float> *>> return_value;
-        return_value.push_back(this->compute(1, true, "asr_compr_midp"));
+        return_value.push_back(this->compute(1, true, "asr_dev_midp"));
         return_value.push_back(this->compute(1, false, "asr_incompr_midp"));
-        return_value.push_back(this->compute(5, true, "asr_compr_avg"));
+        return_value.push_back(this->compute(5, true, "asr_dev_avg"));
         return_value.push_back(this->compute(5, false, "asr_incompr_avg"));
 
         return return_value;

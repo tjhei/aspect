@@ -161,7 +161,7 @@ namespace aspect
 
       template <int dim>
       std::list<std::pair<std::string, Vector<float> *>>
-      CellDataVectorCreator<dim>::execute2 () const
+                                                      CellDataVectorCreator<dim>::execute2 () const
       {
         std::list<std::pair<std::string, Vector<float> *>> return_value;
         return_value.push_back(this->execute());
@@ -614,27 +614,27 @@ namespace aspect
                   // get the data produced here
 
                   const std::list<std::pair<std::string, Vector<float> *>> values
-                      = cell_data_creator->execute2();
+                                                                        = cell_data_creator->execute2();
 
-                  for (const auto & item : values)
+                  for (const auto &item : values)
                     {
 
-                  const std::pair<std::string, Vector<float> *>
-                  cell_data = item;
+                      const std::pair<std::string, Vector<float> *>
+                      cell_data = item;
 
-                  Assert (cell_data.second->size() ==
-                          this->get_triangulation().n_active_cells(),
-                          ExcMessage ("Cell data visualization postprocessors must generate "
-                                      "vectors that have as many entries as there are active cells "
-                                      "on the current processor."));
+                      Assert (cell_data.second->size() ==
+                              this->get_triangulation().n_active_cells(),
+                              ExcMessage ("Cell data visualization postprocessors must generate "
+                                          "vectors that have as many entries as there are active cells "
+                                          "on the current processor."));
 
-                  // store the pointer, then attach the vector to the DataOut object
-                  cell_data_vectors.push_back (std::unique_ptr<Vector<float> >
-                                               (cell_data.second));
+                      // store the pointer, then attach the vector to the DataOut object
+                      cell_data_vectors.push_back (std::unique_ptr<Vector<float> >
+                                                   (cell_data.second));
 
-                  data_out.add_data_vector (*cell_data.second,
-                                            cell_data.first,
-                                            DataOut<dim>::type_cell_data);
+                      data_out.add_data_vector (*cell_data.second,
+                                                cell_data.first,
+                                                DataOut<dim>::type_cell_data);
                     }
                 }
               else
