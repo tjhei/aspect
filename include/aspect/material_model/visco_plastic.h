@@ -171,6 +171,8 @@ namespace aspect
 
       private:
 
+        bool compressible;
+
         double reference_T;
 
         double min_strain_rate;

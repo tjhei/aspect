@@ -583,8 +583,7 @@ namespace aspect
     ViscoPlastic<dim>::
     is_compressible () const
     {
-      return true;
-      //return equation_of_state.is_compressible();
+      return compressible;
     }
 
     template <int dim>
@@ -653,7 +652,8 @@ namespace aspect
                             "If true, replace the deviatoric strain rate with the full strain rate when "
                             "strain rate invariants are calculated");
 
-
+          prm.declare_entry("Compressible", "true", Patterns::Bool(),
+                            "If true, use a compressible formulation.");
 
           prm.declare_entry ("Use associated plasticity", "false",
                              Patterns::Bool (),
@@ -747,6 +747,7 @@ namespace aspect
 
           use_second_moment_invariant = prm.get_bool("Use second moment invariant");
           use_full_strain_rate = prm.get_bool("Use full strain rate");
+          compressible = prm.get_bool("Compressible");
 
           viscosity_averaging = MaterialUtilities::parse_compositional_averaging_operation ("Viscosity averaging scheme",
                                 prm);
