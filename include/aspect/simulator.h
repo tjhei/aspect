@@ -1455,7 +1455,7 @@ namespace aspect
        * This function is implemented in
        * <code>source/simulator/helper_functions.cc</code>.
        */
-      void maybe_refine_mesh (const double new_time_step,
+      void maybe_refine_mesh (double &new_time_step,
                               unsigned int &max_refinement_level);
 
       /**
@@ -1469,6 +1469,15 @@ namespace aspect
        * <code>source/simulator/helper_functions.cc</code>.
        */
       double compute_time_step () const;
+
+      /**
+       * Advance the current time by the given @p step_size and update the
+       * solution vectors as needed.
+       *
+       * This function is implemented in
+       * <code>source/simulator/helper_functions.cc</code>.
+       */
+      void advance_time (const double step_size);
 
       /**
        * Compute the artificial diffusion coefficient value on a cell given

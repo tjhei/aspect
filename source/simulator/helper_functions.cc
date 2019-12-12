@@ -395,9 +395,10 @@ namespace aspect
 
 
   template <int dim>
-  void Simulator<dim>::maybe_refine_mesh (const double new_time_step,
+  void Simulator<dim>::maybe_refine_mesh (double &new_time_step,
                                           unsigned int &max_refinement_level)
   {
+    pcout << "maybe_refine_mesh(): start" << std::endl;
     /*
      * see if this is an additional refinement cycle. An additional refinement
      * cycle differs from a regular, because the maximal refinement level allowed
@@ -429,8 +430,21 @@ namespace aspect
              (timestep_number == 0 && parameters.adaptive_refinement_interval == 1)
             )
       {
+        pcout << "maybe_refine_mesh(): refine" << std::endl;
         refine_mesh (max_refinement_level);
       }
+    else
+      {
+        // TODO: always check?
+        //mesh_refinement_manager.tag_additional_cells ();
+      }
+
+    if (mesh_refinement_manager.should_repeat_time_step())
+      {
+        pcout << "maybe_refine_mesh(): repeat time step" << std::endl;
+        new_time_step = 0.0;
+      }
+
   }
 
 
@@ -493,6 +507,32 @@ namespace aspect
           rebuild_stokes_preconditioner = true;
       }
     return write_checkpoint;
+  }
+
+
+
+  template <int dim>
+  void Simulator<dim>::advance_time (const double step_size)
+  {
+    old_time_step = time_step;
+    time_step = step_size;
+    time += time_step;
+    ++timestep_number;
+
+    // prepare for the next time step by shifting solution vectors
+    // by one time step. In timestep 0 (just increased in the
+    // line above) initialize both old_solution
+    // and old_old_solution with the currently computed solution.
+    if (timestep_number == 1)
+      {
+        old_old_solution      = solution;
+        old_solution          = solution;
+      }
+    else
+      {
+        old_old_solution      = old_solution;
+        old_solution          = solution;
+      }
   }
 
 
@@ -2371,8 +2411,9 @@ namespace aspect
   template void Simulator<dim>::maybe_write_timing_output () const; \
   template bool Simulator<dim>::maybe_write_checkpoint (const time_t last_checkpoint_time, const std::pair<bool,bool> termination_output); \
   template bool Simulator<dim>::maybe_do_initial_refinement (const unsigned int max_refinement_level); \
-  template void Simulator<dim>::maybe_refine_mesh (const double new_time_step, unsigned int &max_refinement_level); \
+  template void Simulator<dim>::maybe_refine_mesh (double &new_time_step, unsigned int &max_refinement_level); \
   template double Simulator<dim>::compute_time_step () const; \
+  template void Simulator<dim>::advance_time (const double step_size); \
   template void Simulator<dim>::make_pressure_rhs_compatible(LinearAlgebra::BlockVector &vector); \
   template void Simulator<dim>::output_statistics(); \
   template void Simulator<dim>::write_plugin_graph(std::ostream &) const; \

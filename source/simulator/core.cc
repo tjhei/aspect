@@ -1543,18 +1543,21 @@ namespace aspect
       Vector<float> estimated_error_per_cell (triangulation.n_active_cells());
       mesh_refinement_manager.execute (estimated_error_per_cell);
 
-      if (parameters.adapt_by_fraction_of_cells)
-        parallel::distributed::GridRefinement::
-        refine_and_coarsen_fixed_number   (triangulation,
-                                           estimated_error_per_cell,
-                                           parameters.refinement_fraction,
-                                           parameters.coarsening_fraction);
-      else
-        parallel::distributed::GridRefinement::
-        refine_and_coarsen_fixed_fraction (triangulation,
-                                           estimated_error_per_cell,
-                                           parameters.refinement_fraction,
-                                           parameters.coarsening_fraction);
+      if (Utilities::MPI::sum(estimated_error_per_cell.l2_norm(), mpi_communicator) >0.0)
+        {
+          if (parameters.adapt_by_fraction_of_cells)
+            parallel::distributed::GridRefinement::
+            refine_and_coarsen_fixed_number   (triangulation,
+                                               estimated_error_per_cell,
+                                               parameters.refinement_fraction,
+                                               parameters.coarsening_fraction);
+          else
+            parallel::distributed::GridRefinement::
+            refine_and_coarsen_fixed_fraction (triangulation,
+                                               estimated_error_per_cell,
+                                               parameters.refinement_fraction,
+                                               parameters.coarsening_fraction);
+        }
 
       mesh_refinement_manager.tag_additional_cells ();
 
@@ -1907,33 +1910,21 @@ namespace aspect
           postprocess ();
 
         // get new time step size
-        const double new_time_step = compute_time_step();
+        double new_time_step = compute_time_step();
 
         // see if we want to refine the mesh
-        maybe_refine_mesh(new_time_step,max_refinement_level);
+        maybe_refine_mesh(new_time_step, max_refinement_level);
 
         // see if we want to write a timing summary
         maybe_write_timing_output();
 
         // update values for timestep, increment time step by one.
-        old_time_step = time_step;
-        time_step = new_time_step;
-        time += time_step;
-        ++timestep_number;
-
-        // prepare for the next time step by shifting solution vectors
-        // by one time step. In timestep 0 (just increased in the
-        // line above) initialize both old_solution
-        // and old_old_solution with the currently computed solution.
-        if (timestep_number == 1)
-          {
-            old_old_solution      = solution;
-            old_solution          = solution;
-          }
+        if (new_time_step>0.0)
+          advance_time(new_time_step);
         else
           {
-            old_old_solution      = old_solution;
-            old_solution          = solution;
+            pcout << "Note: Repeating time step because of refinement plugin request." << std::endl;
+            continue;
           }
 
         // check whether to terminate the simulation. the

@@ -56,10 +56,21 @@ namespace aspect
     }
 
 
+
     template <int dim>
     void
     Interface<dim>::tag_additional_cells () const
     {}
+
+
+
+    template <int dim>
+    bool
+    Interface<dim>::should_repeat_time_step () const
+    {
+      return false;
+    }
+
 
 
     template <int dim>
@@ -322,6 +333,20 @@ namespace aspect
     }
 
 
+    template <int dim>
+    bool
+    Manager<dim>::should_repeat_time_step () const
+    {
+      bool value = false;
+      for (typename std::list<std::unique_ptr<Interface<dim> > >::const_iterator
+           p = mesh_refinement_objects.begin();
+           p != mesh_refinement_objects.end(); ++p)
+        {
+          value = value || (*p)->should_repeat_time_step ();
+        }
+      // does at least one processor want to repeat?
+      return dealii::Utilities::MPI::max(value?1:0, this->get_mpi_communicator())==1;
+    }
 
 
 

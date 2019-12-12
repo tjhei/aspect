@@ -129,6 +129,13 @@ namespace aspect
         tag_additional_cells () const;
 
         /**
+         * Allow the plugin to request repeating a time step if return @p true.
+         */
+        virtual
+        bool
+        should_repeat_time_step() const;
+
+        /**
          * Declare the parameters this class takes through input files.
          * Derived classes should overload this function if they actually do
          * take parameters; this class declares a fall-back function that does
@@ -205,6 +212,13 @@ namespace aspect
         virtual
         void
         tag_additional_cells () const;
+
+        /**
+         *
+         */
+        virtual
+        bool
+        should_repeat_time_step () const;
 
         /**
          * Declare the parameters of all known mesh refinement plugins, as
