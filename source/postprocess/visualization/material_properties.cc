@@ -105,6 +105,16 @@ namespace aspect
                                                      this->n_compositional_fields());
 
         this->get_material_model().evaluate(in, out);
+        if (this->get_parameters().material_averaging!=MaterialModel::MaterialAveraging::none)
+          {
+            Quadrature<dim> quadrature(input_data.evaluation_points);
+            auto cell = input_data.template get_cell<DoFHandler<dim> >();
+            MaterialModel::MaterialAveraging::average (this->get_parameters().material_averaging,
+                                                       cell,
+                                                       quadrature,
+                                                       this->get_mapping(),
+                                                       out);
+          }
 
         std::vector<double> melt_fractions(n_quadrature_points);
         if (std::find(property_names.begin(), property_names.end(), "melt fraction") != property_names.end())
