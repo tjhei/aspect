@@ -756,7 +756,7 @@ namespace aspect
     typename MassPreconditioner::AdditionalData prec_S_data;
     prec_S_data.smoothing_range = 1e-3;
     prec_S_data.degree = numbers::invalid_unsigned_int;
-    prec_S_data.eig_cg_n_iterations = mass_matrix.m();
+    prec_S_data.eig_cg_n_iterations = 100; /*mass_matrix.m();*/
     prec_S_data.preconditioner = mass_matrix.get_matrix_diagonal_inverse();
     prec_S.initialize(mass_matrix,prec_S_data);
 
@@ -971,7 +971,7 @@ namespace aspect
     PrimitiveVectorMemory<dealii::LinearAlgebra::distributed::BlockVector<double> > mem;
 
     sim.stokes_timer.enter_subsection("gmres_solve");
-    sim.pcout << solution_copy.l2_norm() << std::endl;
+    //sim.pcout << solution_copy.l2_norm() << std::endl;
     try
       {
         SolverFGMRES<dealii::LinearAlgebra::distributed::BlockVector<double> >
