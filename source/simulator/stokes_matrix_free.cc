@@ -321,9 +321,6 @@ namespace aspect
                              dst.block(1), src.block(1),
                              mp_preconditioner);
                 n_iterations_S_ += solver_control.last_step();
-
-                if (Utilities::MPI::this_mpi_process(src.block(0).get_mpi_communicator()) == 0)
-                std::cout << solver_control.last_step() << std::endl;
               }
             // if the solver fails, report the error from processor 0 with some additional
             // information about its location, and throw a quiet exception on all other
