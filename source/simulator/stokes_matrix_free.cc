@@ -602,7 +602,6 @@ namespace aspect
     sim.current_constraints.distribute(u0);
     u0.update_ghost_values();
 
-    const Table<1, VectorizedArray<double>> viscosity_table = stokes_matrix.get_visc_table();
     FEEvaluation<dim,2,3,dim,double>
     velocity (*stokes_matrix.get_matrix_free(), 0);
     FEEvaluation<dim,1,3,1,double>
@@ -610,6 +609,9 @@ namespace aspect
 
     for (unsigned int cell=0; cell<stokes_matrix.get_matrix_free()->n_macro_cells(); ++cell)
       {
+        const VectorizedArray<double> &cell_viscosity_x_2
+            = stokes_matrix.get_viscosity_x_2_table()(cell);
+
         velocity.reinit (cell);
         velocity.read_dof_values_plain (u0.block(0));
         velocity.evaluate (false,true,false);
@@ -625,7 +627,7 @@ namespace aspect
             VectorizedArray<double> div = -trace(sym_grad_u);
             pressure.submit_value   (-1.0*sim.pressure_scaling*div, q);
 
-            sym_grad_u *= viscosity_table(cell);
+            sym_grad_u *= cell_viscosity_x_2;
 
             for (unsigned int d=0; d<dim; ++d)
               sym_grad_u[d][d] -= sim.pressure_scaling*pres;
