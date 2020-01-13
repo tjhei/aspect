@@ -321,6 +321,9 @@ namespace aspect
                              dst.block(1), src.block(1),
                              mp_preconditioner);
                 n_iterations_S_ += solver_control.last_step();
+
+                if (Utilities::MPI::this_mpi_process(src.block(0).get_mpi_communicator()) == 0)
+                std::cout << solver_control.last_step() << std::endl;
               }
             // if the solver fails, report the error from processor 0 with some additional
             // information about its location, and throw a quiet exception on all other
@@ -754,8 +757,8 @@ namespace aspect
     typedef PreconditionChebyshev<MassMatrixType,vector_t> MassPreconditioner;
     MassPreconditioner prec_S;
     typename MassPreconditioner::AdditionalData prec_S_data;
-    prec_S_data.smoothing_range = 40; /*1e-3;*/
-    prec_S_data.degree = 6; /*numbers::invalid_unsigned_int;*/
+    prec_S_data.smoothing_range = 15; /*1e-3;*/
+    prec_S_data.degree = 4; /*numbers::invalid_unsigned_int;*/
     prec_S_data.eig_cg_n_iterations = 100; /*mass_matrix.m();*/
     prec_S_data.preconditioner = mass_matrix.get_matrix_diagonal_inverse();
     prec_S.initialize(mass_matrix,prec_S_data);
