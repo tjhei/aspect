@@ -610,7 +610,7 @@ namespace aspect
     for (unsigned int cell=0; cell<stokes_matrix.get_matrix_free()->n_macro_cells(); ++cell)
       {
         const VectorizedArray<double> &cell_viscosity_x_2
-            = stokes_matrix.get_viscosity_x_2_table()(cell);
+            = stokes_matrix.get_visc_table()(cell);
 
         velocity.reinit (cell);
         velocity.read_dof_values_plain (u0.block(0));
