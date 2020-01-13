@@ -8,7 +8,7 @@
 set Additional shared libraries            = ./libnsinker.so
 
 set Number of timings = 5
-#set Timing output directory = timings/
+set Timing output directory = timings/
 
 set Dimension                              = 3 
 set End time                               = 0
@@ -21,9 +21,8 @@ set Use years in output instead of seconds = false
 subsection Solver parameters
   subsection Stokes solver parameters
     set Stokes solver type = block AMG
-    set Use full A block as preconditioner              = false 
     set Number of cheap Stokes solver steps             = 200
-    set Maximum number of expensive Stokes solver steps = 100
+    set Maximum number of expensive Stokes solver steps = 0
     set Linear solver tolerance                         = 1e-6
     set GMRES solver restart length                     = 100
   end
@@ -53,10 +52,10 @@ end
 
 subsection Material model
   set Model name = nsinker
-  set Material averaging = harmonic average 
+  set Material averaging = harmonic average
 
   subsection NSinker
-    set Number of sinkers = 4 
+    set Number of sinkers = 4
     set Dynamic viscosity ratio = 1e4
   end
 end
