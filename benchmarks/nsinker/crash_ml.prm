@@ -63,7 +63,7 @@ subsection Material model
     set Number of sinkers = 4
     set Dynamic viscosity ratio = 1e4
   end
-
+end
 
 subsection Gravity model
   set Model name = vertical
