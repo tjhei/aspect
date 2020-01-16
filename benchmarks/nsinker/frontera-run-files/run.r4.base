@@ -7,19 +7,7 @@
 #SBATCH -n &TASKS&              # Total # of mpi tasks (56 cores/node)
 #SBATCH -t 06:00:00        # Run time (hh:mm:ss)
 
-. $SCRATCH/enable3.sh
-
-echo "starting on `date` with n=$SLURM_NTASKS at `pwd`"
-
-echo nodelist is $SLURM_JOB_NODELIST
-echo node count is $SLURM_JOB_NUM_NODES
-
-export OMP_NUM_THREADS=1
-echo "OMP_NUM_THREADS=$OMP_NUM_THREADS"
-echo "DEAL_II_NUM_THREADS=$DEAL_II_NUM_THREADS"
-
-
-
+. ./setup-env.sh || exit 1
 
 echo "MatrixBased, 4 sinkers, 1e4 visc jump"
 TMPPRM=temp.prm.$SLURM_JOB_ID
