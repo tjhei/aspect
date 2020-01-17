@@ -999,6 +999,9 @@ namespace aspect
         if (sim.parameters.n_expensive_stokes_solver_steps<1)
           throw QuietException();
 
+        // use the value defined by the user
+        // OR
+        // at least a restart length of 100 for melt models
         const unsigned int number_of_temporary_vectors = (sim.parameters.include_melt_transport == false ?
                                                           sim.parameters.stokes_gmres_restart_length :
                                                           std::max(sim.parameters.stokes_gmres_restart_length, 100U));
