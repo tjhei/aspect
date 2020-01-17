@@ -993,6 +993,12 @@ namespace aspect
     // it in n_expensive_stokes_solver_steps steps or less.
     catch (const SolverControl::NoConvergence &)
       {
+
+        sim.pcout << "cheap solver did not converge..." << std::endl;
+
+        if (sim.parameters.n_expensive_stokes_solver_steps<1)
+          throw QuietException();
+
         const unsigned int number_of_temporary_vectors = (sim.parameters.include_melt_transport == false ?
                                                           sim.parameters.stokes_gmres_restart_length :
                                                           std::max(sim.parameters.stokes_gmres_restart_length, 100U));
