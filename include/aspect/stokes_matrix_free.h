@@ -152,7 +152,8 @@ namespace aspect
         void fill_cell_data (const dealii::LinearAlgebra::distributed::Vector<number> &viscosity_values,
                              const double pressure_scaling,
                              const Triangulation<dim> &tria,
-                             const DoFHandler<dim> &dof_handler_for_projection);
+                             const DoFHandler<dim> &dof_handler_for_projection,
+                             const bool for_mg);
 
 
         /**
@@ -297,7 +298,7 @@ namespace aspect
        * Solves the Stokes linear system matrix-free. This is called
        * by Simulator<dim>::solve_stokes().
        */
-      virtual std::pair<double,double> solve()=0;
+      virtual std::pair<double,double> solve(const unsigned int j=0)=0;
 
       /**
        * Allocates and sets up the members of the StokesMatrixFreeHandler. This
@@ -310,6 +311,12 @@ namespace aspect
        * actual solve().
        */
       virtual void build_preconditioner()=0;
+
+      /**
+       * Get the workload imbalance of the distribution
+       * of the level hierarchy.
+       */
+      virtual double get_workload_imbalance()=0;
 
       /**
        * Declare parameters.
@@ -349,7 +356,7 @@ namespace aspect
        * Solves the Stokes linear system matrix-free. This is called
        * by Simulator<dim>::solve_stokes().
        */
-      std::pair<double,double> solve() override;
+      std::pair<double,double> solve(const unsigned int j=0) override;
 
       /**
        * Allocates and sets up the members of the StokesMatrixFreeHandler. This
@@ -424,14 +431,17 @@ namespace aspect
       ConstraintMatrix constraints_p;
       ConstraintMatrix constraints_projection;
 
-      MGLevelObject<ABlockMatrixType> mg_matrices;
-      MGConstrainedDoFs mg_constrained_dofs;
+      MGLevelObject<ABlockMatrixType> mg_matrices_A;
+      MGLevelObject<MassMatrixType> mg_matrices_mass;
+      MGConstrainedDoFs mg_constrained_dofs_A;
+      MGConstrainedDoFs mg_constrained_dofs_mass;
       MGConstrainedDoFs mg_constrained_dofs_projection;
 
       dealii::LinearAlgebra::distributed::Vector<double> active_coef_dof_vec;
       MGLevelObject<dealii::LinearAlgebra::distributed::Vector<double> > level_coef_dof_vec;
 
-      MGTransferMatrixFree<dim,double> mg_transfer;
+      MGTransferMatrixFree<dim,double> mg_transfer_A;
+      MGTransferMatrixFree<dim,double> mg_transfer_mass;
   };
 }
 

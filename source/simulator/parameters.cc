@@ -48,6 +48,11 @@ namespace aspect
   Parameters<dim>::
   declare_parameters (ParameterHandler &prm)
   {
+    prm.declare_entry ("Number of timings","0",Patterns::Integer (0,20),
+                       "Number of times to run each function for timing purposes in sinker and inclusion.");
+    prm.declare_entry ("Timing output directory","timings-tmp/",Patterns::DirectoryName(),
+                       "Directory where timing information should be output.");
+
     prm.declare_entry ("Dimension", "2",
                        Patterns::Integer (2,3),
                        "The number of space dimensions you want to run this program in. "
@@ -448,6 +453,13 @@ namespace aspect
                            "in the preconditioning used in the GMRES solver. The exact definition of "
                            "this block preconditioner for the Stokes equation can be found in "
                            "\\cite{KHB12}.");
+
+        prm.declare_entry ("Krylov solver", "fgmres",
+                           Patterns::Selection ("gmres|fgmres|idr"),
+                           "Which Krylov solver for the cheap solve.");
+        prm.declare_entry ("IDR(s) s value", "2",
+                           Patterns::Integer (1),
+                           "Parameter s for IDR(s) solve");
       }
       prm.leave_subsection ();
       prm.enter_subsection ("AMG parameters");
@@ -1257,6 +1269,16 @@ namespace aspect
     AssertThrow (prm.get_integer("Dimension") == dim,
                  ExcInternalError());
 
+    n_timings  =  prm.get_integer("Number of timings");
+    timings_directory = prm.get("Timing output directory");
+    if (timings_directory.size() == 0)
+      timings_directory = "./";
+    else if (timings_directory[timings_directory.size()-1] != '/')
+      timings_directory += "/";
+    Utilities::create_directory (timings_directory,
+                                 mpi_communicator,
+                                 false);
+
     CFL_number              = prm.get_double ("CFL number");
     use_conduction_timestep = prm.get_bool ("Use conduction timestep");
     convert_to_years        = prm.get_bool ("Use years in output instead of seconds");
@@ -1323,6 +1345,9 @@ namespace aspect
         use_full_A_block_preconditioner = prm.get_bool ("Use full A block as preconditioner");
         linear_solver_S_block_tolerance = prm.get_double ("Linear solver S block tolerance");
         stokes_gmres_restart_length     = prm.get_integer("GMRES solver restart length");
+
+        krylov_solver = prm.get("Krylov solver");
+        idr_s_value = prm.get_integer("IDR(s) s value");
       }
       prm.leave_subsection ();
       prm.enter_subsection ("AMG parameters");

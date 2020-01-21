@@ -389,6 +389,9 @@ namespace aspect
      * @name Global parameters
      * @{
      */
+    unsigned int n_timings;
+    std::string timings_directory;
+
     typename NonlinearSolver::Kind nonlinear_solver;
 
     typename AdvectionStabilizationMethod::Kind advection_stabilization_method;
@@ -436,6 +439,9 @@ namespace aspect
     bool                           use_full_A_block_preconditioner;
     double                         linear_solver_S_block_tolerance;
     unsigned int                   stokes_gmres_restart_length;
+
+    std::string krylov_solver;
+    unsigned int idr_s_value;
 
     // subsection: AMG parameters
     std::string                    AMG_smoother_type;

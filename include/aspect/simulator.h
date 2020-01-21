@@ -69,6 +69,8 @@ DEAL_II_ENABLE_EXTRA_DIAGNOSTICS
 #include <aspect/adiabatic_conditions/interface.h>
 #include <aspect/particle/world.h>
 
+#include <aspect/timer_output.h>
+
 #include <boost/iostreams/tee.hpp>
 #include <boost/iostreams/stream.hpp>
 #include <memory>
@@ -398,7 +400,7 @@ namespace aspect
        * This function is implemented in
        * <code>source/simulator/core.cc</code>.
        */
-      void setup_dofs ();
+      void setup_dofs (unsigned int i=0);
 
       /**
        * This function initializes the variables of the introspection object.
@@ -815,7 +817,7 @@ namespace aspect
        * <code>source/simulator/solver.cc</code>.
        */
       std::pair<double,double>
-      solve_stokes ();
+      solve_stokes (const unsigned int j = 0);
 
       /**
        * Solve the Stokes system using a block preconditioner and GMG.
@@ -1910,6 +1912,9 @@ namespace aspect
       bool                                                      assemble_newton_stokes_matrix;
       bool                                                      assemble_newton_stokes_system;
       bool                                                      rebuild_stokes_preconditioner;
+
+      MyTimerOutput                                             stokes_timer;
+      mutable unsigned int gmres_iterations;
 
       /**
        * @}
