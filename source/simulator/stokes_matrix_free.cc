@@ -457,6 +457,7 @@ namespace aspect
                                      const MassMatrixType  &Mass,
                                      const PreconditionerMp                     &Mppreconditioner,
                                      const PreconditionerA                      &Apreconditioner,
+                                     const bool do_mass_solve,
                                      const bool                                  do_solve_A,
                                      const double                                A_block_tolerance,
                                      const double                                S_block_tolerance);
@@ -485,6 +486,7 @@ namespace aspect
          * Whether to actually invert the $\tilde A$ part of the preconditioner matrix
          * or to just apply a single preconditioner step with it.
          */
+        const bool do_mass_solve;
         const bool do_solve_A;
         mutable unsigned int n_iterations_A_;
         mutable unsigned int n_iterations_S_;
@@ -499,6 +501,7 @@ namespace aspect
                                  const MassMatrixType  &Mass,
                                  const PreconditionerMp                     &Mppreconditioner,
                                  const PreconditionerA                      &Apreconditioner,
+                                 const bool do_mass_solve,
                                  const bool                                  do_solve_A,
                                  const double                                A_block_tolerance,
                                  const double                                S_block_tolerance)
@@ -508,6 +511,7 @@ namespace aspect
       mass_matrix     (Mass),
       mp_preconditioner (Mppreconditioner),
       a_preconditioner  (Apreconditioner),
+      do_mass_solve (do_mass_solve),
       do_solve_A        (do_solve_A),
       n_iterations_A_(0),
       n_iterations_S_(0),
@@ -540,50 +544,54 @@ namespace aspect
       dealii::LinearAlgebra::distributed::BlockVector<double> utmp(src);
       dealii::LinearAlgebra::distributed::BlockVector<double> ptmp(src);
 
-      // first solve with the bottom left block, which we have built
-      // as a mass matrix with the inverse of the viscosity
-      {
-//        SolverControl solver_control(100, src.block(1).l2_norm() * S_block_tolerance,true);
+      if (do_mass_solve)
+        {
+          // first solve with the bottom left block, which we have built
+          // as a mass matrix with the inverse of the viscosity
+          SolverControl solver_control(100, src.block(1).l2_norm() * S_block_tolerance,true);
 
-//        SolverCG<dealii::LinearAlgebra::distributed::Vector<double> > solver(solver_control);
-//        // Trilinos reports a breakdown
-//        // in case src=dst=0, even
-//        // though it should return
-//        // convergence without
-//        // iterating. We simply skip
-//        // solving in this case.
-//        if (src.block(1).l2_norm() > 1e-50)
-//          {
-//            try
-//              {
-//                dst.block(1) = 0.0;
-//                solver.solve(mass_matrix,
-//                             dst.block(1), src.block(1),
-//                             mp_preconditioner);
-//                n_iterations_S_ += solver_control.last_step();
-//              }
-//            // if the solver fails, report the error from processor 0 with some additional
-//            // information about its location, and throw a quiet exception on all other
-//            // processors
-//            catch (const std::exception &exc)
-//              {
-//                if (Utilities::MPI::this_mpi_process(src.block(0).get_mpi_communicator()) == 0)
-//                  AssertThrow (false,
-//                               ExcMessage (std::string("The iterative (bottom right) solver in BlockSchurGMGPreconditioner::vmult "
-//                                                       "did not converge to a tolerance of "
-//                                                       + Utilities::to_string(solver_control.tolerance()) +
-//                                                       ". It reported the following error:\n\n")
-//                                           +
-//                                           exc.what()))
-//                  else
-//                    throw QuietException();
-//              }
-//          }
+          SolverCG<dealii::LinearAlgebra::distributed::Vector<double> > solver(solver_control);
+          // Trilinos reports a breakdown
+          // in case src=dst=0, even
+          // though it should return
+          // convergence without
+          // iterating. We simply skip
+          // solving in this case.
+          if (src.block(1).l2_norm() > 1e-50)
+            {
+              try
+                {
+                  dst.block(1) = 0.0;
+                  solver.solve(mass_matrix,
+                               dst.block(1), src.block(1),
+                               mp_preconditioner);
+                  n_iterations_S_ += solver_control.last_step();
+                }
+              // if the solver fails, report the error from processor 0 with some additional
+              // information about its location, and throw a quiet exception on all other
+              // processors
+              catch (const std::exception &exc)
+                {
+                  if (Utilities::MPI::this_mpi_process(src.block(0).get_mpi_communicator()) == 0)
+                    AssertThrow (false,
+                                 ExcMessage (std::string("The iterative (bottom right) solver in BlockSchurGMGPreconditioner::vmult "
+                                                         "did not converge to a tolerance of "
+                                                         + Utilities::to_string(solver_control.tolerance()) +
+                                                         ". It reported the following error:\n\n")
+                                             +
+                                             exc.what()))
+                    else
+                      throw QuietException();
+                }
+            }
+        }
+      else
+        {
+          mp_preconditioner.vmult(dst.block(1),src.block(1));
+          n_iterations_S_ += 1;
+        }
 
-        mp_preconditioner.vmult(dst.block(1),src.block(1));
-        n_iterations_S_ += 1;
-        dst.block(1) *= -1.0;
-      }
+      dst.block(1) *= -1.0;
 
       {
         ptmp = dst;
@@ -1711,10 +1719,13 @@ namespace aspect
     solver_control_cheap.enable_history_data();
     solver_control_expensive.enable_history_data();
 
+    const bool do_mass_solve = (sim.parameters.krylov_solver == "fgmres" ? true : false);
+
     // create a cheap preconditioner that consists of only a single V-cycle
     const internal::BlockSchurGMGPreconditioner<ABlockMatrixType, StokesMatrixType, MassMatrixType, MassPreconditioner, APreconditioner>
     preconditioner_cheap (stokes_matrix, velocity_matrix, mass_matrix,
                           prec_S, prec_A,
+                          do_mass_solve,
                           false,
                           sim.parameters.linear_solver_A_block_tolerance,
                           sim.parameters.linear_solver_S_block_tolerance);
@@ -1723,6 +1734,7 @@ namespace aspect
     const internal::BlockSchurGMGPreconditioner<ABlockMatrixType, StokesMatrixType, MassMatrixType, MassPreconditioner, APreconditioner>
     preconditioner_expensive (stokes_matrix, velocity_matrix, mass_matrix,
                               prec_S, prec_A,
+                              true,
                               true,
                               sim.parameters.linear_solver_A_block_tolerance,
                               sim.parameters.linear_solver_S_block_tolerance);
