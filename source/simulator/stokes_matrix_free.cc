@@ -1411,6 +1411,228 @@ namespace aspect
   }
 
 
+  template <int dim, int velocity_degree>
+  void
+  StokesMatrixFreeHandlerImplementation<dim, velocity_degree>::
+  rhs_test()
+  {
+    LinearAlgebra::BlockVector aspect_rhs(sim.introspection.index_sets.stokes_partitioning,
+                                          sim.mpi_communicator);
+
+    aspect_rhs.block(0) = sim.system_rhs.block(0);
+    aspect_rhs.block(1) = sim.system_rhs.block(1);
+
+    // Local Stokes DoFHandler/Constraints
+    DoFHandler<dim> dof_handler(sim.triangulation);
+    FESystem<dim> fe(FE_Q<dim>(sim.parameters.stokes_velocity_degree),dim,
+                     FE_Q<dim>(sim.parameters.stokes_velocity_degree-1),1);
+    AffineConstraints<double> constraints;
+
+    dof_handler.distribute_dofs(fe);
+
+    std::vector<unsigned int> stokes_sub_blocks(dim + 1, 0);
+    stokes_sub_blocks[dim] = 1;
+
+    DoFRenumbering::hierarchical(dof_handler);
+    DoFRenumbering::component_wise(dof_handler, stokes_sub_blocks);
+
+    std::vector<types::global_dof_index> dofs_per_block(2);
+    DoFTools::count_dofs_per_block(dof_handler,
+                                   dofs_per_block,
+                                   stokes_sub_blocks);
+
+    const types::global_dof_index n_u = dofs_per_block[0], n_p = dofs_per_block[1];
+
+    std::vector<IndexSet> owned_partitioning;
+    std::vector<IndexSet> relevant_partitioning;
+    owned_partitioning.resize(2);
+    owned_partitioning[0] = dof_handler.locally_owned_dofs().get_view(0, n_u);
+    owned_partitioning[1] =
+      dof_handler.locally_owned_dofs().get_view(n_u, n_u + n_p);
+    {
+      IndexSet locally_relevant_dofs;
+      DoFTools::extract_locally_relevant_dofs(dof_handler, locally_relevant_dofs);
+      relevant_partitioning.resize(2);
+      relevant_partitioning[0] = locally_relevant_dofs.get_view(0, n_u);
+      relevant_partitioning[1] = locally_relevant_dofs.get_view(n_u, n_u + n_p);
+
+      constraints.reinit(locally_relevant_dofs);
+
+      FEValuesExtractors::Vector velocities(0);
+      DoFTools::make_hanging_node_constraints(dof_handler, constraints);
+
+      std::set<types::boundary_id> dirichlet_boundary = sim.boundary_velocity_manager.get_zero_boundary_velocity_indicators();
+      for (auto it: sim.boundary_velocity_manager.get_active_boundary_velocity_names())
+        {
+          int bdryid = it.first;
+          std::string component=it.second.first;
+          Assert(component=="", ExcNotImplemented());
+          dirichlet_boundary.insert(bdryid);
+        }
+      for (auto bid : dirichlet_boundary)
+        VectorTools::interpolate_boundary_values(*sim.mapping,
+                                                 dof_handler,
+                                                 bid,
+                                                 ZeroFunction<dim>(dim+1),
+                                                 constraints,
+                                                 fe.component_mask(velocities));
+      constraints.close();
+    }
+
+    // Create hacked RHS
+    LinearAlgebra::BlockVector trilinos_hacked_in_rhs;
+    trilinos_hacked_in_rhs.reinit(owned_partitioning,sim.mpi_communicator);
+    trilinos_hacked_in_rhs = 0.;
+
+
+    Tensor<1,dim+1> gravity_model;
+    gravity_model[dim-1] = -1.0;
+
+    const QGauss<dim> quadrature_formula (sim.parameters.stokes_velocity_degree+1);
+
+    // for getting density from material model
+    FEValues<dim> fe_values_mat (*sim.mapping,
+                                 sim.finite_element,
+                                 quadrature_formula,
+                                 update_values   |
+                                 update_gradients |
+                                 update_quadrature_points |
+                                 update_JxW_values);
+    MaterialModel::MaterialModelInputs<dim> in(fe_values_mat.n_quadrature_points, sim.introspection.n_compositional_fields);
+    MaterialModel::MaterialModelOutputs<dim> out(fe_values_mat.n_quadrature_points, sim.introspection.n_compositional_fields);
+
+
+    FEValues<dim> fe_values(fe,
+                            quadrature_formula,
+                            update_values | update_gradients |
+                            update_quadrature_points | update_JxW_values);
+
+    const unsigned int dofs_per_cell = fe.dofs_per_cell;
+    const unsigned int n_q_points    = quadrature_formula.size();
+
+    Vector<double>     cell_rhs(dofs_per_cell);
+
+    std::vector<types::global_dof_index> local_dof_indices(dofs_per_cell);
+
+    for (const auto &cell : dof_handler.active_cell_iterators())
+      if (cell->is_locally_owned())
+        {
+
+          // Get density
+          typename DoFHandler<dim>::active_cell_iterator aspect_cell(&sim.triangulation,
+                                                                     cell->level(),
+                                                                     cell->index(),
+                                                                     &sim.dof_handler);
+          fe_values_mat.reinit (aspect_cell);
+          in.reinit(fe_values_mat, aspect_cell, sim.introspection, sim.current_linearization_point);
+          sim.material_model->fill_additional_material_model_inputs(in, sim.current_linearization_point, fe_values_mat, sim.introspection);
+          sim.material_model->evaluate(in, out);
+          MaterialModel::MaterialAveraging::average (sim.parameters.material_averaging,
+                                                     aspect_cell,
+                                                     quadrature_formula,
+                                                     *sim.mapping,
+                                                     out);
+          std::vector<double> densities(n_q_points);
+          densities = out.densities;
+
+          cell_rhs     = 0;
+          fe_values.reinit(cell);
+          for (unsigned int q = 0; q < n_q_points; ++q)
+            for (unsigned int i = 0; i < dofs_per_cell; ++i)
+              {
+                const unsigned int comp_i = fe.system_to_component_index(i).first;
+
+                cell_rhs(i) += (fe_values.shape_value(i, q) *
+                                densities[q]*gravity_model[comp_i])
+                               *fe_values.JxW(q);
+              }
+          cell->get_dof_indices(local_dof_indices);
+          constraints.distribute_local_to_global(cell_rhs,
+                                                 local_dof_indices,
+                                                 trilinos_hacked_in_rhs);
+        }
+
+    trilinos_hacked_in_rhs.compress(VectorOperation::add);
+
+    // Correct RHS
+    {
+      dealii::LinearAlgebra::distributed::BlockVector<double> rhs_correction(2);
+      dealii::LinearAlgebra::distributed::BlockVector<double> u0(2);
+
+      stokes_matrix.initialize_dof_vector(rhs_correction);
+      stokes_matrix.initialize_dof_vector(u0);
+
+      rhs_correction.collect_sizes();
+      u0.collect_sizes();
+
+      u0 = 0;
+      rhs_correction = 0;
+      constraints.distribute(u0);
+      u0.update_ghost_values();
+
+      FEEvaluation<dim,2,3,dim,double>
+          velocity (*stokes_matrix.get_matrix_free(), 0);
+      FEEvaluation<dim,1,3,1,double>
+          pressure (*stokes_matrix.get_matrix_free(), 1);
+
+      for (unsigned int cell=0; cell<stokes_matrix.get_matrix_free()->n_macro_cells(); ++cell)
+      {
+        const VectorizedArray<double> &cell_viscosity_x_2 = stokes_matrix.get_viscosity_x_2_table()(cell);
+
+        velocity.reinit (cell);
+        velocity.read_dof_values_plain (u0.block(0));
+        velocity.evaluate (false,true,false);
+        pressure.reinit (cell);
+        pressure.read_dof_values_plain (u0.block(1));
+        pressure.evaluate (true,false,false);
+
+        for (unsigned int q=0; q<velocity.n_q_points; ++q)
+        {
+          SymmetricTensor<2,dim,VectorizedArray<double>> sym_grad_u =
+              velocity.get_symmetric_gradient (q);
+          VectorizedArray<double> pres = pressure.get_value(q);
+          VectorizedArray<double> div = -trace(sym_grad_u);
+          pressure.submit_value   (-1.0*1.0*div, q);
+
+          sym_grad_u *= cell_viscosity_x_2;
+
+          for (unsigned int d=0; d<dim; ++d)
+            sym_grad_u[d][d] -= 1.0*pres;
+
+          velocity.submit_symmetric_gradient(-1.0*sym_grad_u, q);
+        }
+
+        velocity.integrate (false,true);
+        velocity.distribute_local_to_global (rhs_correction.block(0));
+        pressure.integrate (true,false);
+        pressure.distribute_local_to_global (rhs_correction.block(1));
+      }
+      rhs_correction.compress(VectorOperation::add);
+
+      LinearAlgebra::BlockVector stokes_rhs_correction (owned_partitioning, sim.mpi_communicator);
+      internal::ChangeVectorTypes::copy(stokes_rhs_correction,rhs_correction);
+      trilinos_hacked_in_rhs.block(0) += stokes_rhs_correction.block(0);
+      trilinos_hacked_in_rhs.block(1) += stokes_rhs_correction.block(1);
+    }
+
+
+    dealii::LinearAlgebra::distributed::BlockVector<double> hacked_in_rhs(2);
+    stokes_matrix.initialize_dof_vector(hacked_in_rhs);
+    hacked_in_rhs.collect_sizes();
+    internal::ChangeVectorTypes::copy(hacked_in_rhs,trilinos_hacked_in_rhs);
+
+    sim.pcout << std::endl << std::endl;
+    sim.pcout << "rhs in aspect:                        " << aspect_rhs.l2_norm() << std::endl;
+    sim.pcout << "matrix-free rhs in aspect:            " << rhs_copy.l2_norm() << std::endl;
+    sim.pcout << "trilinos hack (matches working code): " << trilinos_hacked_in_rhs.l2_norm() << std::endl;
+    sim.pcout << "dealii hack (matches working code):   " << hacked_in_rhs.l2_norm() << std::endl;
+    sim.pcout << std::endl << std::endl;
+
+
+    if (sim.parameters.use_hacked_in_rhs)
+      rhs_copy = hacked_in_rhs;
+  }
+
 
   template <int dim, int velocity_degree>
   std::pair<double,double> StokesMatrixFreeHandlerImplementation<dim,velocity_degree>::solve()
@@ -1545,6 +1767,12 @@ namespace aspect
     sim.current_constraints.set_zero (linearized_stokes_initial_guess);
     linearized_stokes_initial_guess.block (block_p) /= sim.pressure_scaling;
 
+    rhs_copy.reinit(2);
+    stokes_matrix.initialize_dof_vector(rhs_copy);
+    rhs_copy.collect_sizes();
+    internal::ChangeVectorTypes::copy(rhs_copy,distributed_stokes_rhs);
+
+
     double solver_tolerance = 0;
     if (sim.assemble_newton_stokes_system == false)
       {
@@ -1560,19 +1788,15 @@ namespace aspect
         // We must copy between Trilinos/dealii vector types
         dealii::LinearAlgebra::distributed::BlockVector<double> solution_copy(2);
         dealii::LinearAlgebra::distributed::BlockVector<double> initial_copy(2);
-        dealii::LinearAlgebra::distributed::BlockVector<double> rhs_copy(2);
 
         stokes_matrix.initialize_dof_vector(solution_copy);
         stokes_matrix.initialize_dof_vector(initial_copy);
-        stokes_matrix.initialize_dof_vector(rhs_copy);
 
         solution_copy.collect_sizes();
         initial_copy.collect_sizes();
-        rhs_copy.collect_sizes();
 
         internal::ChangeVectorTypes::copy(solution_copy,distributed_stokes_solution);
         internal::ChangeVectorTypes::copy(initial_copy,linearized_stokes_initial_guess);
-        internal::ChangeVectorTypes::copy(rhs_copy,distributed_stokes_rhs);
 
         // Compute residual l2_norm
         stokes_matrix.vmult(solution_copy,initial_copy);
@@ -1621,16 +1845,11 @@ namespace aspect
 
     // Again, copy solution and rhs vectors to solve with matrix-free operators
     dealii::LinearAlgebra::distributed::BlockVector<double> solution_copy(2);
-    dealii::LinearAlgebra::distributed::BlockVector<double> rhs_copy(2);
 
     stokes_matrix.initialize_dof_vector(solution_copy);
-    stokes_matrix.initialize_dof_vector(rhs_copy);
-
     solution_copy.collect_sizes();
-    rhs_copy.collect_sizes();
 
     internal::ChangeVectorTypes::copy(solution_copy,distributed_stokes_solution);
-    internal::ChangeVectorTypes::copy(rhs_copy,distributed_stokes_rhs);
 
     // create Solver controls for the cheap and expensive solver phase
     SolverControl solver_control_cheap (sim.parameters.n_cheap_stokes_solver_steps,
@@ -1658,6 +1877,12 @@ namespace aspect
                               sim.parameters.linear_solver_S_block_tolerance);
 
     PrimitiveVectorMemory<dealii::LinearAlgebra::distributed::BlockVector<double> > mem;
+
+
+    rhs_test();
+
+    if (sim.parameters.use_hacked_in_rhs)
+        solution_copy = 0.0;
 
     // step 1a: try if the simple and fast solver
     // succeeds in n_cheap_stokes_solver_steps steps or less.

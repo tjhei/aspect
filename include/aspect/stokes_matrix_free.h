@@ -389,6 +389,9 @@ namespace aspect
        */
       void correct_stokes_rhs();
 
+
+      void rhs_test();
+
       /**
        * Computes and sets the diagonal for the A-block operators on each level for
        * the purpose of smoothing inside the multigrid v-cycle.
@@ -432,6 +435,8 @@ namespace aspect
       MGLevelObject<dealii::LinearAlgebra::distributed::Vector<double> > level_coef_dof_vec;
 
       MGTransferMatrixFree<dim,double> mg_transfer;
+
+      dealii::LinearAlgebra::distributed::BlockVector<double> rhs_copy;
   };
 }
 

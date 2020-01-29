@@ -429,6 +429,8 @@ namespace aspect
     bool                           use_direct_stokes_solver;
     typename StokesSolverType::Kind stokes_solver_type;
 
+    bool use_hacked_in_rhs;
+
     double                         linear_stokes_solver_tolerance;
     unsigned int                   n_cheap_stokes_solver_steps;
     unsigned int                   n_expensive_stokes_solver_steps;
