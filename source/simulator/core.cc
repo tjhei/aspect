@@ -1938,7 +1938,9 @@ namespace aspect
             solve_timestep ();
           }
 
-        std::string problem_type = std::string(parameters.stokes_solver_type == Parameters<dim>::StokesSolverType::block_gmg ? "mf-" : "mb-") +
+        std::string problem_type = parameters.krylov_solver +
+                                   (parameters.krylov_solver=="idr" ? Utilities::int_to_string(parameters.idr_s_value) : "") + "-" +
+                                   std::string(parameters.stokes_solver_type == Parameters<dim>::StokesSolverType::block_gmg ? "mf-" : "mb-") +
                                    std::string(parameters.initial_adaptive_refinement==0 ? "global" : "adaptive");
         const std::string ref_number =
           (parameters.initial_adaptive_refinement == 0 ?

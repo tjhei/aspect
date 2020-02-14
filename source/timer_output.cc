@@ -30,7 +30,7 @@ namespace aspect
     std::vector<std::string> possible_sections {"total_setup", "total_assembly", "krylov_solve", "preconditioner_vmult",
                                                 "setup_sys_dofs", "setup_active_mf_dofs", "setup_mg_dofs", "setup_mf_ops", "setup_mg_transfer",
                                                 "setup_sparsity", "assemble_sys_mat_rhs", "assemble_mf_obj", "assemble_prec_mat",
-                                                "assemble_amg", "operator_vmult"
+                                                "assemble_amg", "operator_vmult", "A_prec_vmult", "S_prec_vmult"
                                                };
 
     for (const auto section_name : possible_sections)
@@ -115,7 +115,9 @@ namespace aspect
                                   %(n_timings>0 ? n_timings : 1);
 
         double new_time = sections[actual_section_name].timer.last_wall_time();
-        if (actual_section_name == "preconditioner_vmult")
+        if (actual_section_name == "preconditioner_vmult" ||
+            actual_section_name == "A_prec_vmult" ||
+            actual_section_name == "S_prec_vmult")
           new_time /= 5;
         else if (actual_section_name == "operator_vmult")
           new_time /= 10;
@@ -178,6 +180,16 @@ namespace aspect
     std::sort(sections["operator_vmult"].time_vec.begin(), sections["operator_vmult"].time_vec.end());
     for (unsigned int i=0; i<(n_timings>0 ? n_timings : 1); ++i)
       out << sections["operator_vmult"].time_vec[i] <<  " ";
+
+    out << "A_prec_vmult: ";
+    std::sort(sections["A_prec_vmult"].time_vec.begin(), sections["A_prec_vmult"].time_vec.end());
+    for (unsigned int i=0; i<(n_timings>0 ? n_timings : 1); ++i)
+      out << sections["A_prec_vmult"].time_vec[i] <<  " ";
+
+    out << "S_prec_vmult: ";
+    std::sort(sections["S_prec_vmult"].time_vec.begin(), sections["S_prec_vmult"].time_vec.end());
+    for (unsigned int i=0; i<(n_timings>0 ? n_timings : 1); ++i)
+      out << sections["S_prec_vmult"].time_vec[i] <<  " ";
 
 
 

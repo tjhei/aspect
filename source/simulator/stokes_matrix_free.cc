@@ -1484,7 +1484,7 @@ namespace aspect
     // Mass matrix GMG Smoother: Chebyshev, degree 4
     typedef PreconditionChebyshev<MassMatrixType,vector_t> MassSmootherType;
     mg::SmootherRelaxation<MassSmootherType, vector_t>
-    mg_smoother_mass;
+    mg_smoother_mass(4);
     {
       MGLevelObject<typename MassSmootherType::AdditionalData> smoother_data;
       smoother_data.resize(0, sim.triangulation.n_global_levels()-1);
@@ -1562,6 +1562,16 @@ namespace aspect
     // Mass matrix GMG
     typedef PreconditionMG<dim, vector_t, MGTransferMatrixFree<dim,double> > MassPreconditioner;
     APreconditioner prec_S(dof_handler_p, mg_mass, mg_transfer_mass);
+
+    // Old preconditioner for S
+    typedef PreconditionChebyshev<MassMatrixType,vector_t> MassPreconditionerOld;
+    MassPreconditionerOld prec_S_old;
+    typename MassPreconditionerOld::AdditionalData prec_S_old_data;
+    prec_S_old_data.smoothing_range = 1e-3;
+    prec_S_old_data.degree = numbers::invalid_unsigned_int;
+    prec_S_old_data.eig_cg_n_iterations = 100; //mass_matrix.m();
+    prec_S_old_data.preconditioner = mass_matrix.get_matrix_diagonal_inverse();
+    prec_S_old.initialize(mass_matrix,prec_S_old_data);
 
 
     // Many parts of the solver depend on the block layout (velocity = 0,
@@ -1730,6 +1740,15 @@ namespace aspect
                           sim.parameters.linear_solver_A_block_tolerance,
                           sim.parameters.linear_solver_S_block_tolerance);
 
+    // create a cheap preconditioner that consists of only a single V-cycle
+    const internal::BlockSchurGMGPreconditioner<ABlockMatrixType, StokesMatrixType, MassMatrixType, MassPreconditionerOld, APreconditioner>
+    preconditioner_cheap_old (stokes_matrix, velocity_matrix, mass_matrix,
+                              prec_S_old, prec_A,
+                              true,
+                              false,
+                              sim.parameters.linear_solver_A_block_tolerance,
+                              sim.parameters.linear_solver_S_block_tolerance);
+
     // create an expensive preconditioner that solves for the A block with CG
     const internal::BlockSchurGMGPreconditioner<ABlockMatrixType, StokesMatrixType, MassMatrixType, MassPreconditioner, APreconditioner>
     preconditioner_expensive (stokes_matrix, velocity_matrix, mass_matrix,
@@ -1750,10 +1769,48 @@ namespace aspect
       sim.stokes_timer.enter_subsection("preconditioner_vmult");
       for (unsigned int j=0; j<5; ++j)
         {
-          preconditioner_cheap.vmult(tmp_dst, tmp_scr);
+          if (sim.parameters.krylov_solver=="fgmres")
+            preconditioner_cheap_old.vmult(tmp_dst,tmp_scr);
+          else
+            preconditioner_cheap.vmult(tmp_dst, tmp_scr);
+
           tmp_scr = tmp_dst;
         }
       sim.stokes_timer.leave_subsection("preconditioner_vmult");
+    }
+
+    {
+      dealii::LinearAlgebra::distributed::BlockVector<double> tmp_dst = solution_copy;
+      dealii::LinearAlgebra::distributed::BlockVector<double> tmp_scr = rhs_copy;
+      preconditioner_cheap.vmult(tmp_dst, tmp_scr);
+      tmp_scr = tmp_dst;
+
+      sim.stokes_timer.enter_subsection("A_prec_vmult");
+      for (unsigned int j=0; j<5; ++j)
+        {
+          prec_A.vmult(tmp_dst.block(0), tmp_scr.block(0));
+          tmp_scr = tmp_dst;
+        }
+      sim.stokes_timer.leave_subsection("A_prec_vmult");
+    }
+
+    {
+      dealii::LinearAlgebra::distributed::BlockVector<double> tmp_dst = solution_copy;
+      dealii::LinearAlgebra::distributed::BlockVector<double> tmp_scr = rhs_copy;
+      preconditioner_cheap.vmult(tmp_dst, tmp_scr);
+      tmp_scr = tmp_dst;
+
+      sim.stokes_timer.enter_subsection("S_prec_vmult");
+      for (unsigned int j=0; j<5; ++j)
+        {
+          if (sim.parameters.krylov_solver=="fgmres")
+            prec_S_old.vmult(tmp_dst.block(1), tmp_scr.block(1));
+          else
+            prec_S.vmult(tmp_dst.block(1), tmp_scr.block(1));
+
+          tmp_scr = tmp_dst;
+        }
+      sim.stokes_timer.leave_subsection("S_prec_vmult");
     }
 
     {
@@ -1781,7 +1838,14 @@ namespace aspect
         // if this cheaper solver is not desired, then simply short-cut
         // the attempt at solving with the cheaper preconditioner
         if (sim.parameters.n_cheap_stokes_solver_steps == 0)
-          throw SolverControl::NoConvergence(0,0);
+          {
+            if (sim.parameters.krylov_solver == "idr" ||
+                sim.parameters.krylov_solver == "gmres")
+              sim.pcout << "No cheap Stokes solves selected. Krylov solver switched to FGMRES"
+                        << std::endl;
+
+            throw SolverControl::NoConvergence(0,0);
+          }
 
         sim.pcout << sim.parameters.krylov_solver;
         if (sim.parameters.krylov_solver == "idr")
@@ -1798,7 +1862,7 @@ namespace aspect
             solver.solve (stokes_matrix,
                           solution_copy,
                           rhs_copy,
-                          preconditioner_cheap);
+                          preconditioner_cheap_old);
           }
         else if (sim.parameters.krylov_solver == "gmres")
           {
@@ -2267,6 +2331,8 @@ namespace aspect
       {
         //Mass matrix GMG
         mg_matrices_mass[level].compute_diagonal();
+
+        mass_matrix.compute_diagonal();
 
         // ABlock GMG
         // If we have a tangential boundary we must compute the diagonal
