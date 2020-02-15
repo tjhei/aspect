@@ -28,8 +28,8 @@ echo "subsection Postprocess" >> $TMPPRM
 echo "  set List of postprocessors = memory statistics" >> $TMPPRM
 echo "end" >> $TMPPRM
 
-echo "set Output directory = output-frontera/r2-n$SLURM_JOB_NUM_NODES/" >> $TMPPRM
-echo "set Timing output directory = output-frontera/r2-n$SLURM_JOB_NUM_NODES/" >> $TMPPRM
+echo "set Output directory = output-frontera/r7-n$SLURM_JOB_NUM_NODES/" >> $TMPPRM
+echo "set Timing output directory = output-frontera/r7-n$SLURM_JOB_NUM_NODES/" >> $TMPPRM
 
 echo "subsection Solver parameters" >> $TMPPRM
 echo "  subsection Stokes solver parameters" >> $TMPPRM
