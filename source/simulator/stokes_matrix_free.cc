@@ -518,9 +518,7 @@ namespace aspect
       n_iterations_A_(0),
       n_iterations_S_(0),
       A_block_tolerance(A_block_tolerance),
-      S_block_tolerance(S_block_tolerance),
-      utmp(reference_vector),
-      ptmp(reference_vector)
+      S_block_tolerance(S_block_tolerance)
     {}
 
     template <class ABlockMatrixType, class StokesMatrixType, class MassMatrixType, class PreconditionerMp,class PreconditionerA>
