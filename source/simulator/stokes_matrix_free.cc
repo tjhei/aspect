@@ -492,8 +492,8 @@ namespace aspect
         mutable unsigned int n_iterations_S_;
         const double A_block_tolerance;
         const double S_block_tolerance;
-	mutable dealii::LinearAlgebra::distributed::BlockVector<double> utmp;
-	mutable dealii::LinearAlgebra::distributed::BlockVector<double> ptmp;
+        mutable dealii::LinearAlgebra::distributed::BlockVector<double> utmp;
+        mutable dealii::LinearAlgebra::distributed::BlockVector<double> ptmp;
     };
 
     template <class ABlockMatrixType, class StokesMatrixType, class MassMatrixType, class PreconditionerMp,class PreconditionerA>
@@ -544,10 +544,10 @@ namespace aspect
            const dealii::LinearAlgebra::distributed::BlockVector<double>  &src) const
     {
       if (utmp.size()==0)
-      {
-	utmp.reinit(src);
-	ptmp.reinit(src);
-      }
+        {
+          utmp.reinit(src);
+          ptmp.reinit(src);
+        }
 
       if (do_mass_solve)
         {
