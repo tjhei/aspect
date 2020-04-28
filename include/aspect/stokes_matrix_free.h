@@ -433,9 +433,8 @@ namespace aspect
       Table<1, VectorizedArray<double>> active_viscosity_table;
       MGLevelObject<Table<1, VectorizedArray<double>>> level_viscosity_tables;
 
-      // Since the level viscosities are needed in 2 functions, we must store
-      // this as a member variable. For the active viscosities, only the
-      // viscosity table is required.
+      // This variable is needed only in the setup in both evaluate_material_model()
+      // and build_preconditioner(). It will be deleted after the last use.
       MGLevelObject<dealii::LinearAlgebra::distributed::Vector<double> > level_viscosity_vector;
   };
 }

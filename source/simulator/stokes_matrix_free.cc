@@ -2255,7 +2255,7 @@ namespace aspect
             mg_matrices_A_block[level].compute_diagonal();
           }
 
-        // This vector is no longer needed.
+        // This vector is no longer needed. Resize to 0.
         level_viscosity_vector[level].reinit(0);
       }
   }
