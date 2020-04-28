@@ -678,11 +678,11 @@ namespace aspect
   template <int dim, int degree_v, typename number>
   void
   MatrixFreeStokesOperators::StokesOperator<dim,degree_v,number>::
-  fill_cell_data (const Table<1,VectorizedArray<number>> *viscosity_table,
+  fill_cell_data (const Table<1,VectorizedArray<number>> &viscosity_table,
                   const double pressure_scaling,
                   const bool is_compressible)
   {
-    viscosity = viscosity_table;
+    viscosity = &viscosity_table;
     this->pressure_scaling = pressure_scaling;
     this->is_compressible = is_compressible;
   }
@@ -711,7 +711,7 @@ namespace aspect
 
     for (unsigned int cell=cell_range.first; cell<cell_range.second; ++cell)
       {
-        const VectorizedArray<number> &cell_viscosity_x_2 = 2.0*(*viscosity)(cell);
+        const VectorizedArray<number> cell_viscosity_x_2 = 2.0*(*viscosity)(cell);
 
         velocity.reinit (cell);
         velocity.read_dof_values (src.block(0));
@@ -776,10 +776,10 @@ namespace aspect
   template <int dim, int degree_p, typename number>
   void
   MatrixFreeStokesOperators::MassMatrixOperator<dim,degree_p,number>::
-  fill_cell_data (const Table<1,VectorizedArray<number>> *viscosity_table,
+  fill_cell_data (const Table<1,VectorizedArray<number>> &viscosity_table,
                   const double pressure_scaling)
   {
-    viscosity = viscosity_table;
+    viscosity = &viscosity_table;
     this->pressure_scaling = pressure_scaling;
   }
 
@@ -798,7 +798,7 @@ namespace aspect
         // The /= operator for VectorizedArray results in a foating point operation
         // (divide by 0) since the (*viscosity)(cell) array is not completely filled.
         // Therefore, we need to divide each entry manually.
-        VectorizedArray<number> &one_over_cell_viscosity = (*viscosity)(cell);
+        VectorizedArray<number> one_over_cell_viscosity = (*viscosity)(cell);
         for (unsigned int c=0; c<this->get_matrix_free()->n_components_filled(cell); ++c)
           one_over_cell_viscosity[c] = 1.0/one_over_cell_viscosity[c];
 
@@ -872,7 +872,7 @@ namespace aspect
         // The /= operator for VectorizedArray results in a foating point operation
         // (divide by 0) since the (*viscosity)(cell) array is not completely filled.
         // Therefore, we need to divide each entry manually.
-        VectorizedArray<number> &one_over_cell_viscosity = (*viscosity)(cell);
+        VectorizedArray<number> one_over_cell_viscosity = (*viscosity)(cell);
         for (unsigned int c=0; c<this->get_matrix_free()->n_components_filled(cell); ++c)
           one_over_cell_viscosity[c] = 1.0/one_over_cell_viscosity[c];
 
@@ -918,10 +918,10 @@ namespace aspect
   template <int dim, int degree_v, typename number>
   void
   MatrixFreeStokesOperators::ABlockOperator<dim,degree_v,number>::
-  fill_cell_data (const Table<1,VectorizedArray<number>> *viscosity_table,
+  fill_cell_data (const Table<1,VectorizedArray<number>> &viscosity_table,
                   const bool is_compressible)
   {
-    viscosity = viscosity_table;
+    viscosity = &viscosity_table;
     this->is_compressible = is_compressible;
   }
 
@@ -937,7 +937,7 @@ namespace aspect
 
     for (unsigned int cell=cell_range.first; cell<cell_range.second; ++cell)
       {
-        const VectorizedArray<number> &cell_viscosity_x_2 = 2.0*(*viscosity)(cell);
+        const VectorizedArray<number> cell_viscosity_x_2 = 2.0*(*viscosity)(cell);
 
         velocity.reinit (cell);
         velocity.read_dof_values(src);
@@ -1008,7 +1008,7 @@ namespace aspect
     FEEvaluation<dim,degree_v,degree_v+1,dim,number> velocity (data, 0);
     for (unsigned int cell=cell_range.first; cell<cell_range.second; ++cell)
       {
-        const VectorizedArray<number> &cell_viscosity_x_2 = 2.0*(*viscosity)(cell);
+        const VectorizedArray<number> cell_viscosity_x_2 = 2.0*(*viscosity)(cell);
 
         velocity.reinit (cell);
         AlignedVector<VectorizedArray<number> > diagonal(velocity.dofs_per_cell);
@@ -1216,8 +1216,8 @@ namespace aspect
   void StokesMatrixFreeHandlerImplementation<dim, velocity_degree>::evaluate_material_model ()
   {
     // Create active viscosity vector
-    dealii::LinearAlgebra::distributed::Vector<double> active_coef_dof_vec(dof_handler_projection.locally_owned_dofs(),
-                                                                           sim.triangulation.get_communicator());
+    dealii::LinearAlgebra::distributed::Vector<double> active_viscosity_vector(dof_handler_projection.locally_owned_dofs(),
+                                                                               sim.triangulation.get_communicator());
     {
       const QGauss<dim> quadrature_formula (sim.parameters.stokes_velocity_degree+1);
 
@@ -1259,9 +1259,9 @@ namespace aspect
                                                                    &dof_handler_projection);
             dg_cell->get_dof_indices(local_dof_indices);
             for (unsigned int i = 0; i < fe_projection.dofs_per_cell; ++i)
-              active_coef_dof_vec[local_dof_indices[i]] = viscosity;
+              active_viscosity_vector[local_dof_indices[i]] = viscosity;
           }
-      active_coef_dof_vec.compress(VectorOperation::insert);
+      active_viscosity_vector.compress(VectorOperation::insert);
     }
 
     // Create active viscosity table
@@ -1282,34 +1282,34 @@ namespace aspect
             DG_cell->get_active_or_mg_dof_indices(local_dof_indices);
 
             Assert(local_dof_indices.size() == 1, ExcNotImplemented());
-            active_viscosity_table(cell)[i] = active_coef_dof_vec(local_dof_indices[0]);
+            active_viscosity_table(cell)[i] = active_viscosity_vector(local_dof_indices[0]);
           }
     }
 
     const bool is_compressible = sim.material_model->is_compressible();
 
-    stokes_matrix.fill_cell_data(&active_viscosity_table,
+    stokes_matrix.fill_cell_data(active_viscosity_table,
                                  sim.pressure_scaling,
                                  is_compressible);
 
     if (sim.parameters.n_expensive_stokes_solver_steps > 0)
       {
-        A_block_matrix.fill_cell_data(&active_viscosity_table,
+        A_block_matrix.fill_cell_data(active_viscosity_table,
                                       is_compressible);
-        Schur_complement_block_matrix.fill_cell_data(&active_viscosity_table,
+        Schur_complement_block_matrix.fill_cell_data(active_viscosity_table,
                                                      sim.pressure_scaling);
       }
 
     // Project active viscosity to levels
     const unsigned int n_levels = sim.triangulation.n_global_levels();
-    level_coef_dof_vec = 0.;
-    level_coef_dof_vec.resize(0,n_levels-1);
+    level_viscosity_vector = 0.;
+    level_viscosity_vector.resize(0,n_levels-1);
 
     MGTransferMatrixFree<dim,double> transfer;
     transfer.build(dof_handler_projection);
     transfer.interpolate_to_mg(dof_handler_projection,
-                               level_coef_dof_vec,
-                               active_coef_dof_vec);
+                               level_viscosity_vector,
+                               active_viscosity_vector);
 
     level_viscosity_tables.resize(0,n_levels-1);
 
@@ -1334,13 +1334,13 @@ namespace aspect
                 DG_cell->get_active_or_mg_dof_indices(local_dof_indices);
 
                 Assert(local_dof_indices.size() == 1, ExcNotImplemented());
-                level_viscosity_tables[level](cell)[i] = level_coef_dof_vec[level](local_dof_indices[0]);
+                level_viscosity_tables[level](cell)[i] = level_viscosity_vector[level](local_dof_indices[0]);
               }
         }
 
-        mg_matrices_A_block[level].fill_cell_data (&level_viscosity_tables[level],
+        mg_matrices_A_block[level].fill_cell_data (level_viscosity_tables[level],
                                                    is_compressible);
-        mg_matrices_Schur_complement[level].fill_cell_data (&level_viscosity_tables[level],
+        mg_matrices_Schur_complement[level].fill_cell_data (level_viscosity_tables[level],
                                                             sim.pressure_scaling);
       }
   }
@@ -1373,7 +1373,7 @@ namespace aspect
 
     for (unsigned int cell=0; cell<stokes_matrix.get_matrix_free()->n_macro_cells(); ++cell)
       {
-        const VectorizedArray<double> &cell_viscosity_x_2 = 2.0*active_viscosity_table(cell);
+        const VectorizedArray<double> cell_viscosity_x_2 = 2.0*active_viscosity_table(cell);
 
         velocity.reinit (cell);
         velocity.read_dof_values_plain (u0.block(0));
@@ -2213,7 +2213,7 @@ namespace aspect
                                                                         &dof_handler_projection);
                   std::vector<types::global_dof_index> dg_dof_indices(dof_handler_projection.get_fe(0).dofs_per_cell);
                   DG_cell->get_active_or_mg_dof_indices(dg_dof_indices);
-                  double viscosity = level_coef_dof_vec[level](dg_dof_indices[0]);
+                  double viscosity = level_viscosity_vector[level](dg_dof_indices[0]);
 
                   for (unsigned int q=0; q<n_q_points; ++q)
                     {
@@ -2253,7 +2253,7 @@ namespace aspect
           }
 
         // This vector is no longer needed.
-        level_coef_dof_vec[level].reinit(0);
+        level_viscosity_vector[level].reinit(0);
       }
   }
 

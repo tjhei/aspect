@@ -75,7 +75,7 @@ namespace aspect
          * Fills in the viscosity table, sets the value for the pressure scaling constant,
          * and gives information regarding compressibility.
          */
-        void fill_cell_data (const Table<1,VectorizedArray<number>> *viscosity_table,
+        void fill_cell_data (const Table<1,VectorizedArray<number>> &viscosity_table,
                              const double pressure_scaling,
                              const bool is_compressible);
 
@@ -143,7 +143,7 @@ namespace aspect
          * @p is_mg_level_data describes whether the viscosity values are defined for a multigrid level
          * matrix or for the active level matrix.
          */
-        void fill_cell_data (const Table<1,VectorizedArray<number>> *viscosity_table,
+        void fill_cell_data (const Table<1,VectorizedArray<number>> &viscosity_table,
                              const double pressure_scaling);
 
 
@@ -216,7 +216,7 @@ namespace aspect
          * @p is_mg_level_data describes whether the viscosity values are defined for a multigrid level
          * matrix or for the active level matrix.
          */
-        void fill_cell_data (const Table<1,VectorizedArray<number>> *viscosity_table,
+        void fill_cell_data (const Table<1,VectorizedArray<number>> &viscosity_table,
                              const bool is_compressible);
 
         /**
@@ -432,7 +432,11 @@ namespace aspect
 
       Table<1, VectorizedArray<double>> active_viscosity_table;
       MGLevelObject<Table<1, VectorizedArray<double>>> level_viscosity_tables;
-      MGLevelObject<dealii::LinearAlgebra::distributed::Vector<double> > level_coef_dof_vec;
+
+      // Since the level viscosities are needed in 2 functions, we must store
+      // this as a member variable. For the active viscosities, only the
+      // viscosity table is required.
+      MGLevelObject<dealii::LinearAlgebra::distributed::Vector<double> > level_viscosity_vector;
   };
 }
 
