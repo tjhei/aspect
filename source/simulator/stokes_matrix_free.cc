@@ -672,7 +672,6 @@ namespace aspect
   void
   MatrixFreeStokesOperators::StokesOperator<dim,degree_v,number>::clear ()
   {
-    viscosity.clear();
     MatrixFreeOperators::Base<dim,dealii::LinearAlgebra::distributed::BlockVector<number> >::clear();
   }
 
@@ -683,7 +682,7 @@ namespace aspect
                   const double pressure_scaling,
                   const bool is_compressible)
   {
-    viscosity = &viscosity_table;
+    viscosity = SmartPointer<const Table<1,VectorizedArray<number>>>(&viscosity_table);
     this->pressure_scaling = pressure_scaling;
     this->is_compressible = is_compressible;
   }
@@ -771,7 +770,6 @@ namespace aspect
   void
   MatrixFreeStokesOperators::MassMatrixOperator<dim,degree_p,number>::clear ()
   {
-    viscosity.clear();
     MatrixFreeOperators::Base<dim,dealii::LinearAlgebra::distributed::Vector<number> >::clear();
   }
 
@@ -781,7 +779,7 @@ namespace aspect
   fill_cell_data (const Table<1,VectorizedArray<number>> &viscosity_table,
                   const double pressure_scaling)
   {
-    viscosity = &viscosity_table;
+    viscosity = SmartPointer<const Table<1,VectorizedArray<number>>>(&viscosity_table);
     this->pressure_scaling = pressure_scaling;
   }
 
@@ -914,7 +912,6 @@ namespace aspect
   void
   MatrixFreeStokesOperators::ABlockOperator<dim,degree_v,number>::clear ()
   {
-    viscosity.clear();
     MatrixFreeOperators::Base<dim,dealii::LinearAlgebra::distributed::Vector<number> >::clear();
   }
 
@@ -924,7 +921,7 @@ namespace aspect
   fill_cell_data (const Table<1,VectorizedArray<number>> &viscosity_table,
                   const bool is_compressible)
   {
-    viscosity = &viscosity_table;
+    viscosity = SmartPointer<const Table<1,VectorizedArray<number>>>(&viscosity_table);
     this->is_compressible = is_compressible;
   }
 
