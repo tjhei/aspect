@@ -803,7 +803,7 @@ namespace aspect
         VectorizedArray<number> one_over_cell_viscosity = (*viscosity)(cell);
         for (unsigned int c=0; c<this->get_matrix_free()->n_components_filled(cell); ++c)
           one_over_cell_viscosity[c] = 1.0/one_over_cell_viscosity[c];
-        one_over_cell_viscosity *= pressure_scaling*pressure_scaling;
+        one_over_cell_viscosity *= make_vectorized_array<number>(pressure_scaling*pressure_scaling);
 
         pressure.reinit (cell);
         pressure.read_dof_values(src);
@@ -878,7 +878,7 @@ namespace aspect
         VectorizedArray<number> one_over_cell_viscosity = (*viscosity)(cell);
         for (unsigned int c=0; c<this->get_matrix_free()->n_components_filled(cell); ++c)
           one_over_cell_viscosity[c] = 1.0/one_over_cell_viscosity[c];
-        one_over_cell_viscosity *= pressure_scaling*pressure_scaling;
+        one_over_cell_viscosity *= make_vectorized_array<number>(pressure_scaling*pressure_scaling);
 
         pressure.reinit (cell);
         AlignedVector<VectorizedArray<number> > diagonal(pressure.dofs_per_cell);
