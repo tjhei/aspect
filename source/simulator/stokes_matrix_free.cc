@@ -727,7 +727,7 @@ namespace aspect
                                                           velocity.get_symmetric_gradient (q);
             VectorizedArray<number> pres = pressure.get_value(q);
             VectorizedArray<number> div = trace(sym_grad_u);
-            pressure.submit_value(-1.0*pressure_scaling*div, q);
+            pressure.submit_value(-pressure_scaling*div, q);
 
             sym_grad_u *= cell_viscosity_x_2;
 
@@ -802,7 +802,8 @@ namespace aspect
         // Therefore, we need to divide each entry manually.
         VectorizedArray<number> one_over_cell_viscosity = (*viscosity)(cell);
         for (unsigned int c=0; c<this->get_matrix_free()->n_components_filled(cell); ++c)
-          one_over_cell_viscosity[c] = pressure_scaling*pressure_scaling/one_over_cell_viscosity[c];
+          one_over_cell_viscosity[c] = 1.0/one_over_cell_viscosity[c];
+        one_over_cell_viscosity *= pressure_scaling*pressure_scaling;
 
         pressure.reinit (cell);
         pressure.read_dof_values(src);
@@ -876,7 +877,8 @@ namespace aspect
         // Therefore, we need to divide each entry manually.
         VectorizedArray<number> one_over_cell_viscosity = (*viscosity)(cell);
         for (unsigned int c=0; c<this->get_matrix_free()->n_components_filled(cell); ++c)
-          one_over_cell_viscosity[c] = pressure_scaling*pressure_scaling/one_over_cell_viscosity[c];
+          one_over_cell_viscosity[c] = 1.0/one_over_cell_viscosity[c];
+        one_over_cell_viscosity *= pressure_scaling*pressure_scaling;
 
         pressure.reinit (cell);
         AlignedVector<VectorizedArray<number> > diagonal(pressure.dofs_per_cell);
