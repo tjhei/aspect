@@ -672,6 +672,7 @@ namespace aspect
   void
   MatrixFreeStokesOperators::StokesOperator<dim,degree_v,number>::clear ()
   {
+    viscosity = nullptr;
     MatrixFreeOperators::Base<dim,dealii::LinearAlgebra::distributed::BlockVector<number> >::clear();
   }
 
@@ -770,6 +771,7 @@ namespace aspect
   void
   MatrixFreeStokesOperators::MassMatrixOperator<dim,degree_p,number>::clear ()
   {
+    viscosity = nullptr;
     MatrixFreeOperators::Base<dim,dealii::LinearAlgebra::distributed::Vector<number> >::clear();
   }
 
@@ -912,6 +914,7 @@ namespace aspect
   void
   MatrixFreeStokesOperators::ABlockOperator<dim,degree_v,number>::clear ()
   {
+    viscosity = nullptr;
     MatrixFreeOperators::Base<dim,dealii::LinearAlgebra::distributed::Vector<number> >::clear();
   }
 
