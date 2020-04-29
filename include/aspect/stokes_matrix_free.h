@@ -75,7 +75,7 @@ namespace aspect
          * Fills in the viscosity table, sets the value for the pressure scaling constant,
          * and gives information regarding compressibility.
          */
-        void fill_cell_data (const Table<1,VectorizedArray<number>> &viscosity_table,
+        void fill_cell_data (std::shared_ptr<Table<1, VectorizedArray<number>>> viscosity_table,
                              const double pressure_scaling,
                              const bool is_compressible);
 
@@ -106,7 +106,7 @@ namespace aspect
         /**
          * Pointer to a Table which stores a viscosity value for each cell.
          */
-        SmartPointer<const Table<1, VectorizedArray<number>>> viscosity;
+        std::shared_ptr<const Table<1, VectorizedArray<number>>> viscosity;
 
         /**
          * Pressure scaling constant.
@@ -143,7 +143,7 @@ namespace aspect
          * @p is_mg_level_data describes whether the viscosity values are defined for a multigrid level
          * matrix or for the active level matrix.
          */
-        void fill_cell_data (const Table<1,VectorizedArray<number>> &viscosity_table,
+        void fill_cell_data (std::shared_ptr<Table<1, VectorizedArray<number>>> viscosity_table,
                              const double pressure_scaling);
 
 
@@ -183,7 +183,7 @@ namespace aspect
         /**
          * Pointer to a Table which stores a viscosity value for each cell.
          */
-        SmartPointer<const Table<1, VectorizedArray<number>>> viscosity;
+        std::shared_ptr<const Table<1, VectorizedArray<number>>> viscosity;
 
         /**
          * Pressure scaling constant.
@@ -216,7 +216,7 @@ namespace aspect
          * @p is_mg_level_data describes whether the viscosity values are defined for a multigrid level
          * matrix or for the active level matrix.
          */
-        void fill_cell_data (const Table<1,VectorizedArray<number>> &viscosity_table,
+        void fill_cell_data (std::shared_ptr<Table<1, VectorizedArray<number>>> viscosity_table,
                              const bool is_compressible);
 
         /**
@@ -261,7 +261,7 @@ namespace aspect
         /**
          * Pointer to a Table which stores a viscosity value for each cell.
          */
-        SmartPointer<const Table<1, VectorizedArray<number>>> viscosity;
+        std::shared_ptr<const Table<1, VectorizedArray<number>>> viscosity;
 
         /**
           * Information on the compressibility of the flow.
@@ -430,8 +430,8 @@ namespace aspect
       MGTransferMatrixFree<dim,double> mg_transfer_A_block;
       MGTransferMatrixFree<dim,double> mg_transfer_Schur_complement;
 
-      Table<1, VectorizedArray<double>> active_viscosity_table;
-      MGLevelObject<Table<1, VectorizedArray<double>>> level_viscosity_tables;
+      std::shared_ptr<Table<1, VectorizedArray<double>>> active_viscosity_table;
+      MGLevelObject<std::shared_ptr<Table<1, VectorizedArray<double>>>> level_viscosity_tables;
 
       // This variable is needed only in the setup in both evaluate_material_model()
       // and build_preconditioner(). It will be deleted after the last use.
