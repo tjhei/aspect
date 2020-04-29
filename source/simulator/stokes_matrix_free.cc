@@ -802,13 +802,13 @@ namespace aspect
         // Therefore, we need to divide each entry manually.
         VectorizedArray<number> one_over_cell_viscosity = (*viscosity)(cell);
         for (unsigned int c=0; c<this->get_matrix_free()->n_components_filled(cell); ++c)
-          one_over_cell_viscosity[c] = 1.0/one_over_cell_viscosity[c];
+          one_over_cell_viscosity[c] = pressure_scaling*pressure_scaling/one_over_cell_viscosity[c];
 
         pressure.reinit (cell);
         pressure.read_dof_values(src);
         pressure.evaluate (true, false);
         for (unsigned int q=0; q<pressure.n_q_points; ++q)
-          pressure.submit_value(one_over_cell_viscosity*pressure_scaling*pressure_scaling*
+          pressure.submit_value(one_over_cell_viscosity*
                                 pressure.get_value(q),q);
         pressure.integrate (true, false);
         pressure.distribute_local_to_global (dst);
@@ -876,7 +876,7 @@ namespace aspect
         // Therefore, we need to divide each entry manually.
         VectorizedArray<number> one_over_cell_viscosity = (*viscosity)(cell);
         for (unsigned int c=0; c<this->get_matrix_free()->n_components_filled(cell); ++c)
-          one_over_cell_viscosity[c] = 1.0/one_over_cell_viscosity[c];
+          one_over_cell_viscosity[c] = pressure_scaling*pressure_scaling/one_over_cell_viscosity[c];
 
         pressure.reinit (cell);
         AlignedVector<VectorizedArray<number> > diagonal(pressure.dofs_per_cell);
@@ -888,7 +888,7 @@ namespace aspect
 
             pressure.evaluate (true,false,false);
             for (unsigned int q=0; q<pressure.n_q_points; ++q)
-              pressure.submit_value(one_over_cell_viscosity*pressure_scaling*pressure_scaling*
+              pressure.submit_value(one_over_cell_viscosity*
                                     pressure.get_value(q),q);
             pressure.integrate (true,false);
 
