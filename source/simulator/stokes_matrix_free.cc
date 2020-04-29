@@ -679,11 +679,11 @@ namespace aspect
   template <int dim, int degree_v, typename number>
   void
   MatrixFreeStokesOperators::StokesOperator<dim,degree_v,number>::
-  fill_cell_data (std::shared_ptr<Table<1, VectorizedArray<number>>> viscosity_table,
+  fill_cell_data (const Table<1, VectorizedArray<number>> &viscosity_table,
                   const double pressure_scaling,
                   const bool is_compressible)
   {
-    viscosity = viscosity_table;
+    viscosity = &viscosity_table;
     this->pressure_scaling = pressure_scaling;
     this->is_compressible = is_compressible;
   }
@@ -778,10 +778,10 @@ namespace aspect
   template <int dim, int degree_p, typename number>
   void
   MatrixFreeStokesOperators::MassMatrixOperator<dim,degree_p,number>::
-  fill_cell_data (std::shared_ptr<Table<1, VectorizedArray<number>>> viscosity_table,
+  fill_cell_data (const Table<1, VectorizedArray<number>> &viscosity_table,
                   const double pressure_scaling)
   {
-    viscosity = viscosity_table;
+    viscosity = &viscosity_table;
     this->pressure_scaling = pressure_scaling;
   }
 
@@ -923,10 +923,10 @@ namespace aspect
   template <int dim, int degree_v, typename number>
   void
   MatrixFreeStokesOperators::ABlockOperator<dim,degree_v,number>::
-  fill_cell_data (std::shared_ptr<Table<1, VectorizedArray<number>>> viscosity_table,
+  fill_cell_data (const Table<1, VectorizedArray<number>> &viscosity_table,
                   const bool is_compressible)
   {
-    viscosity = viscosity_table;
+    viscosity = &viscosity_table;
     this->is_compressible = is_compressible;
   }
 
@@ -1272,7 +1272,7 @@ namespace aspect
     // Create active viscosity table
     {
       const unsigned int n_cells = stokes_matrix.get_matrix_free()->n_macro_cells();
-      active_viscosity_table = std::move(std::make_shared<Table<1,VectorizedArray<double>>>(n_cells));
+      active_viscosity_table.reinit(TableIndices<1>(n_cells));
 
       std::vector<types::global_dof_index> local_dof_indices(dof_handler_projection.get_fe().dofs_per_cell);
       for (unsigned int cell=0; cell<n_cells; ++cell)
@@ -1287,7 +1287,7 @@ namespace aspect
             DG_cell->get_active_or_mg_dof_indices(local_dof_indices);
 
             Assert(local_dof_indices.size() == 1, ExcNotImplemented());
-            (*active_viscosity_table)(cell)[i] = active_viscosity_vector(local_dof_indices[0]);
+            active_viscosity_table(cell)[i] = active_viscosity_vector(local_dof_indices[0]);
           }
     }
 
@@ -1323,7 +1323,7 @@ namespace aspect
         // Create level viscosity table
         {
           const unsigned int n_cells = mg_matrices_A_block[level].get_matrix_free()->n_macro_cells();
-          level_viscosity_tables[level] = std::move(std::make_shared<Table<1,VectorizedArray<double>>>(n_cells));
+          level_viscosity_tables[level].reinit(TableIndices<1>(n_cells));
 
           std::vector<types::global_dof_index> local_dof_indices(dof_handler_projection.get_fe().dofs_per_cell);
           for (unsigned int cell=0; cell<n_cells; ++cell)
@@ -1338,7 +1338,7 @@ namespace aspect
                 DG_cell->get_active_or_mg_dof_indices(local_dof_indices);
 
                 Assert(local_dof_indices.size() == 1, ExcNotImplemented());
-                (*level_viscosity_tables[level])(cell)[i] = level_viscosity_vector[level](local_dof_indices[0]);
+                level_viscosity_tables[level](cell)[i] = level_viscosity_vector[level](local_dof_indices[0]);
               }
         }
 
@@ -1377,7 +1377,7 @@ namespace aspect
 
     for (unsigned int cell=0; cell<stokes_matrix.get_matrix_free()->n_macro_cells(); ++cell)
       {
-        const VectorizedArray<double> cell_viscosity_x_2 = 2.0*(*active_viscosity_table)(cell);
+        const VectorizedArray<double> cell_viscosity_x_2 = 2.0*active_viscosity_table(cell);
 
         velocity.reinit (cell);
         velocity.read_dof_values_plain (u0.block(0));
