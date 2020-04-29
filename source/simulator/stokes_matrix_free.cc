@@ -1876,6 +1876,16 @@ namespace aspect
     if (sim.parameters.include_melt_transport)
       sim.melt_handler->compute_melt_variables(sim.system_matrix,sim.solution,sim.system_rhs);
 
+
+    // We must release the subscribers to the viscosity tables by
+    // calling MatrixFreeOperators::clear().
+    stokes_matrix.clear();
+    A_block_matrix.clear();
+    Schur_complement_block_matrix.clear();
+    mg_matrices_A_block.clear_elements();
+    mg_matrices_Schur_complement.clear_elements();
+
+
     return std::pair<double,double>(initial_nonlinear_residual,
                                     final_linear_residual);
   }
