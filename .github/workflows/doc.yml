@@ -24,6 +24,6 @@ jobs:
         mkdir build
       	cd build
         cmake -D ASPECT_PRECOMPILE_HEADERS=ON -D ASPECT_UNITY_BUILD=ON ..
-	ninja
+        ninja
 
 
