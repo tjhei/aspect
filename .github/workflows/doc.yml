@@ -24,6 +24,11 @@ jobs:
         mkdir build
         cd build
         cmake -D ASPECT_PRECOMPILE_HEADERS=ON -D ASPECT_UNITY_BUILD=ON ..
-        ninja
+        make -j 2
+    - name: doc
+      run: |
+        cd doc
+        ./update_parameters.sh ./../build/aspect
+        make manual.pdf'
 
 
