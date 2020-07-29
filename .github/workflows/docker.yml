@@ -1,0 +1,31 @@
+name: linux-docker
+
+on: [push, pull_request]
+
+jobs:
+  linux-docker:
+    name: linux docker build
+    runs-on: [ubuntu-18.04]
+    container: tjhei/aspect-tester:v9.2.0-r1
+
+    steps:
+    - uses: actions/checkout@v2
+    - name: setup
+      run: |
+        doxygen --version
+        astyle --version
+    - name: indent
+      run: |
+        ./contrib/utilities/indent
+	git diff --exit-code
+    - name: compile
+      run: |
+        mkdir build
+        cd build
+        cmake -D ASPECT_PRECOMPILE_HEADERS=ON -D ASPECT_UNITY_BUILD=ON ..
+        make -j 2
+    - name: doc
+      run: |
+        cd doc
+        ./update_parameters.sh ./../build/aspect
+        make manual.pdf'
