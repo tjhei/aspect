@@ -39,5 +39,8 @@ jobs:
         cd doc
         ./update_parameters.sh $GITHUB_WORKSPACE/build/aspect
         make manual.pdf
-
-
+    - name: archive
+      uses: actions/upload-artifact@v1
+      with:
+        name: manual.log
+        path: doc/manual/manual.log
