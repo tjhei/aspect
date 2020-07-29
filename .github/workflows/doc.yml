@@ -27,6 +27,7 @@ jobs:
     - name: indent
       run: |
         ./contrib/utilities/indent
+        git diff --exit-code
     - name: compile
       run: |
         mkdir build
@@ -36,7 +37,7 @@ jobs:
     - name: doc
       run: |
         cd doc
-        ./update_parameters.sh ./../build/aspect
-        make manual.pdf'
+        ./update_parameters.sh $GITHUB_WORKSPACE/build/aspect
+        make manual.pdf
 
 
