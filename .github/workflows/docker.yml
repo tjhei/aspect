@@ -17,7 +17,7 @@ jobs:
     - name: indent
       run: |
         ./contrib/utilities/indent
-	git diff --exit-code
+        git diff --exit-code
     - name: compile
       run: |
         mkdir build
