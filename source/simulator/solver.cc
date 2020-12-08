@@ -208,6 +208,9 @@ namespace aspect
         void vmult (LinearAlgebra::BlockVector       &dst,
                     const LinearAlgebra::BlockVector &src) const;
 
+        void apply_S (LinearAlgebra::Vector       &dst,
+                      const LinearAlgebra::Vector &src) const;
+
         unsigned int n_iterations_A() const;
         unsigned int n_iterations_S() const;
 
@@ -269,6 +272,57 @@ namespace aspect
       return n_iterations_S_;
     }
 
+    template <class PreconditionerA, class PreconditionerMp>
+    void
+    BlockSchurPreconditioner<PreconditionerA, PreconditionerMp>::
+    apply_S (LinearAlgebra::Vector       &dst,
+           const LinearAlgebra::Vector &src) const
+    {
+
+      {
+        SolverControl solver_control(1000, src.l2_norm() * S_block_tolerance);
+
+#ifdef ASPECT_USE_PETSC
+        SolverCG<LinearAlgebra::Vector> solver(solver_control);
+#else
+        TrilinosWrappers::SolverCG solver(solver_control);
+#endif
+        // Trilinos reports a breakdown
+        // in case src=dst=0, even
+        // though it should return
+        // convergence without
+        // iterating. We simply skip
+        // solving in this case.
+        if (src.l2_norm() > 1e-50)
+          {
+            try
+              {
+                dst = 0.0;
+                solver.solve(stokes_preconditioner_matrix.block(1,1),
+                             dst, src,
+                             mp_preconditioner);
+              }
+            // if the solver fails, report the error from processor 0 with some additional
+            // information about its location, and throw a quiet exception on all other
+            // processors
+            catch (const std::exception &exc)
+              {
+                if (Utilities::MPI::this_mpi_process(src.get_mpi_communicator()) == 0)
+                  AssertThrow (false,
+                               ExcMessage (std::string("The iterative (bottom right) solver in BlockSchurPreconditioner::vmult "
+                                                       "did not converge to a tolerance of "
+                                                       + Utilities::to_string(solver_control.tolerance()) +
+                                                       ". It reported the following error:\n\n")
+                                           +
+                                           exc.what()))
+                  else
+                    throw QuietException();
+              }
+          }
+
+        dst *= -1.0;
+      }
+    }
 
     template <class PreconditionerA, class PreconditionerMp>
     void
@@ -810,8 +864,35 @@ namespace aspect
         }
 
 
+        {
+          LinearAlgebra::BlockVector tmp_dst = distributed_stokes_solution;
+          LinearAlgebra::BlockVector tmp_scr = distributed_stokes_rhs;
+          Amg_preconditioner->vmult(tmp_dst.block(0), tmp_scr.block(0));
+          tmp_scr = tmp_dst;
 
+          stokes_timer.enter_subsection("preconditioner_A_vmult");
+          for (unsigned int i=0; i<5; ++i)
+            {
+              Amg_preconditioner->vmult(tmp_dst.block(0), tmp_scr.block(0));
+              tmp_scr.block(0) = tmp_dst.block(0);
+            }
+          stokes_timer.leave_subsection("preconditioner_A_vmult");
+        }
 
+        {
+          LinearAlgebra::BlockVector tmp_dst = distributed_stokes_solution;
+          LinearAlgebra::BlockVector tmp_scr = distributed_stokes_rhs;
+          preconditioner_cheap.apply_S(tmp_dst.block(1), tmp_scr.block(1));
+          tmp_scr = tmp_dst;
+
+          stokes_timer.enter_subsection("preconditioner_S_vmult");
+          for (unsigned int i=0; i<5; ++i)
+            {
+              preconditioner_cheap.apply_S(tmp_dst.block(1), tmp_scr.block(1));
+              tmp_scr.block(1) = tmp_dst.block(1);
+            }
+          stokes_timer.leave_subsection("preconditioner_S_vmult");
+        }
 
         // create an expensive preconditioner that solves for the A block with CG
         const internal::BlockSchurPreconditioner<LinearAlgebra::PreconditionAMG,

@@ -1420,6 +1420,21 @@ namespace aspect
 
     }
 
+    {
+      LinearAlgebra::BlockVector tmp_dst = distributed_stokes_solution;
+      LinearAlgebra::BlockVector tmp_scr = distributed_stokes_rhs;
+      prec_A.vmult(tmp_dst.block(0), tmp_scr.block(0));
+      tmp_scr = tmp_dst;
+
+      sim.stokes_timer.enter_subsection("preconditioner_A_vmult");
+      for (unsigned int i=0; i<5; ++i)
+        {
+          prec_A.vmult(tmp_dst.block(0), tmp_scr.block(0));
+          tmp_scr.block(0) = tmp_dst.block(0);
+        }
+      sim.stokes_timer.leave_subsection("preconditioner_A_vmult");
+    }
+
     // TODO: doesn't make a difference
     //solution_copy = 0.;
 
