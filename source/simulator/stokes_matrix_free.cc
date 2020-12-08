@@ -1421,8 +1421,8 @@ namespace aspect
     }
 
     {
-      LinearAlgebra::BlockVector tmp_dst = distributed_stokes_solution;
-      LinearAlgebra::BlockVector tmp_scr = distributed_stokes_rhs;
+      dealii::LinearAlgebra::distributed::BlockVector<double> tmp_dst = solution_copy;
+      dealii::LinearAlgebra::distributed::BlockVector<double> tmp_scr = rhs_copy;
       prec_A.vmult(tmp_dst.block(0), tmp_scr.block(0));
       tmp_scr = tmp_dst;
 

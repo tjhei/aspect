@@ -894,6 +894,21 @@ namespace aspect
           stokes_timer.leave_subsection("preconditioner_S_vmult");
         }
 
+        {
+          LinearAlgebra::BlockVector tmp_dst = distributed_stokes_solution;
+          LinearAlgebra::BlockVector tmp_scr = distributed_stokes_rhs;
+          LinearAlgebra::Vector utmp(tmp_scr.block(0));
+
+          stokes_timer.enter_subsection("preconditioner_make_vec");
+          for (unsigned int i=0; i<5; ++i)
+            {
+              LinearAlgebra::Vector utmp(tmp_scr.block(0));
+            }
+          stokes_timer.leave_subsection("preconditioner_make_vec");
+        }
+
+
+
         // create an expensive preconditioner that solves for the A block with CG
         const internal::BlockSchurPreconditioner<LinearAlgebra::PreconditionAMG,
               LinearAlgebra::PreconditionBase>
