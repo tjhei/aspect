@@ -246,7 +246,7 @@ namespace aspect
        */
       void
       get_log_viscosity_averages(std::vector<double> &values) const;
-  
+
       /**
        * Compute a lateral average of the current velocity magnitude.
        *
