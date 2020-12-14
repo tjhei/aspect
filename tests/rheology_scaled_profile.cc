@@ -21,6 +21,7 @@
 #include <aspect/material_model/interface.h>
 #include <aspect/simulator_access.h>
 #include <aspect/global.h>
+#include <aspect/adiabatic_conditions/interface.h>
 
 #include <aspect/geometry_model/interface.h>
 #include <aspect/material_model/rheology/ascii_depth_profile.h>
@@ -107,7 +108,7 @@ namespace aspect
           reference_viscosity_coordinates = reference_viscosity_profile->get_coordinates();
         }
 
-        void update() override
+        void update() override // only happens before the temperature system is solved
         {
           std::vector<std::unique_ptr<internal::FunctorBase<dim> > > lateral_averaging_properties;
           lateral_averaging_properties.push_back(std::make_unique<internal::FunctorDepthAverageUnscaledViscosity<dim>>());
@@ -125,6 +126,7 @@ namespace aspect
                                    " any quadrature points in it."
                                    " Consider reducing number of depth layers"
                                    " for averaging."));
+          initialized = true;
         }
 
 
@@ -168,44 +170,108 @@ namespace aspect
           // the largest depth in the profile).
           const double reference_viscosity = reference_viscosity_profile->compute_viscosity(reference_viscosity_coordinates.at(depth_index));
 
-          const double average_viscosity = laterally_averaged_viscosity_profile[depth_index];
+          const double average_viscosity = std::pow(10, laterally_averaged_viscosity_profile[depth_index]);
 
           return reference_viscosity / average_viscosity;
         }
 
 
 
-        void evaluate(const MaterialModel::MaterialModelInputs<dim> &in,
-                      MaterialModel::MaterialModelOutputs<dim> &out) const override
+        void compute_equilibrium_grain_size(const typename Interface<dim>::MaterialModelInputs &in,
+                                            typename Interface<dim>::MaterialModelOutputs &out) const
         {
+          PrescribedFieldOutputs<dim> *grain_size_out = out.template get_additional_output<PrescribedFieldOutputs<dim> >();
+          // DislocationViscosityOutputs<dim> *disl_viscosities_out = out.template get_additional_output<DislocationViscosityOutputs<dim> >();
+
           UnscaledViscosityAdditionalOutputs<dim> *unscaled_viscosity_out =
             out.template get_additional_output<MaterialModel::UnscaledViscosityAdditionalOutputs<dim> >();
 
-          for (unsigned int i=0; i < in.n_evaluation_points(); ++i)
+          for (unsigned int i=0; i<in.position.size(); ++i)
             {
-              const double depth = this->get_geometry_model().depth(in.position[i]);
-              const std::array<double, dim> spherical_coordinates =
-                Utilities::Coordinates::cartesian_to_spherical_coordinates(in.position[i]);
+              // get the dislocation viscosity to compute the dislocation strain rate
+              // If we do not have the strain rate yet, set it to a low value.
+              // TODO: make minimum strain rate an input parameter
+              const SymmetricTensor<2,dim> shear_strain_rate = in.strain_rate[i] - 1./dim * trace(in.strain_rate[i]) * unit_symmetric_tensor<dim>();
+              const double second_strain_rate_invariant = std::sqrt(std::abs(second_invariant(shear_strain_rate)));
 
-              out.densities[i] = 3300.0;
-              out.viscosities[i] = (1 - 2. * spherical_coordinates[1]/numbers::PI) * 1e20 +
-                                   2. * spherical_coordinates[1]/numbers::PI * 1e21;
+              // TODO: if we update the interface of the diffusion_viscosity and dislocation_viscosity functions,
+              // we don't need this vector anymore
+              std::vector<double> composition (in.composition[i]);
+              double grain_size = 1e-3;
 
-              // store unscaled viscosity to compute averaged profile use for compute scaling factor
-              if (unscaled_viscosity_out != nullptr)
+              double diff_viscosity;
+              double effective_viscosity = 1e20;
+              double disl_viscosity = effective_viscosity;
+              out.viscosities[i] = effective_viscosity;
+
+              if ( (unscaled_viscosity_out != nullptr) )
+                unscaled_viscosity_out->output_values[0][i] = std::log10(out.viscosities[i]);
+
+              // If we do not have the strain rate, there is no equilibrium grain size
+              if (second_strain_rate_invariant > 1e-30)
                 {
-                  unscaled_viscosity_out->output_values[0][i] = out.viscosities[i];
+                  unsigned int j = 0;
+                  double old_grain_size = 0.0;
+
+                  //  only goes in this loop during post-processing 
+
+                  // because the diffusion viscosity depends on the grain size itself, and we need it to compute the dislocation strain rate,
+                  // we have to iterate in the computation of the equilibrium grain size
+                  while ((std::abs((grain_size-old_grain_size) / grain_size) > 1e-3) && (j < 100))
+                    {
+                      diff_viscosity = 1e24;
+                      disl_viscosity = 1e22;
+
+                      effective_viscosity = diff_viscosity;
+                      if (std::abs(second_strain_rate_invariant) > 1e-30)
+                        effective_viscosity = diff_viscosity; // * disl_viscosity / (disl_viscosity + diff_viscosity);
+
+                      old_grain_size = grain_size;
+
+                      ++j;
+                    }
+
+                  out.viscosities[i] = effective_viscosity;// 1e26*std::pow(100, spherical_coordinates[1]/numbers::PI) ;
+
+                  if ( (unscaled_viscosity_out != nullptr) )
+                    unscaled_viscosity_out->output_values[0][i] = std::log10(out.viscosities[i]);
+                  if (this->simulator_is_past_initialization() == true && initialized) // using old out.viscosities
+                    {
+                      out.viscosities[i] *= compute_viscosity_scaling(this->get_geometry_model().depth(in.position[i]));
+                    }
                 }
 
-              if (this->simulator_is_past_initialization() == true && this->get_timestep_number() > 0)
-                out.viscosities[i] *= compute_viscosity_scaling(depth);
+              // effective visocisty is 1e20 and then 1e24 before and after the postprocessing steps, respectively,
+              // but the average viscosity is 1e20 and the scaling are computed once using this value.
+
+              if (grain_size_out != NULL)
+                for (unsigned int c=0; c<composition.size(); ++c)
+                  grain_size_out->prescribed_field_outputs[i][c] = 1e-3;
+            }
+          return;
+        }
+
+
+        void evaluate(const MaterialModel::MaterialModelInputs<dim> &in,
+                      MaterialModel::MaterialModelOutputs<dim> &out) const override
+        {
+          for (unsigned int i=0; i < in.n_evaluation_points(); ++i)
+            {
+              out.densities[i] = 3300.0;
+
+              if (in.strain_rate.size() > 0) // this is 0 in solving temperature system
+                {
+                  compute_equilibrium_grain_size(in, out);
+                }
 
               out.compressibilities[i] = 0;
               out.specific_heat[i] = 1200;
               out.thermal_expansion_coefficients[i] = 3e-5;
               out.thermal_conductivities[i] = 4.7;
+
             }
         }
+
 
         bool is_compressible() const override
         {
@@ -278,6 +344,8 @@ namespace aspect
          * the computed viscosity to the reference profile.
          */
         std::vector<double> laterally_averaged_viscosity_profile;
+
+        bool initialized;
     };
   }
 }

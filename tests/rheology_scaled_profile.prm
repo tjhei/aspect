@@ -2,7 +2,9 @@
 
 set Dimension                              = 2
 set Use years in output instead of seconds = true
-set End time                               = 1.0e5
+set End time                               = 0
+set Output directory                       = output_log
+set Additional shared libraries = ./librheology_scaled_profile.so
 
 subsection Material model
   set Model name = scaled viscosity profile
