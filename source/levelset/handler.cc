@@ -188,18 +188,8 @@ namespace aspect
     : sim (simulator)
   {
     this->initialize_simulator(sim);
-//    assembler.initialize_simulator(sim);
     parse_parameters (prm);
-
-    this->get_signals().post_set_initial_state.connect(
-      [&](const SimulatorAccess<dim> &)
-    {
-      //this->set_initial_volume_fractions();
-    });
   }
-
-
-
 
 
 
