@@ -284,6 +284,12 @@ namespace aspect
               break;
             }
 
+            case Parameters<dim>::AdvectionFieldMethod::level_set:
+            {
+              //              level_set_update(adv_field);
+              break;
+            }
+
             case Parameters<dim>::AdvectionFieldMethod::static_field:
             {
               // Do nothing here, but at least call the signal in case the

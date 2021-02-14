@@ -134,6 +134,7 @@ namespace aspect
         fem_field,
         particles,
         volume_of_fluid,
+        level_set,
         static_field,
         fem_melt_field,
         prescribed_field,

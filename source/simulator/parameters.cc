@@ -1167,7 +1167,7 @@ namespace aspect
                          Patterns::List(Patterns::Anything()),
                          "A user-defined name for each of the compositional fields requested.");
       prm.declare_entry ("Compositional field methods", "",
-                         Patterns::List (Patterns::Selection("field|particles|volume of fluid|static|melt field|prescribed field|prescribed field with diffusion")),
+                         Patterns::List (Patterns::Selection("field|particles|volume of fluid|static|melt field|prescribed field|prescribed field with diffusion|level set")),
                          "A comma separated list denoting the solution method of each "
                          "compositional field. Each entry of the list must be "
                          "one of the currently implemented field types."
@@ -1831,6 +1831,8 @@ namespace aspect
                                        "computations."));
               compositional_field_methods[i] = AdvectionFieldMethod::volume_of_fluid;
             }
+          else if (x_compositional_field_methods[i] == "level set")
+            compositional_field_methods[i] = AdvectionFieldMethod::level_set;
           else if (x_compositional_field_methods[i] == "static")
             compositional_field_methods[i] = AdvectionFieldMethod::static_field;
           else if (x_compositional_field_methods[i] == "melt field")
