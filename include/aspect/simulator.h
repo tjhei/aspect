@@ -86,6 +86,9 @@ namespace aspect
   template <int dim, int velocity_degree>
   class StokesMatrixFreeHandlerImplementation;
 
+  template <int dim>
+  class LevelsetHandler;
+
   namespace MeshDeformation
   {
     template <int dim>
@@ -1809,6 +1812,12 @@ namespace aspect
        */
       std::unique_ptr<NewtonHandler<dim> > newton_handler;
 
+      /**
+       * If in use, a pointer to a LevelsetHandler for level set advection.
+       */
+      std::unique_ptr<LevelsetHandler<dim> > level_set_handler;
+
+
       SimulatorSignals<dim>               signals;
 
       const IntermediaryConstructorAction post_signal_creation;
@@ -1823,7 +1832,6 @@ namespace aspect
       std::unique_ptr<VolumeOfFluidHandler<dim> > volume_of_fluid_handler;
 
       Introspection<dim>                  introspection;
-
 
       MPI_Comm                            mpi_communicator;
 
@@ -2091,6 +2099,7 @@ namespace aspect
       friend class SimulatorAccess<dim>;
       friend class MeshDeformation::MeshDeformationHandler<dim>;   // MeshDeformationHandler needs access to the internals of the Simulator
       friend class VolumeOfFluidHandler<dim>; // VolumeOfFluidHandler needs access to the internals of the Simulator
+      friend class LevelsetHandler<dim>; // LevelsetHandler needs access to the internals of the Simulator
       friend class StokesMatrixFreeHandler<dim>;
       template <int dimension, int velocity_degree>
       friend class StokesMatrixFreeHandlerImplementation;

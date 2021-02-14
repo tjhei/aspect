@@ -19,7 +19,6 @@
 */
 
 #include <aspect/global.h>
-#include <aspect/parameters.h>
 #include <aspect/levelset/handler.h>
 
 using namespace dealii;
@@ -308,11 +307,35 @@ namespace aspect
   }
 
 
+  template <int dim>
+  void
+  LevelsetHandler<dim>::solve(const typename Simulator<dim>::AdvectionField &advection_field)
+  {
+    this->get_pcout() << "solving levelset equation..." << std::endl;
 
+    const unsigned int blockidx = advection_field.block_index(sim.introspection);
+    LinearAlgebra::Vector field = sim.solution.block(blockidx);
 
+    this->get_pcout() << "    note: "
+                      << "old t=" << this->get_time()
+                      << " dt=" << this->get_timestep()
+                      << " composition component index=" << advection_field.component_index(sim.introspection)
+                      << std::endl;
 
+    // TODO: update field
 
+    sim.solution.block(blockidx) = field;
 
+    // In the first timestep we might want to initialize all vectors with the
+    // reinitialized levelset
+    if (sim.timestep_number == 0)
+      {
+        // TODO
+        //sim.old_solution.block(blockidx) = ...
+        // sim.old_old_solution.block(blockidx) = ...
+      }
+
+  }
 
 }
 

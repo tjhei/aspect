@@ -21,13 +21,15 @@
 #ifndef _aspect_levelset_handler_h
 #define _aspect_levelset_handler_h
 
-#include <aspect/simulator.h>
 #include <aspect/simulator_access.h>
+#include <aspect/simulator.h>
 
 using namespace dealii;
 
 namespace aspect
 {
+  template <int dim> class Simulator;
+
   /**
    * A member class that isolates the functions and variables that deal
    * with the Volume of Fluid implementation. If Volume of Fluid interface
@@ -44,12 +46,6 @@ namespace aspect
       LevelsetHandler(Simulator<dim> &simulator, ParameterHandler &prm);
 
       /**
-       * Add the Volume of Fluid field declaration to the list to be included
-       * in the solution vector.
-       */
-      void edit_finite_element_variables (std::vector<VariableDeclaration<dim> > &vars);
-
-      /**
        * Declare the parameters this class takes through input files.
        */
       static
@@ -60,7 +56,6 @@ namespace aspect
        */
       void parse_parameters (ParameterHandler &prm);
 
-
       /**
        * Do necessary internal initialization that is dependent on having the
        * simulator and Finite Element initialized.
@@ -68,10 +63,9 @@ namespace aspect
       void initialize (ParameterHandler &prm);
 
       /**
-       * Do initialization routine for all volume of fluid fields
+       * Perform the advection step for the specified field.
        */
-      //void set_initial_volume_fractions ();
-
+      void solve(const typename Simulator<dim>::AdvectionField &advection_field);
 
     private:
       /**

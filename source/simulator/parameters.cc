@@ -1850,6 +1850,11 @@ namespace aspect
         (std::count(compositional_field_methods.begin(),compositional_field_methods.end(),AdvectionFieldMethod::volume_of_fluid)
          > 0);
 
+      // do we have at least one level set equation?
+      have_level_set_equation =
+        (std::find(compositional_field_methods.begin(), compositional_field_methods.end(), AdvectionFieldMethod::level_set)
+         != compositional_field_methods.end());
+
       if (std::find(compositional_field_methods.begin(), compositional_field_methods.end(), AdvectionFieldMethod::fem_melt_field)
           != compositional_field_methods.end())
         AssertThrow (this->include_melt_transport,

@@ -24,6 +24,7 @@
 #include <aspect/utilities.h>
 #include <aspect/melt.h>
 #include <aspect/volume_of_fluid/handler.h>
+#include <aspect/levelset/handler.h>
 #include <aspect/newton.h>
 #include <aspect/stokes_matrix_free.h>
 #include <aspect/mesh_deformation/interface.h>
@@ -146,6 +147,10 @@ namespace aspect
     newton_handler (Parameters<dim>::is_defect_correction(parameters.nonlinear_solver) ?
                     std_cxx14::make_unique<NewtonHandler<dim>>() :
                     nullptr),
+    level_set_handler (parameters.have_level_set_equation ?
+                       std_cxx14::make_unique<LevelsetHandler<dim>> (*this, prm) :
+                       nullptr),
+
     post_signal_creation(
       std::bind (&internals::SimulatorSignals::call_connector_functions<dim>,
                  std::ref(signals))),

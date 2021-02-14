@@ -554,6 +554,7 @@ namespace aspect
     bool                           include_melt_transport;
     bool                           enable_additional_stokes_rhs;
     bool                           enable_prescribed_dilation;
+    bool                           have_level_set_equation;
 
     /**
      * Map from boundary id to a pair "components", "traction boundary type",

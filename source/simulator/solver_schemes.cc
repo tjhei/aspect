@@ -23,6 +23,7 @@
 #include <aspect/global.h>
 #include <aspect/mesh_deformation/free_surface.h>
 #include <aspect/volume_of_fluid/handler.h>
+#include <aspect/levelset/handler.h>
 #include <aspect/newton.h>
 #include <aspect/melt.h>
 
@@ -286,7 +287,8 @@ namespace aspect
 
             case Parameters<dim>::AdvectionFieldMethod::level_set:
             {
-              //              level_set_update(adv_field);
+              TimerOutput::Scope timer (computing_timer, "LevelsetHandler: solve");
+              level_set_handler->solve(adv_field);
               break;
             }
 
