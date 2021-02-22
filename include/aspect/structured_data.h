@@ -231,14 +231,6 @@ namespace aspect
          * this determines the type of data function stored.
          */
         bool coordinate_values_are_equidistant;
-
-        /**
-         * Computes the table indices given the size @p sizes of the
-         * i-th entry.
-         */
-        TableIndices<dim>
-        compute_table_indices(const TableIndices<dim> &sizes, const unsigned int i) const;
-
     };
 
     /**

@@ -33,6 +33,229 @@ namespace aspect
 {
   namespace Utilities
   {
+    namespace internal
+    {
+      /**
+       * Computes the table indices given the size @p sizes of the
+       * i-th entry.
+       */
+      template<int dim>
+      TableIndices<dim>
+      compute_table_indices(const TableIndices<dim> &sizes, const unsigned int i)
+      {
+        TableIndices<dim> idx;
+        idx[0] = i % sizes[0];
+        if (dim >= 2)
+          idx[1] = (i / sizes[0]) % sizes[1];
+        if (dim == 3)
+          idx[2] = i / (sizes[0] * sizes[1]);
+
+        return idx;
+      }
+
+      /**
+       * Parse the contents of the ASCII file given in @p text.
+       *
+       * If the number of data columns is not known, pass numbers::invalid_unsigned_int
+       * to @p n_data_columns.
+       *
+       * Note: The @p filename is only used in error messages.
+       */
+      template <int dim>
+      void parse_ascii(const std::string &filename,
+                       const std::string &text,
+                       const unsigned int n_data_columns,
+                       const double scale_factor,
+                       TableIndices<dim> &new_table_points,
+                       std::vector<std::string> &coordinate_column_names,
+                       std::vector<std::string> &data_column_names,
+                       std::vector<Table<dim,double> > &data_tables,
+                       std::vector<std::vector<double>> &coordinate_values
+                      )
+      {
+        if (dim==1)
+          coordinate_column_names = {"x"};
+        else if (dim==2)
+          coordinate_column_names = {"x", "y"};
+        else if (dim==3)
+          coordinate_column_names = {"x", "y", "z"};
+        else
+          AssertThrow(false, ExcNotImplemented());
+
+        data_column_names.clear();
+
+        unsigned int n_components = n_data_columns;
+
+        std::stringstream in(text);
+
+        // Read header lines and table size
+        while (in.peek() == '#')
+          {
+            std::string line;
+            std::getline(in,line);
+            std::stringstream linestream(line);
+            std::string word;
+            while (linestream >> word)
+              if (word == "POINTS:")
+                for (unsigned int i = 0; i < dim; i++)
+                  {
+                    unsigned int temp_index;
+                    linestream >> temp_index;
+                    new_table_points[i] = temp_index;
+                  }
+          }
+
+
+        for (unsigned int i = 0; i < dim; i++)
+          {
+            AssertThrow(new_table_points[i] != 0,
+                        ExcMessage("Could not successfully read in the file header of the "
+                                   "ascii data file <" + filename + ">. One header line has to "
+                                   "be of the format: '#POINTS: N1 [N2] [N3]', where N1 and "
+                                   "potentially N2 and N3 have to be the number of data points "
+                                   "in their respective dimension. Check for typos in this line "
+                                   "(e.g. a missing space character)."));
+          }
+
+        // Read column lines if present
+        unsigned int name_column_index = 0;
+        double temp_data;
+
+        while (true)
+          {
+            AssertThrow (name_column_index < 100,
+                         ExcMessage("The program found more than 100 columns in the first line of the data file. "
+                                    "This is unlikely intentional. Check your data file and make sure the data can be "
+                                    "interpreted as floating point numbers. If you do want to read a data file with more "
+                                    "than 100 columns, please remove this assertion."));
+
+            std::string column_name_or_data;
+            in >> column_name_or_data;
+            try
+              {
+                // If the data field contains a name this will throw an exception
+                temp_data = boost::lexical_cast<double>(column_name_or_data);
+
+                // If there was no exception we have left the line containing names
+                // and have read the first data field. Save number of components.
+
+                if (name_column_index > dim)
+                  {
+                    // we parsed column names, remember the count:
+                    n_components = name_column_index - dim;
+                  }
+                break;
+              }
+            catch (const boost::bad_lexical_cast &e)
+              {
+                // Transform name to lower case to prevent confusion with capital letters
+                // Note: only ASCII characters allowed
+                std::transform(column_name_or_data.begin(), column_name_or_data.end(), column_name_or_data.begin(), ::tolower);
+
+                if (name_column_index < dim)
+                  {
+                    // The first dim columns are for the coordinates
+                    coordinate_column_names[name_column_index] = column_name_or_data;
+                  }
+                else
+                  {
+                    AssertThrow(std::find(data_column_names.begin(),data_column_names.end(),column_name_or_data)
+                                == data_column_names.end(),
+                                ExcMessage("There are multiple fields named " + column_name_or_data +
+                                           " in the data file " + filename + ". Please remove duplication to "
+                                           "allow for unique association between column and name."));
+
+                    data_column_names.push_back(column_name_or_data);
+                  }
+                ++name_column_index;
+              }
+          }
+
+        AssertThrow(n_components != numbers::invalid_unsigned_int,
+                    ExcMessage("The ascii data file  "
+                               + filename + " does not contain column names, "
+                               "so you need to provide the number of components when "
+                               "loading the file."));
+
+        AssertThrow(n_components > 0 && n_components < 100,
+                    ExcMessage("Invalid number of data columns in the data file "
+                               + filename + ", I found " + Utilities::to_string(n_components)
+                               + " columns."));
+
+        // Create table for the data. This peculiar reinit is necessary, because
+        // there is no constructor for Table, which takes TableIndices as
+        // argument.
+        Table<dim,double> data_table;
+        data_table.TableBase<dim,double>::reinit(new_table_points);
+        data_tables.resize(n_components, data_table);
+
+        coordinate_values.resize(dim);
+        for (unsigned int d=0; d<dim; ++d)
+          coordinate_values[d].resize(new_table_points[d]);
+
+        if (data_column_names.size()==0)
+          {
+            // set default column names:
+            for (unsigned int c=0; c<n_components; ++c)
+              data_column_names.push_back("column " + Utilities::int_to_string(c,2));
+          }
+
+        // Finally read data lines:
+        unsigned int read_data_entries = 0;
+        do
+          {
+            // what row and column of the file are we in?
+            const unsigned int column_num = read_data_entries%(n_components+dim);
+            const unsigned int row_num = read_data_entries/(n_components+dim);
+            TableIndices<dim> idx = internal::compute_table_indices(new_table_points, row_num);
+
+            if (column_num < dim)
+              {
+                // This is a coordinate. Store (and check that they are consistent)
+                const double old_value = coordinate_values[column_num][idx[column_num]];
+
+                AssertThrow(old_value == 0. ||
+                            (std::abs(old_value-temp_data) < 1e-8*std::abs(old_value)),
+                            ExcMessage("Invalid coordinate "
+                                       + Utilities::int_to_string(column_num) + " in row "
+                                       + Utilities::int_to_string(row_num)
+                                       + " in file " + filename +
+                                       "\nThis class expects the coordinates to be structured, meaning "
+                                       "the coordinate values in each coordinate direction repeat exactly "
+                                       "each time."));
+
+                coordinate_values[column_num][idx[column_num]] = temp_data;
+              }
+            else
+              {
+                // This is a data value, so scale and store:
+                const unsigned int component = column_num - dim;
+                data_tables[component](idx) = temp_data * scale_factor;
+              }
+
+            ++read_data_entries;
+          }
+        while (in >> temp_data);
+
+        AssertThrow(in.eof(),
+                    ExcMessage ("While reading the data file '" + filename + "' the ascii data "
+                                "plugin has encountered an error before the end of the file. "
+                                "Please check for malformed data values (e.g. NaN) or superfluous "
+                                "lines at the end of the data file."));
+
+        const unsigned int n_expected_data_entries = (n_components + dim) * data_table.n_elements();
+        AssertThrow(read_data_entries == n_expected_data_entries,
+                    ExcMessage ("While reading the data file '" + filename + "' the ascii data "
+                                "plugin has reached the end of the file, but has not found the "
+                                "expected number of data values considering the spatial dimension, "
+                                "data columns, and number of lines prescribed by the POINTS header "
+                                "of the file. Please check the number of data "
+                                "lines against the POINTS header in the file."));
+      }
+
+
+    }
+
 
     template <int dim>
     StructuredDataLookup<dim>::StructuredDataLookup(const unsigned int components,
@@ -156,7 +379,7 @@ namespace aspect
           const unsigned int n_elements = raw_data[c].n_elements();
           for (unsigned int idx=0; idx<n_elements; ++idx)
             maximum_component_value[c] = std::max(maximum_component_value[c], raw_data[c](
-                                                    compute_table_indices(table_points, idx)));
+                                                    internal::compute_table_indices(table_points, idx)));
         }
 
       // In case the data is specified on a grid that is equidistant
@@ -221,178 +444,46 @@ namespace aspect
     StructuredDataLookup<dim>::load_file(const std::string &filename,
                                          const MPI_Comm &comm)
     {
-      // Grab the values already stored in this class (if they exist), this way we can
-      // check if somebody changes the size of the table over time and error out (see below)
-      TableIndices<dim> new_table_points = this->table_points;
-      std::vector<std::string> column_names;
-
       // Read data from disk and distribute among processes
-      std::stringstream in(read_and_distribute_file_content(filename, comm));
+      const std::string text = read_and_distribute_file_content(filename, comm);
 
-      // Read header lines and table size
-      while (in.peek() == '#')
-        {
-          std::string line;
-          std::getline(in,line);
-          std::stringstream linestream(line);
-          std::string word;
-          while (linestream >> word)
-            if (word == "POINTS:")
-              for (unsigned int i = 0; i < dim; i++)
-                {
-                  unsigned int temp_index;
-                  linestream >> temp_index;
+      // parse file:
+      TableIndices<dim> new_table_points;
+      std::vector<std::string> coordinate_column_names;
+      std::vector<std::string> data_column_names;
+      std::vector<Table<dim,double> > data_tables;
+      std::vector<std::vector<double>> coordinate_values;
 
-                  if (new_table_points[i] == 0)
-                    new_table_points[i] = temp_index;
-                  else
-                    AssertThrow (new_table_points[i] == temp_index,
-                                 ExcMessage("The file grid must not change over model runtime. "
-                                            "Either you prescribed a conflicting number of points in "
-                                            "the input file, or the POINTS comment in your data files "
-                                            "is changing between following files."));
-                }
-        }
+      internal::parse_ascii(filename,
+                            text,
+                            components,
+                            scale_factor,
+                            new_table_points,
+                            coordinate_column_names,
+                            data_column_names,
+                            data_tables,
+                            coordinate_values);
 
-      for (unsigned int i = 0; i < dim; i++)
-        {
-          AssertThrow(new_table_points[i] != 0,
-                      ExcMessage("Could not successfully read in the file header of the "
-                                 "ascii data file <" + filename + ">. One header line has to "
-                                 "be of the format: '#POINTS: N1 [N2] [N3]', where N1 and "
-                                 "potentially N2 and N3 have to be the number of data points "
-                                 "in their respective dimension. Check for typos in this line "
-                                 "(e.g. a missing space character)."));
-        }
+      // validate number of columns:
+      if (components != numbers::invalid_unsigned_int)
+        AssertThrow (components == data_column_names.size(),
+                     ExcMessage("The number of expected data columns and the "
+                                "list of column names at the beginning of the data file "
+                                + filename + " do not match. The file should contain "
+                                "one column name per column (one for each dimension "
+                                "and one per data column)."));
 
-      // Read column lines if present
-      unsigned int name_column_index = 0;
-      double temp_data;
-
-      while (true)
-        {
-          AssertThrow (name_column_index < 100,
-                       ExcMessage("The program found more than 100 columns in the first line of the data file. "
-                                  "This is unlikely intentional. Check your data file and make sure the data can be "
-                                  "interpreted as floating point numbers. If you do want to read a data file with more "
-                                  "than 100 columns, please remove this assertion."));
-
-          std::string column_name_or_data;
-          in >> column_name_or_data;
-          try
-            {
-              // If the data field contains a name this will throw an exception
-              temp_data = boost::lexical_cast<double>(column_name_or_data);
-
-              // If there was no exception we have left the line containing names
-              // and have read the first data field. Save number of components, and
-              // make sure there is no contradiction if the components were already given to
-              // the constructor of this class.
-              if (components == numbers::invalid_unsigned_int)
-                components = name_column_index - dim;
-              else if (name_column_index != 0)
-                AssertThrow (components == name_column_index,
-                             ExcMessage("The number of expected data columns and the "
-                                        "list of column names at the beginning of the data file "
-                                        + filename + " do not match. The file should contain "
-                                        "one column name per column (one for each dimension "
-                                        "and one per data column)."));
-
-              break;
-            }
-          catch (const boost::bad_lexical_cast &e)
-            {
-              // The first dim columns are coordinates and contain no data
-              if (name_column_index >= dim)
-                {
-                  // Transform name to lower case to prevent confusion with capital letters
-                  // Note: only ASCII characters allowed
-                  std::transform(column_name_or_data.begin(), column_name_or_data.end(), column_name_or_data.begin(), ::tolower);
-
-                  AssertThrow(std::find(column_names.begin(),column_names.end(),column_name_or_data)
-                              == column_names.end(),
-                              ExcMessage("There are multiple fields named " + column_name_or_data +
-                                         " in the data file " + filename + ". Please remove duplication to "
-                                         "allow for unique association between column and name."));
-
-                  column_names.push_back(column_name_or_data);
-                }
-              ++name_column_index;
-            }
-        }
-
-      // Create table for the data. This peculiar reinit is necessary, because
-      // there is no constructor for Table, which takes TableIndices as
-      // argument.
-      Table<dim,double> data_table;
-      data_table.TableBase<dim,double>::reinit(new_table_points);
-      std::vector<Table<dim,double> > data_tables(components, data_table);
-
-      std::vector<std::vector<double>> coordinate_values(dim);
+      // Check if somebody changes the size of the table over time:
       for (unsigned int d=0; d<dim; ++d)
-        coordinate_values[d].resize(new_table_points[d]);
-
-      if (column_names.size()==0)
-        {
-          // set default column names:
-          for (unsigned int c=0; c<components; ++c)
-            column_names.push_back("column " + Utilities::int_to_string(c,2));
-        }
-
-      // Finally read data lines:
-      unsigned int read_data_entries = 0;
-      do
-        {
-          // what row and column of the file are we in?
-          const unsigned int column_num = read_data_entries%(components+dim);
-          const unsigned int row_num = read_data_entries/(components+dim);
-          TableIndices<dim> idx = compute_table_indices(new_table_points, row_num);
-
-          if (column_num < dim)
-            {
-              // This is a coordinate. Store (and check that they are consistent)
-              const double old_value = coordinate_values[column_num][idx[column_num]];
-
-              AssertThrow(old_value == 0. ||
-                          (std::abs(old_value-temp_data) < 1e-8*std::abs(old_value)),
-                          ExcMessage("Invalid coordinate "
-                                     + Utilities::int_to_string(column_num) + " in row "
-                                     + Utilities::int_to_string(row_num)
-                                     + " in file " + filename +
-                                     "\nThis class expects the coordinates to be structured, meaning "
-                                     "the coordinate values in each coordinate direction repeat exactly "
-                                     "each time."));
-
-              coordinate_values[column_num][idx[column_num]] = temp_data;
-            }
-          else
-            {
-              // This is a data value, so scale and store:
-              const unsigned int component = column_num - dim;
-              data_tables[component](idx) = temp_data * scale_factor;
-            }
-
-          ++read_data_entries;
-        }
-      while (in >> temp_data);
-
-      AssertThrow(in.eof(),
-                  ExcMessage ("While reading the data file '" + filename + "' the ascii data "
-                              "plugin has encountered an error before the end of the file. "
-                              "Please check for malformed data values (e.g. NaN) or superfluous "
-                              "lines at the end of the data file."));
-
-      const unsigned int n_expected_data_entries = (components + dim) * data_table.n_elements();
-      AssertThrow(read_data_entries == n_expected_data_entries,
-                  ExcMessage ("While reading the data file '" + filename + "' the ascii data "
-                              "plugin has reached the end of the file, but has not found the "
-                              "expected number of data values considering the spatial dimension, "
-                              "data columns, and number of lines prescribed by the POINTS header "
-                              "of the file. Please check the number of data "
-                              "lines against the POINTS header in the file."));
+        if (this->table_points[d] != 0)
+          AssertThrow (new_table_points[d] == table_points[d],
+                       ExcMessage("The file grid must not change over model runtime. "
+                                  "Either you prescribed a conflicting number of points in "
+                                  "the input file, or the POINTS comment in your data files "
+                                  "is changing between following files."));
 
       // finally create the data:
-      this->reinit(column_names, coordinate_values, data_tables);
+      this->reinit(data_column_names, coordinate_values, data_tables);
     }
 
 
@@ -411,21 +502,6 @@ namespace aspect
                                              const unsigned int component)
     {
       return data[component]->gradient(position,0);
-    }
-
-
-    template <int dim>
-    TableIndices<dim>
-    StructuredDataLookup<dim>::compute_table_indices(const TableIndices<dim> &sizes, const unsigned int i) const
-    {
-      TableIndices<dim> idx;
-      idx[0] = i % sizes[0];
-      if (dim >= 2)
-        idx[1] = (i / sizes[0]) % sizes[1];
-      if (dim == 3)
-        idx[2] = i / (sizes[0] * sizes[1]);
-
-      return idx;
     }
 
 
