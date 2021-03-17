@@ -24,10 +24,116 @@
 #include <aspect/simulator_access.h>
 #include <aspect/simulator.h>
 
+#include <deal.II/base/conditional_ostream.h>
+#include <deal.II/base/function.h>
+#include <deal.II/base/logstream.h>
+#include <deal.II/base/timer.h>
+#include <deal.II/base/utilities.h>
+#include <deal.II/base/vectorization.h>
+#include <deal.II/base/time_stepping.h>
+
+#include <deal.II/distributed/tria.h>
+
+#include <deal.II/dofs/dof_handler.h>
+
+#include <deal.II/fe/fe_dgq.h>
+#include <deal.II/fe/fe_q.h>
+#include <deal.II/fe/fe_system.h>
+
+#include <deal.II/grid/grid_generator.h>
+#include <deal.II/grid/tria.h>
+#include <deal.II/grid/tria_accessor.h>
+#include <deal.II/grid/tria_iterator.h>
+
+#include <deal.II/lac/affine_constraints.h>
+#include <deal.II/lac/la_parallel_vector.h>
+#include <deal.II/lac/block_vector.h>
+
+#include <deal.II/matrix_free/fe_evaluation.h>
+#include <deal.II/matrix_free/matrix_free.h>
+#include <deal.II/matrix_free/operators.h>
+
+#include <deal.II/numerics/data_out.h>
+#include <deal.II/numerics/vector_tools.h>
 using namespace dealii;
 
 namespace aspect
 {
+
+  namespace internal {
+    using Number = double;
+    using vectorType = dealii::LinearAlgebra::distributed::Vector<Number>;
+
+    template <int dim, int degree, int velocity_degree, int n_points_1d>
+    class LevelsetOperator
+    {
+    public:
+      LevelsetOperator(TimerOutput &timer_output);
+
+      void
+      reinit(const Mapping<dim> &                                 mapping,
+             const std::vector<const DoFHandler<dim> *>          &dof_handlers,
+             const std::vector<const AffineConstraints<double> *> constraints,
+             const std::vector<Quadrature<1>>                     quadratures);
+
+      void initialize_vector(vectorType &vector,
+                             const unsigned int no_dof = 0) const;
+
+      void apply_forward_euler(
+        const double time_step,
+        const std::vector<vectorType *> &src,
+        vectorType &dst) const;
+
+      vectorType
+      apply(const double current_time,
+            const double step_time,
+            const double old_time_step,
+            const vectorType &old_velocity,
+            const vectorType &old_old_velocity,
+            const vectorType &src) const;
+
+      void perform_stage(
+        const double                                     time_step,
+        const double                                     bi,
+        const double                                     ai,
+        const vectorType levelset_old_solution,
+        const std::vector<vectorType *> &src,
+        vectorType &dst) const;
+
+    private:
+      MatrixFree<dim, Number> data;
+
+      TimerOutput &timer;
+
+      VectorizedArray<Number> lambda;
+
+      void local_apply_inverse_mass_matrix(
+        const MatrixFree<dim, Number> &                   data,
+        vectorType &      dst,
+        const vectorType &src,
+        const std::pair<unsigned int, unsigned int> &     cell_range) const;
+
+      void local_apply_cell(
+        const MatrixFree<dim, Number> &                                  data,
+        vectorType &                     dst,
+        const std::vector<vectorType *> &src,
+        const std::pair<unsigned int, unsigned int> &cell_range) const;
+
+      void local_apply_face(
+        const MatrixFree<dim, Number> &                                  data,
+        vectorType &                     dst,
+        const std::vector<vectorType *> &src,
+        const std::pair<unsigned int, unsigned int> &cell_range) const;
+
+      void local_apply_boundary_face(
+        const MatrixFree<dim, Number> &                                  data,
+        vectorType &                     dst,
+        const std::vector<vectorType *> &src,
+        const std::pair<unsigned int, unsigned int> &cell_range) const;
+    };
+
+  }
+
   template <int dim> class Simulator;
 
   /**
@@ -72,6 +178,12 @@ namespace aspect
        * Parent simulator
        */
       Simulator<dim> &sim;
+
+      DoFHandler<dim> dof_handler_v;
+      DoFHandler<dim> dof_handler_levelset;
+
+      FESystem<dim> fe_v;
+      FE_DGQ<dim> fe_levelset;
 
 
       friend class Simulator<dim>;
