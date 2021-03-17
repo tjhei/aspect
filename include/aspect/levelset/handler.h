@@ -168,6 +168,8 @@ namespace aspect
        */
       void initialize (ParameterHandler &prm);
 
+      void setup_dofs();
+
       /**
        * Perform the advection step for the specified field.
        */

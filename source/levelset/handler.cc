@@ -21,6 +21,9 @@
 #include <aspect/global.h>
 #include <aspect/levelset/handler.h>
 
+
+#include <deal.II/dofs/dof_renumbering.h>
+
 using namespace dealii;
 
 namespace aspect
@@ -434,9 +437,6 @@ namespace aspect
                                          ParameterHandler &prm)
     : sim (simulator),
 
-      dof_handler_v(),
-      dof_handler_levelset(),
-
       fe_v (FE_Q<dim>(sim.parameters.stokes_velocity_degree), dim),
       fe_levelset (sim.parameters.composition_degree)
 
@@ -487,8 +487,38 @@ namespace aspect
     AssertThrow(!this->get_parameters().include_melt_transport,
                 ExcMessage("The levelset method has not been tested with melt transport yet, so inclusion of both is currently disabled."))
 
+#if DEAL_II_VERSION_GTE(9,3,0)
+    dof_handler_levelset.reinit(sim.triangulation);
+    dof_handler_v.reinit(sim.triangulation);
+#endif
   }
 
+  template <int dim>
+  void
+  LevelsetHandler<dim>::setup_dofs ()
+  {
+    this->get_pcout() << "LevelsetHandler::setup_dofs()..." << std::endl;
+
+    dof_handler_v.clear();
+
+#if DEAL_II_VERSION_GTE(9,3,0)
+    dof_handler_v.distribute_dofs(fe_v);
+#else
+    dof_handler_v.initialize(sim.triangulation, fe_v);
+#endif
+
+    DoFRenumbering::hierarchical(dof_handler_v);
+
+
+    dof_handler_levelset.clear();
+#if DEAL_II_VERSION_GTE(9,3,0)
+    dof_handler_levelset.distribute_dofs(fe_levelset);
+#else
+    dof_handler_levelset.initialize(sim.triangulation, fe_levelset);
+#endif
+    DoFRenumbering::hierarchical(dof_handler_levelset);
+
+  }
 
   template <int dim>
   void
