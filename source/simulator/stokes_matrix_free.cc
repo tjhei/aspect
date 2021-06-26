@@ -1219,7 +1219,7 @@ namespace aspect
     // This is not terribly complicated, but we need to check that constraints
     // are set correctly, that the preconditioner converges, and requires
     // testing.
-    AssertThrow(sim.geometry_model->get_periodic_boundary_pairs().size()==0, ExcNotImplemented());
+    //AssertThrow(sim.geometry_model->get_periodic_boundary_pairs().size()==0, ExcNotImplemented());
 
     // We currently only support averaging that gives a constant value:
     using avg = MaterialModel::MaterialAveraging::AveragingOperation;
@@ -2000,6 +2000,16 @@ namespace aspect
           }
       }
 
+    sim.pcout << "Schur iterations: " << preconditioner_cheap.n_iterations_Schur_complement()
+          << "+"
+          << preconditioner_expensive.n_iterations_Schur_complement()
+          << std::endl;
+    sim.pcout << "A iterations: " << preconditioner_cheap.n_iterations_A_block()
+          << "+"
+          << preconditioner_expensive.n_iterations_A_block()
+          << std::endl;
+
+
     //signal successful solver
     sim.signals.post_stokes_solver(sim,
                                    preconditioner_cheap.n_iterations_Schur_complement() + preconditioner_expensive.n_iterations_Schur_complement(),
@@ -2066,6 +2076,22 @@ namespace aspect
       DoFTools::extract_locally_relevant_dofs (dof_handler_v,
                                                locally_relevant_dofs);
       constraints_v.reinit(locally_relevant_dofs);
+
+
+      {
+        typedef std::set< std::pair< std::pair< types::boundary_id, types::boundary_id>, unsigned int> >
+        periodic_boundary_set;
+        periodic_boundary_set pbs = sim.geometry_model->get_periodic_boundary_pairs();
+
+        for (periodic_boundary_set::iterator p = pbs.begin(); p != pbs.end(); ++p)
+          {
+            DoFTools::make_periodicity_constraints(dof_handler_v,
+                                                   (*p).first.first,  // first boundary id
+                                                   (*p).first.second, // second boundary id
+                                                   (*p).second,       // cartesian direction for translational symmetry
+                                                   constraints_v);
+          }
+      }
       DoFTools::make_hanging_node_constraints (dof_handler_v, constraints_v);
       sim.compute_initial_velocity_boundary_constraints(constraints_v);
       sim.compute_current_velocity_boundary_constraints(constraints_v);
@@ -2092,6 +2118,21 @@ namespace aspect
       DoFTools::extract_locally_relevant_dofs (dof_handler_p,
                                                locally_relevant_dofs);
       constraints_p.reinit(locally_relevant_dofs);
+      //if (false)
+        {
+        typedef std::set< std::pair< std::pair< types::boundary_id, types::boundary_id>, unsigned int> >
+        periodic_boundary_set;
+        periodic_boundary_set pbs = sim.geometry_model->get_periodic_boundary_pairs();
+
+        for (periodic_boundary_set::iterator p = pbs.begin(); p != pbs.end(); ++p)
+          {
+            DoFTools::make_periodicity_constraints(dof_handler_p,
+                                                   (*p).first.first,  // first boundary id
+                                                   (*p).first.second, // second boundary id
+                                                   (*p).second,       // cartesian direction for translational symmetry
+                                                   constraints_p);
+          }
+      }
       DoFTools::make_hanging_node_constraints (dof_handler_p, constraints_p);
       constraints_p.close();
     }
