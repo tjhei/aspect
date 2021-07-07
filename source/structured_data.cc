@@ -96,15 +96,45 @@ namespace aspect
             std::stringstream linestream(line);
             std::string word;
             while (linestream >> word)
-              if (word == "POINTS:")
-                for (unsigned int i = 0; i < dim; i++)
+              {
+                if (word == "POINTS:")
+                  for (unsigned int i = 0; i < dim; i++)
+                    {
+                      unsigned int temp_index;
+                      linestream >> temp_index;
+                      new_table_points[i] = temp_index;
+                    }
+                if (word == "Columns:")
                   {
-                    unsigned int temp_index;
-                    linestream >> temp_index;
-                    new_table_points[i] = temp_index;
+                    unsigned int idx = 0;
+                    while (linestream >> word)
+                      {
+                        // skip units with spaces before
+                        if (word[0]=='[' || word[0]=='(')
+                          continue;
+
+                        if (idx<dim)
+                          coordinate_column_names[idx] = word;
+                        else
+                          data_column_names.push_back(word);
+                        ++idx;
+                      }
                   }
+              }
           }
 
+        if (data_column_names.size()>0 && n_components != numbers::invalid_unsigned_int)
+          {
+            AssertThrow(data_column_names.size() == n_components,
+                        ExcMessage("Could not successfully read in the file header of the "
+                                   "ascii data file <" + filename + ">. The Columns: header "
+                                   "contains " + Utilities::to_string(data_column_names.size())
+                                   + " columns, while the load function expects "
+                                   + Utilities::to_string(n_components)
+                                   + " columns."));
+          }
+            else
+            n_components = data_column_names.size();
 
         for (unsigned int i = 0; i < dim; i++)
           {
