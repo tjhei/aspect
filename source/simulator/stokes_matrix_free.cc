@@ -744,7 +744,16 @@ namespace aspect
                                                           velocity.get_symmetric_gradient (q);
             VectorizedArray<number> pres = pressure.get_value(q);
             VectorizedArray<number> div = trace(sym_grad_u);
-            pressure.submit_value(-pressure_scaling*div, q);
+            VectorizedArray<number> newton_pressure_term(0.);
+            if (strain_rate_table != nullptr)
+              {
+                //derivative_scaling_factor * pressure_scaling * 2.0 * viscosity_derivative_wrt_pressure
+                //* scratch.phi_p[j] * (scratch.grads_phi_u[i] * strain_rate) )
+                newton_pressure_term = derivative_scaling_factor * pressure_scaling * 2.0
+                                       * (*viscosity_derivative_wrt_pressure_table)(cell,q)
+                                       * (sym_grad_u * (*strain_rate_table)(cell,q));
+              }
+            pressure.submit_value(-pressure_scaling*div + newton_pressure_term, q);
 
             sym_grad_u *= viscosity_x_2;
 
@@ -754,6 +763,24 @@ namespace aspect
             if (is_compressible)
               for (unsigned int d=0; d<dim; ++d)
                 sym_grad_u[d][d] -= viscosity_x_2/3.0*div;
+
+            if (strain_rate_table != nullptr)
+              {
+                SymmetricTensor<2,dim,VectorizedArray<number>> grads_phi_u_i =
+                                                              velocity.get_symmetric_gradient (q);
+                // deta_deps_times_eps_times_phi[i]
+                // = (viscosity_derivative_wrt_strain_rate * scratch.grads_phi_u[i]) * strain_rate;
+                // derivative_scaling_factor * alpha *
+                //   (scratch.grads_phi_u[i] * deta_deps_times_eps_times_phi[j]
+                //    +scratch.grads_phi_u[j] * deta_deps_times_eps_times_phi[i])
+                sym_grad_u += derivative_scaling_factor * (*alpha)(cell, q)
+                              * ((grads_phi_u_i * (*strain_rate_table)(cell,q))
+                                 * (*viscosity_derivative_wrt_strain_rate_table)(cell,q)
+                                 +
+                                 ((*viscosity_derivative_wrt_strain_rate_table)(cell,q)*grads_phi_u_i)
+                                 * (*strain_rate_table)(cell,q));
+
+              }
 
             velocity.submit_symmetric_gradient(sym_grad_u, q);
           }
@@ -1080,6 +1107,23 @@ namespace aspect
                 for (unsigned int d=0; d<dim; ++d)
                   sym_grad_u[d][d] -= 1.0/3.0*div;
               }
+            if (strain_rate_table != nullptr)
+              {
+                SymmetricTensor<2,dim,VectorizedArray<number>> grads_phi_u_i =
+                                                              velocity.get_symmetric_gradient (q);
+                // deta_deps_times_eps_times_phi[i]
+                // = (viscosity_derivative_wrt_strain_rate * scratch.grads_phi_u[i]) * strain_rate;
+                // derivative_scaling_factor * alpha *
+                //   (scratch.grads_phi_u[i] * deta_deps_times_eps_times_phi[j]
+                //    +scratch.grads_phi_u[j] * deta_deps_times_eps_times_phi[i])
+                sym_grad_u += derivative_scaling_factor * (*alpha)(cell, q)
+                              * ((grads_phi_u_i * (*strain_rate_table)(cell,q))
+                                 * (*viscosity_derivative_wrt_strain_rate_table)(cell,q)
+                                 +
+                                 ((*viscosity_derivative_wrt_strain_rate_table)(cell,q)*grads_phi_u_i)
+                                 * (*strain_rate_table)(cell,q));
+              }
+
             velocity.submit_symmetric_gradient(sym_grad_u, q);
           }
 #if DEAL_II_VERSION_GTE(9,3,0)
@@ -1088,7 +1132,6 @@ namespace aspect
         velocity.integrate (false,true);
         velocity.distribute_local_to_global (dst);
 #endif
-
       }
   }
 

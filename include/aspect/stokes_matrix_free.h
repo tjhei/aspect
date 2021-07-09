@@ -118,6 +118,19 @@ namespace aspect
          */
         double pressure_scaling;
 
+        const Table<2, VectorizedArray<number>>
+                                             *viscosity_derivative_wrt_pressure_table;
+
+        const Table<2, SymmetricTensor<2, dim, VectorizedArray<number>>>
+        *strain_rate_table;
+
+        const Table<2, SymmetricTensor<2, dim, VectorizedArray<number>>>
+        *viscosity_derivative_wrt_strain_rate_table;
+
+        const Table<2, VectorizedArray<number>> *alpha;
+
+        double derivative_scaling_factor;
+
         /**
           * Information on the compressibility of the flow.
           */
@@ -267,6 +280,19 @@ namespace aspect
          * Table which stores viscosity values for each cell.
          */
         const Table<2, VectorizedArray<number>> *viscosity;
+
+        const Table<2, VectorizedArray<number>>
+                                             *viscosity_derivative_wrt_pressure_table;
+
+        const Table<2, SymmetricTensor<2, dim, VectorizedArray<number>>>
+        *strain_rate_table;
+
+        const Table<2, SymmetricTensor<2, dim, VectorizedArray<number>>>
+        *viscosity_derivative_wrt_strain_rate_table;
+
+        const Table<2, VectorizedArray<number>> *alpha;
+
+        double derivative_scaling_factor;
 
         /**
           * Information on the compressibility of the flow.
@@ -542,6 +568,19 @@ namespace aspect
 
       Table<2, VectorizedArray<double>> active_viscosity_table;
       MGLevelObject<Table<2, VectorizedArray<GMGNumberType>>> level_viscosity_tables;
+
+      Table<2, VectorizedArray<double>>
+                                     active_viscosity_derivative_wrt_pressure_table;
+      MGLevelObject<Table<2, VectorizedArray<GMGNumberType>>>
+      level_viscosity_derivative_wrt_pressure_tables;
+
+      Table<2, SymmetricTensor<2, dim, VectorizedArray<double>>> active_strain_rate_table;
+      MGLevelObject<Table<2, SymmetricTensor<2,dim, VectorizedArray<GMGNumberType>>>> level_strain_rate_tables;
+
+      Table<2, SymmetricTensor<2, dim, VectorizedArray<double>>>
+      active_viscosity_derivative_wrt_strain_rate_table;
+      MGLevelObject<Table<2, SymmetricTensor<2,dim, VectorizedArray<GMGNumberType>>>>
+      level_viscosity_derivative_wrt_strain_rate_tables;
 
       // This variable is needed only in the setup in both evaluate_material_model()
       // and build_preconditioner(). It will be deleted after the last use.
