@@ -84,6 +84,14 @@ namespace aspect
                              const double pressure_scaling,
                              const bool is_compressible);
 
+        void fill_Newton_cell_data (const Table<2, VectorizedArray<number>>
+                                    &viscosity_derivative_wrt_pressure_table,
+                                    const Table<2, SymmetricTensor<2, dim, VectorizedArray<number>>>
+                                    &strain_rate_table,
+                                    const Table<2, SymmetricTensor<2, dim, VectorizedArray<number>>>
+                                    &viscosity_derivative_wrt_strain_rate_table,
+                                    const bool symmetric_derivatives);
+
         /**
          * Computes the diagonal of the matrix. Since matrix-free operators have not access
          * to matrix elements, we must apply the matrix-free operator to the unit vectors to
