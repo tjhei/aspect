@@ -705,6 +705,7 @@ namespace aspect
     this->viscosity_derivative_wrt_pressure_table = &viscosity_derivative_wrt_pressure_table;
     this->strain_rate_table = &strain_rate_table;
     this->viscosity_derivative_wrt_strain_rate_table = &viscosity_derivative_wrt_strain_rate_table;
+    is_symmetric = symmetric_derivatives;
   }
 
 
@@ -806,10 +807,10 @@ namespace aspect
                 sym_grad_u +=  (grads_phi_u_i * (*strain_rate_table)(cell,q))
                                * (*viscosity_derivative_wrt_strain_rate_table)(cell,q);
 
-                //if (symmetric)
-                sym_grad_u +=
-                  ((*viscosity_derivative_wrt_strain_rate_table)(cell,q)*grads_phi_u_i)
-                  * (*strain_rate_table)(cell,q);
+//                if (is_symmetric)
+                  sym_grad_u +=
+                    ((*viscosity_derivative_wrt_strain_rate_table)(cell,q)*grads_phi_u_i)
+                    * (*strain_rate_table)(cell,q);
 
               }
 
@@ -1095,6 +1096,23 @@ namespace aspect
     this->is_compressible = is_compressible;
   }
 
+  template <int dim, int degree_v, typename number>
+  void
+  MatrixFreeStokesOperators::ABlockOperator<dim,degree_v,number>::
+  fill_Newton_cell_data (const Table<2, VectorizedArray<number>>
+                         &viscosity_derivative_wrt_pressure_table,
+                         const Table<2, SymmetricTensor<2, dim, VectorizedArray<number>>>
+                         &strain_rate_table,
+                         const Table<2, SymmetricTensor<2, dim, VectorizedArray<number>>>
+                         &viscosity_derivative_wrt_strain_rate_table,
+                         const bool symmetric_derivatives)
+  {
+    this->viscosity_derivative_wrt_pressure_table = &viscosity_derivative_wrt_pressure_table;
+    this->strain_rate_table = &strain_rate_table;
+    this->viscosity_derivative_wrt_strain_rate_table = &viscosity_derivative_wrt_strain_rate_table;
+    is_symmetric = symmetric_derivatives;
+  }
+
 
 
   template <int dim, int degree_v, typename number>
@@ -1139,24 +1157,29 @@ namespace aspect
                   sym_grad_u[d][d] -= 1.0/3.0*div;
               }
 
-            if (strain_rate_table != nullptr)
-              {
-                SymmetricTensor<2,dim,VectorizedArray<number>> grads_phi_u_i =
-                                                              velocity.get_symmetric_gradient (q);
+//            if (strain_rate_table != nullptr)
+//              {
+//                SymmetricTensor<2,dim,VectorizedArray<number>> grads_phi_u_i =
+//                                                              velocity.get_symmetric_gradient (q);
                 // deta_deps_times_eps_times_phi[i]
                 // = (viscosity_derivative_wrt_strain_rate * scratch.grads_phi_u[i]) * strain_rate;
+
                 // derivative_scaling_factor * alpha *
                 //   (scratch.grads_phi_u[i] * deta_deps_times_eps_times_phi[j]
                 //    +scratch.grads_phi_u[j] * deta_deps_times_eps_times_phi[i])
+
                 // Note that derivative_scaling_factor * alpha is multiplied to
                 // viscosity_derivative_wrt_strain_rate_table
-                sym_grad_u +=  (grads_phi_u_i * (*strain_rate_table)(cell,q))
-                               * (*viscosity_derivative_wrt_strain_rate_table)(cell,q)
-                               +
-                               ((*viscosity_derivative_wrt_strain_rate_table)(cell,q)*grads_phi_u_i)
-                               * (*strain_rate_table)(cell,q);
 
-              }
+//                sym_grad_u +=  (grads_phi_u_i * (*strain_rate_table)(cell,q))
+//                               * (*viscosity_derivative_wrt_strain_rate_table)(cell,q);
+
+//                if (is_symmetric)
+//                  sym_grad_u +=
+//                    ((*viscosity_derivative_wrt_strain_rate_table)(cell,q)*grads_phi_u_i)
+//                    * (*strain_rate_table)(cell,q);
+
+//              }
 
             velocity.submit_symmetric_gradient(sym_grad_u, q);
           }
@@ -1687,11 +1710,10 @@ namespace aspect
           const double newton_derivative_scaling_factor =
             sim.newton_handler->parameters.newton_derivative_scaling_factor;
 
-          // TODO: store bool
-//is_symmetric =
-          //            ((this->get_newton_handler().parameters.preconditioner_stabilization& Newton::Parameters::Stabilization::symmetric) != Newton::Parameters::Stabilization::none);
-
-
+          bool is_symmetric =
+            ((sim.newton_handler->parameters.preconditioner_stabilization
+              & Newton::Parameters::Stabilization::symmetric)
+             != Newton::Parameters::Stabilization::none);
 
           FEValues<dim> fe_values (*sim.mapping,
                                    sim.finite_element,
@@ -1777,6 +1799,20 @@ namespace aspect
                     }
                 }
             }
+
+          stokes_matrix.fill_Newton_cell_data(active_viscosity_derivative_wrt_pressure_table,
+                                              active_strain_rate_table,
+                                              active_viscosity_derivative_wrt_strain_rate_table,
+                                              is_symmetric);
+
+          if (sim.parameters.n_expensive_stokes_solver_steps > 0)
+            {
+              A_block_matrix.fill_Newton_cell_data(active_viscosity_derivative_wrt_pressure_table,
+                                                   active_strain_rate_table,
+                                                   active_viscosity_derivative_wrt_strain_rate_table,
+                                                   is_symmetric);
+            }
+
         }
       else
         {
@@ -1784,6 +1820,7 @@ namespace aspect
 
 
         }
+
     }
   }
 
