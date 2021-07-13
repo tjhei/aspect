@@ -1766,6 +1766,9 @@ namespace aspect
                       const MaterialModel::MaterialModelDerivatives<dim> *derivatives
                         = out.template get_additional_output<MaterialModel::MaterialModelDerivatives<dim> >();
 
+                      if(derivatives == nullptr)
+                        goto DERIVATIVES_ARE_NULL;
+
                       const double viscosity_derivative_wrt_pressure
                         = derivatives->viscosity_derivative_wrt_pressure[q];
 
@@ -1816,9 +1819,10 @@ namespace aspect
         }
       else
         {
-          // TODO: delete the tables
-
-
+          DERIVATIVES_ARE_NULL:
+          active_strain_rate_table.reinit(TableIndices<2>(0,0));
+          active_viscosity_derivative_wrt_pressure_table.reinit(TableIndices<2>(0,0));
+          active_viscosity_derivative_wrt_strain_rate_table.reinit(TableIndices<2>(0,0));
         }
 
     }
