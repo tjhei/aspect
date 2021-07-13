@@ -1,20 +1,6 @@
 # A description of viscoplastic convection in a 2d box as
 # described in Tosi et al. (2015).
 
-subsection Solver parameters
-  subsection Matrix Free
-    set Output details = true
-  end
-  subsection Stokes solver parameters
-    set Stokes solver type = block GMG
-    set Number of cheap Stokes solver steps             = 200
-#    set Maximum number of expensive Stokes solver steps = 0
-    set Linear solver tolerance                         = 1e-6
-#    set GMRES solver restart length                     = 100
-  end
-end
-
-
 # We add the necessary plugins through a shared library
 set Additional shared libraries            = $ASPECT_SOURCE_DIR/benchmarks/tosi_et_al_2015_gcubed/libtosi_benchmark.so
 
@@ -27,7 +13,7 @@ set Dimension                              = 2
 # Stokes solves.
 set Use years in output instead of seconds = false
 set End time                               = 0.0025
-set Output directory                       = output-gmg
+set Output directory                       = output-compare
 set Nonlinear solver scheme                = iterated Advection and Newton Stokes
 set Max nonlinear iterations               = 30
 set Nonlinear solver tolerance             = 1e-7
@@ -122,7 +108,7 @@ end
 subsection Material model
   set Model name = TosiMaterial
   set Material averaging = harmonic average
-
+  
   subsection Tosi benchmark
     set Reference density             = 1
     set Reference specific heat       = 1
