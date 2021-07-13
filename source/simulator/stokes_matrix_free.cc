@@ -808,9 +808,9 @@ namespace aspect
                                * (*viscosity_derivative_wrt_strain_rate_table)(cell,q);
 
 //                if (is_symmetric)
-                  sym_grad_u +=
-                    ((*viscosity_derivative_wrt_strain_rate_table)(cell,q)*grads_phi_u_i)
-                    * (*strain_rate_table)(cell,q);
+                sym_grad_u +=
+                  ((*viscosity_derivative_wrt_strain_rate_table)(cell,q)*grads_phi_u_i)
+                  * (*strain_rate_table)(cell,q);
 
               }
 
@@ -1161,15 +1161,15 @@ namespace aspect
 //              {
 //                SymmetricTensor<2,dim,VectorizedArray<number>> grads_phi_u_i =
 //                                                              velocity.get_symmetric_gradient (q);
-                // deta_deps_times_eps_times_phi[i]
-                // = (viscosity_derivative_wrt_strain_rate * scratch.grads_phi_u[i]) * strain_rate;
+            // deta_deps_times_eps_times_phi[i]
+            // = (viscosity_derivative_wrt_strain_rate * scratch.grads_phi_u[i]) * strain_rate;
 
-                // derivative_scaling_factor * alpha *
-                //   (scratch.grads_phi_u[i] * deta_deps_times_eps_times_phi[j]
-                //    +scratch.grads_phi_u[j] * deta_deps_times_eps_times_phi[i])
+            // derivative_scaling_factor * alpha *
+            //   (scratch.grads_phi_u[i] * deta_deps_times_eps_times_phi[j]
+            //    +scratch.grads_phi_u[j] * deta_deps_times_eps_times_phi[i])
 
-                // Note that derivative_scaling_factor * alpha is multiplied to
-                // viscosity_derivative_wrt_strain_rate_table
+            // Note that derivative_scaling_factor * alpha is multiplied to
+            // viscosity_derivative_wrt_strain_rate_table
 
 //                sym_grad_u +=  (grads_phi_u_i * (*strain_rate_table)(cell,q))
 //                               * (*viscosity_derivative_wrt_strain_rate_table)(cell,q);
