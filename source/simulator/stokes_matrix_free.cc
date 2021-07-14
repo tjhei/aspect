@@ -1725,6 +1725,7 @@ namespace aspect
 
           MaterialModel::MaterialModelInputs<dim> in(fe_values.n_quadrature_points, sim.introspection.n_compositional_fields);
           MaterialModel::MaterialModelOutputs<dim> out(fe_values.n_quadrature_points, sim.introspection.n_compositional_fields);
+          sim.newton_handler->create_material_model_outputs(out);
 #if DEAL_II_VERSION_GTE(9,3,0)
           const unsigned int n_cells = stokes_matrix.get_matrix_free()->n_cell_batches();
 #else
