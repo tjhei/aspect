@@ -41,26 +41,25 @@ namespace aspect
       for (unsigned int i=0; i < in.n_evaluation_points(); ++i)
         {
           const double delta_temp = in.temperature[i]-reference_T;
-          const double temperature_dependence
-            = (reference_T > 0
-               ?
-               std::max(std::min(std::exp(-thermal_viscosity_exponent *
-                                          delta_temp/reference_T),
-                                 maximum_thermal_prefactor),
-                        minimum_thermal_prefactor)
-               :
-               1.0);
 
-          out.viscosities[i] = ((composition_viscosity_prefactor != 1.0) && (in.composition[i].size()>0))
-                               ?
-                               // Geometric interpolation
-                               std::pow(10.0, ((1-in.composition[i][0]) * std::log10(eta *
-                                                                                     temperature_dependence)
-                                               + in.composition[i][0] * std::log10(eta *
-                                                                                   composition_viscosity_prefactor *
-                                                                                   temperature_dependence)))
-                               :
-                               temperature_dependence * eta;
+       if (in.requests_property(MaterialProperties::viscosity) )
+                 {
+                   const double temperature = in.temperature[i];
+            const double reference_temperature = this->get_adiabatic_conditions().temperature(in.position[i]);
+            const double delta_temperature = in.temperature[i]-reference_T;
+
+            const double lateral_viscosity_prefactor = 50000.0;
+            const double max_eta = 5e22;
+            const double min_eta = 1e17;
+            const double reference_eta = 1e21;
+
+            // Steinberger & Calderwood viscosity
+            double vis_lateral = std::exp(-lateral_viscosity_prefactor*delta_temperature/(temperature*reference_temperature));
+            if (std::isnan(vis_lateral))
+              vis_lateral = 1.0;
+
+            out.viscosities[i] = std::max(std::min(vis_lateral * reference_eta,max_eta),min_eta);
+          }
 
           equation_of_state.evaluate(in, i, eos_outputs);
 

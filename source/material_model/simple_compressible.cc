@@ -38,7 +38,25 @@ namespace aspect
           const double temperature = in.temperature[i];
           const double pressure = in.pressure[i];
 
-          out.viscosities[i] = constant_rheology.compute_viscosity();
+                    // Calculate Viscosity
+       if (in.requests_property(MaterialProperties::viscosity) )
+                 {
+            const double reference_temperature = this->get_adiabatic_conditions().temperature(in.position[i]);
+            const double delta_temperature = temperature-reference_temperature;
+
+            const double lateral_viscosity_prefactor = 50000.0;
+            const double max_eta = 5e22;
+            const double min_eta = 1e17;
+            const double reference_eta = 1e21;
+
+            // Steinberger & Calderwood viscosity
+            double vis_lateral = std::exp(-lateral_viscosity_prefactor*delta_temperature/(temperature*reference_temperature));
+            if (std::isnan(vis_lateral))
+              vis_lateral = 1.0;
+
+            out.viscosities[i] = std::max(std::min(vis_lateral * reference_eta,max_eta),min_eta);
+          }
+
           out.specific_heat[i] = reference_specific_heat;
           out.thermal_conductivities[i] = k_value;
           out.thermal_expansion_coefficients[i] = thermal_alpha;
