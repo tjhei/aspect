@@ -7,8 +7,8 @@
 
 set Additional shared libraries            = ./libnsinker.so
 
-set Number of timings = 5
-set Timing output directory = timings/
+#set Number of timings = 5
+#set Timing output directory = timings/
 
 set Dimension                              = 3 
 set End time                               = 0
@@ -25,7 +25,11 @@ subsection Solver parameters
     set Maximum number of expensive Stokes solver steps = 0
     set Linear solver tolerance                         = 1e-6
     set GMRES solver restart length                     = 100
+    #set Krylov method for cheap solver steps = IDR(s)
   end
+ subsection Matrix Free
+   set Output details = true
+ end
 end
 
 
@@ -88,6 +92,7 @@ end
 
 subsection Postprocess
   set List of postprocessors = memory statistics
+  
   subsection Memory statistics
     set Output peak virtual memory (VmPeak) = true
   end
