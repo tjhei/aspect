@@ -1,0 +1,45 @@
+#!/bin/bash
+#SBATCH -J myjob           # Job name
+#SBATCH -o myjob.o%j       # Name of stdout output file
+#SBATCH -e myjob.e%j       # Name of stderr error file
+#SBATCH -p normal      # normal|development|large
+#SBATCH -N 32               # Total # of nodes 
+#SBATCH -n 1792              # Total # of mpi tasks (56 cores/node)
+#SBATCH -t 06:00:00        # Run time (hh:mm:ss)
+
+. $WORK/env-1-intel/enable.sh
+
+echo "starting on `date` with n=$SLURM_NTASKS at `pwd`"
+
+echo nodelist is $SLURM_JOB_NODELIST
+echo node count is $SLURM_JOB_NUM_NODES
+
+export OMP_NUM_THREADS=1
+export DEAL_II_NUM_THREADS=1
+echo "OMP_NUM_THREADS=$OMP_NUM_THREADS"
+echo "DEAL_II_NUM_THREADS=$DEAL_II_NUM_THREADS"
+
+echo "MatrixFree, 4 sinkers, 1e4 visc jump"
+TMPPRM=temp.prm.$SLURM_JOB_ID
+
+cp adaptive_mf.prm $TMPPRM
+
+echo "subsection Mesh refinement" >> $TMPPRM
+echo "  set Initial global refinement = 4" >> $TMPPRM
+echo "  set Initial adaptive refinement = 12" >> $TMPPRM
+echo "  set Adapt by fraction of cells = true" >> $TMPPRM
+echo "  set Strategy = velocity" >> $TMPPRM
+echo "  set Run postprocessors on initial refinement = true" >> $TMPPRM
+echo "  set Coarsening fraction       = 0.0" >> $TMPPRM
+echo "  set Refinement fraction       = 0.147" >> $TMPPRM
+echo "end" >> $TMPPRM
+
+echo "subsection Postprocess" >> $TMPPRM
+echo "  set List of postprocessors = memory statistics, visualization" >> $TMPPRM
+echo "end" >> $TMPPRM
+
+echo "set Output directory = output/run1--n$SLURM_JOB_NUM_NODES/" >> $TMPPRM
+#echo "set Timing output directory = output/r1-n$SLURM_JOB_NUM_NODES/" >> $TMPPRM
+
+ibrun ./aspect $TMPPRM
+rm $TMPPRM
