@@ -76,7 +76,7 @@ end
 
 subsection Mesh refinement
   set Additional refinement times        =
-  set Initial adaptive refinement        = 1                       # default: 2
+  set Initial adaptive refinement        = 0                       # default: 2
   set Initial global refinement          = 3                      # default: 2
   set Refinement fraction                = 0.3
   set Coarsening fraction                = 0.00
@@ -100,7 +100,7 @@ end
 subsection Mesh deformation
   set Mesh deformation boundary indicators = 3: free surface
   subsection Free surface
-    set Free surface stabilization theta = 0.5
+    set Free surface stabilization theta = 0.0
   end
 end
 
@@ -113,12 +113,13 @@ subsection Postprocess
   set List of postprocessors = visualization,topography,velocity statistics, basic statistics,
   subsection Visualization
     set Time between graphical output = 0
+    set Output mesh velocity = true
   end
 end
 
 subsection Solver parameters
   subsection Stokes solver parameters
     set Linear solver tolerance = 1.e-7
-    set Number of cheap Stokes solver steps = 0
+    set Number of cheap Stokes solver steps = 0 
   end
 end
