@@ -107,7 +107,13 @@ namespace aspect
                                                  const InitialTopographyModel::Interface<dim> &initial_topography_model)
     {
       if (geometry_model.has_curved_elements())
-        return std::make_unique<MappingQCache<dim>>(4);
+        {
+          std::cout << "TODO: Using MappingQ instead of MappingQCache!" << std::endl;
+          // return std::make_unique<MappingQCache<dim>>(4);
+          return std::make_unique<MappingQ<dim>>(4);
+        }
+
+
       if (Plugins::plugin_type_matches<const InitialTopographyModel::ZeroTopography<dim>>(initial_topography_model))
         return std::make_unique<MappingCartesian<dim>>();
 
