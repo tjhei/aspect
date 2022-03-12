@@ -33,6 +33,7 @@
 #include <deal.II/multigrid/mg_constrained_dofs.h>
 #include <deal.II/multigrid/multigrid.h>
 #include <deal.II/multigrid/mg_transfer_matrix_free.h>
+#include <deal.II/multigrid/mg_transfer_global_coarsening.h>
 #include <deal.II/multigrid/mg_tools.h>
 #include <deal.II/multigrid/mg_coarse.h>
 #include <deal.II/multigrid/mg_smoother.h>
@@ -289,6 +290,12 @@ namespace aspect
          */
         MassMatrixOperator ();
 
+        void
+        reinit(const Mapping<dim>              &mapping,
+               const DoFHandler<dim>           &dof_handler,
+               const DoFHandler<dim>           &dof_handler_other,
+               const AffineConstraints<number> &constraints);
+
         /**
          * Reset the object.
          */
@@ -306,6 +313,11 @@ namespace aspect
          */
         void compute_diagonal () override;
 
+        void cell_operation(FEEvaluation<dim,
+                            degree_p,
+                            degree_p+2,
+                            1,
+                            number> &pressure) const;
       private:
 
         /**
@@ -358,6 +370,12 @@ namespace aspect
          */
         void clear () override;
 
+        void
+        reinit(const Mapping<dim>              &mapping,
+               const DoFHandler<dim>           &dof_handler,
+               const DoFHandler<dim>           &dof_handler_other,
+               const AffineConstraints<number> &constraints);
+
         /**
          * Pass in a reference to the problem data.
          */
@@ -377,6 +395,19 @@ namespace aspect
          */
         void set_diagonal (const dealii::LinearAlgebra::distributed::Vector<number> &diag);
 
+        void cell_operation(FEEvaluation<dim,
+                            degree_v,
+                            degree_v+1,
+                            dim,
+                            number> &velocity) const;
+
+        /**
+         * Defines the application of the cell matrix.
+         */
+        void local_apply (const dealii::MatrixFree<dim, number> &data,
+                          dealii::LinearAlgebra::distributed::Vector<number> &dst,
+                          const dealii::LinearAlgebra::distributed::Vector<number> &src,
+                          const std::pair<unsigned int, unsigned int> &cell_range) const;
       private:
 
         /**
@@ -386,13 +417,7 @@ namespace aspect
         void apply_add (dealii::LinearAlgebra::distributed::Vector<number> &dst,
                         const dealii::LinearAlgebra::distributed::Vector<number> &src) const override;
 
-        /**
-         * Defines the application of the cell matrix.
-         */
-        void local_apply (const dealii::MatrixFree<dim, number> &data,
-                          dealii::LinearAlgebra::distributed::Vector<number> &dst,
-                          const dealii::LinearAlgebra::distributed::Vector<number> &src,
-                          const std::pair<unsigned int, unsigned int> &cell_range) const;
+
 
         /**
          * Computes the diagonal contribution from a cell matrix.
@@ -664,9 +689,10 @@ namespace aspect
       double minimum_viscosity;
       double maximum_viscosity;
 
-      DoFHandler<dim> dof_handler_v;
-      DoFHandler<dim> dof_handler_p;
-      DoFHandler<dim> dof_handler_projection;
+      std::vector<std::shared_ptr<const Triangulation<dim, dim>>> trias;
+      MGLevelObject<DoFHandler<dim>> dofhandlers_v;
+      MGLevelObject<DoFHandler<dim>> dofhandlers_p;
+      MGLevelObject<DoFHandler<dim>> dofhandlers_projection;
 
       FESystem<dim> fe_v;
       FESystem<dim> fe_p;
@@ -697,8 +723,8 @@ namespace aspect
       ABlockMatrixType A_block_matrix;
       SchurComplementMatrixType Schur_complement_block_matrix;
 
-      AffineConstraints<double> constraints_v;
-      AffineConstraints<double> constraints_p;
+      MGLevelObject<AffineConstraints<double>> constraints_v;
+      MGLevelObject<AffineConstraints<double>> constraints_p;
 
       MGLevelObject<GMGABlockMatrixType> mg_matrices_A_block;
       MGLevelObject<GMGSchurComplementMatrixType> mg_matrices_Schur_complement;
@@ -707,8 +733,11 @@ namespace aspect
       MGConstrainedDoFs mg_constrained_dofs_Schur_complement;
       MGConstrainedDoFs mg_constrained_dofs_projection;
 
-      MGTransferMatrixFree<dim,GMGNumberType> mg_transfer_A_block;
-      MGTransferMatrixFree<dim,GMGNumberType> mg_transfer_Schur_complement;
+      std::unique_ptr<MGTransferGlobalCoarsening<dim,dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>> mg_transfer_A_block;
+      std::unique_ptr<MGTransferGlobalCoarsening<dim,dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>> mg_transfer_Schur_complement;
+
+      unsigned int min_level;
+      unsigned int max_level;
 
       std::vector<std::shared_ptr<MatrixFree<dim,double>>> matrix_free_objects;
   };

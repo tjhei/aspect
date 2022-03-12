@@ -107,7 +107,7 @@ namespace aspect
                       const InitialTopographyModel::Interface<dim> &initial_topography_model)
     {
       if (geometry_model.has_curved_elements())
-        return std::make_unique<MappingQCache<dim>>(4);
+        return std::make_unique<MappingQ<dim>>(4);
 
 #if !DEAL_II_VERSION_GTE(9,4,0) || DEAL_II_VERSION_GTE(9,4,1)
       if (Plugins::plugin_type_matches<const InitialTopographyModel::ZeroTopography<dim>>(initial_topography_model))
@@ -206,23 +206,26 @@ namespace aspect
     // refined_island is at a periodic boundary. This flag is not too
     // important as it does not improve accuracy. Otherwise, these flags
     // correspond to smoothing_on_refinement|smoothing_on_coarsening.
-    triangulation (mpi_communicator,
-                   typename Triangulation<dim>::MeshSmoothing
-                   (
-                     Triangulation<dim>::limit_level_difference_at_vertices |
-                     (Triangulation<dim>::eliminate_unrefined_islands |
-                      Triangulation<dim>::eliminate_refined_inner_islands |
-                      // Triangulation<dim>::eliminate_refined_boundary_islands |
-                      Triangulation<dim>::do_not_produce_unrefined_islands)
-                   )
-                   ,
-                   (parameters.stokes_solver_type == Parameters<dim>::StokesSolverType::block_gmg
-                    ?
-                    typename parallel::distributed::Triangulation<dim>::Settings
-                    (parallel::distributed::Triangulation<dim>::mesh_reconstruction_after_repartitioning |
-                     parallel::distributed::Triangulation<dim>::construct_multigrid_hierarchy)
-                    :
-                    parallel::distributed::Triangulation<dim>::mesh_reconstruction_after_repartitioning)),
+/*
+triangulation (mpi_communicator,
+               typename Triangulation<dim>::MeshSmoothing
+               (
+                 Triangulation<dim>::limit_level_difference_at_vertices |
+                 (Triangulation<dim>::eliminate_unrefined_islands |
+                  Triangulation<dim>::eliminate_refined_inner_islands |
+                  // Triangulation<dim>::eliminate_refined_boundary_islands |
+                  Triangulation<dim>::do_not_produce_unrefined_islands)
+               )
+               ,
+               (parameters.stokes_solver_type == Parameters<dim>::StokesSolverType::block_gmg
+                ?
+                typename parallel::distributed::Triangulation<dim>::Settings
+                (parallel::distributed::Triangulation<dim>::mesh_reconstruction_after_repartitioning |
+                 parallel::distributed::Triangulation<dim>::construct_multigrid_hierarchy)
+                :
+                parallel::distributed::Triangulation<dim>::mesh_reconstruction_after_repartitioning)),
+*/
+    triangulation (mpi_communicator, Triangulation<dim>::limit_level_difference_at_vertices),
 
     mapping(construct_mapping<dim>(*geometry_model,*initial_topography_model)),
 
