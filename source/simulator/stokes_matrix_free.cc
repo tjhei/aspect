@@ -43,7 +43,16 @@
 #include <deal.II/lac/solver_idr.h>
 
 #include <deal.II/grid/manifold.h>
-
+#include <deal.II/multigrid/mg_transfer_global_coarsening.h>
+#include <deal.II/multigrid/mg_coarse.h>
+#include <deal.II/multigrid/mg_constrained_dofs.h>
+#include <deal.II/multigrid/mg_matrix.h>
+#include <deal.II/multigrid/mg_smoother.h>
+#include <deal.II/multigrid/mg_tools.h>
+#include <deal.II/multigrid/mg_transfer_global_coarsening.h>
+#include <deal.II/multigrid/mg_transfer_matrix_free.h>
+#include <deal.II/multigrid/multigrid.h>
+#include <deal.II/distributed/repartitioning_policy_tools.h>
 
 namespace aspect
 {
@@ -2627,6 +2636,14 @@ namespace aspect
   {
     // This vector will be refilled with the new MatrixFree objects below:
     matrix_free_objects.clear();
+
+
+    trias = dealii::MGTransferGlobalCoarseningTools::create_geometric_coarsening_sequence (sim.triangulation,);
+    /* //    later:
+            RepartitioningPolicyTools::DefaultPolicy<dim>(),
+            true,
+            / *repartition_fine_triangulation =* / false ); */
+
 
     // Velocity DoFHandler
     {

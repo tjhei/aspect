@@ -612,9 +612,9 @@ namespace aspect
       double minimum_viscosity;
       double maximum_viscosity;
 
-      DoFHandler<dim> dof_handler_v;
-      DoFHandler<dim> dof_handler_p;
-      DoFHandler<dim> dof_handler_projection;
+//      DoFHandler<dim> dof_handler_v;
+//      DoFHandler<dim> dof_handler_p;
+//      DoFHandler<dim> dof_handler_projection;
 
       FESystem<dim> fe_v;
       FESystem<dim> fe_p;
@@ -655,8 +655,14 @@ namespace aspect
       MGConstrainedDoFs mg_constrained_dofs_Schur_complement;
       MGConstrainedDoFs mg_constrained_dofs_projection;
 
-      MGTransferMatrixFree<dim,GMGNumberType> mg_transfer_A_block;
-      MGTransferMatrixFree<dim,GMGNumberType> mg_transfer_Schur_complement;
+      MGTransferGlobalCoarsening<dim,GMGNumberType> mg_transfer_A_block;
+      MGTransferGlobalCoarsening<dim,GMGNumberType> mg_transfer_Schur_complement;
+
+      std::vector<std::shared_ptr<const Triangulation<dim, dim>>> trias;
+      MGLevelObject<DoFHandler<dim>> dofhandlers_v;
+      MGLevelObject<DoFHandler<dim>> dofhandlers_p;
+      MGLevelObject<DoFHandler<dim>> dofhandlers_projection;
+
 
       std::vector<std::shared_ptr<MatrixFree<dim,double>>> matrix_free_objects;
   };
