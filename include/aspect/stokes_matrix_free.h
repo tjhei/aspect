@@ -33,6 +33,7 @@
 #include <deal.II/multigrid/mg_constrained_dofs.h>
 #include <deal.II/multigrid/multigrid.h>
 #include <deal.II/multigrid/mg_transfer_matrix_free.h>
+#include <deal.II/multigrid/mg_transfer_global_coarsening.h>
 #include <deal.II/multigrid/mg_tools.h>
 #include <deal.II/multigrid/mg_coarse.h>
 #include <deal.II/multigrid/mg_smoother.h>
@@ -655,8 +656,8 @@ namespace aspect
       MGConstrainedDoFs mg_constrained_dofs_Schur_complement;
       MGConstrainedDoFs mg_constrained_dofs_projection;
 
-      MGTransferGlobalCoarsening<dim,GMGNumberType> mg_transfer_A_block;
-      MGTransferGlobalCoarsening<dim,GMGNumberType> mg_transfer_Schur_complement;
+      MGTransferGlobalCoarsening<dim,dealii::LinearAlgebra::distributed::Vector<GMGNumberType>> mg_transfer_A_block;
+      MGTransferGlobalCoarsening<dim,dealii::LinearAlgebra::distributed::Vector<GMGNumberType>> mg_transfer_Schur_complement;
 
       std::vector<std::shared_ptr<const Triangulation<dim, dim>>> trias;
       MGLevelObject<DoFHandler<dim>> dofhandlers_v;
