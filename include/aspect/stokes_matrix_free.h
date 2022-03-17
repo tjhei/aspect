@@ -646,8 +646,10 @@ namespace aspect
       ABlockMatrixType A_block_matrix;
       SchurComplementMatrixType Schur_complement_block_matrix;
 
-      AffineConstraints<double> constraints_v;
-      AffineConstraints<double> constraints_p;
+//      AffineConstraints<double> constraints_v;
+//      AffineConstraints<double> constraints_p;
+      MGLevelObject<AffineConstraints<double>> constraints_v;
+      MGLevelObject<AffineConstraints<double>> constraints_p;
 
       MGLevelObject<GMGABlockMatrixType> mg_matrices_A_block;
       MGLevelObject<GMGSchurComplementMatrixType> mg_matrices_Schur_complement;
