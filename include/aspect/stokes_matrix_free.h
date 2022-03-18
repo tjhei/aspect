@@ -238,6 +238,12 @@ namespace aspect
          */
         MassMatrixOperator ();
 
+        void
+        reinit(const Mapping<dim>              &mapping,
+               const DoFHandler<dim>           &dof_handler,
+               //       const Quadrature<dim> &          quad,
+               const AffineConstraints<number> &constraints);
+
         /**
          * Reset the object.
          */
@@ -306,6 +312,12 @@ namespace aspect
          * Reset the operator.
          */
         void clear () override;
+
+        void
+        reinit(const Mapping<dim>              &mapping,
+               const DoFHandler<dim>           &dof_handler,
+               //       const Quadrature<dim> &          quad,
+               const AffineConstraints<number> &constraints);
 
         /**
          * Pass in a reference to the problem data.
@@ -658,8 +670,8 @@ namespace aspect
       MGConstrainedDoFs mg_constrained_dofs_Schur_complement;
       MGConstrainedDoFs mg_constrained_dofs_projection;
 
-      MGTransferGlobalCoarsening<dim,dealii::LinearAlgebra::distributed::Vector<GMGNumberType>> mg_transfer_A_block;
-      MGTransferGlobalCoarsening<dim,dealii::LinearAlgebra::distributed::Vector<GMGNumberType>> mg_transfer_Schur_complement;
+      std::unique_ptr<MGTransferGlobalCoarsening<dim,dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>> mg_transfer_A_block;
+      std::unique_ptr<MGTransferGlobalCoarsening<dim,dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>> mg_transfer_Schur_complement;
 
       std::vector<std::shared_ptr<const Triangulation<dim, dim>>> trias;
       MGLevelObject<DoFHandler<dim>> dofhandlers_v;
