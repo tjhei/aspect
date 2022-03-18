@@ -670,6 +670,9 @@ namespace aspect
       std::unique_ptr<MGTransferGlobalCoarsening<dim,dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>> mg_transfer_A_block;
       std::unique_ptr<MGTransferGlobalCoarsening<dim,dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>> mg_transfer_Schur_complement;
 
+      unsigned int min_level;
+      unsigned int max_level;
+
       std::vector<std::shared_ptr<MatrixFree<dim,double>>> matrix_free_objects;
   };
 }

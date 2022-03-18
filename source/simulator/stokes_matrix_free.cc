@@ -2713,11 +2713,17 @@ namespace aspect
 
     trias = dealii::MGTransferGlobalCoarseningTools::create_geometric_coarsening_sequence (sim.triangulation);
 
-    const unsigned int min_level = 0;
-    const unsigned int max_level = trias.size() - 1;
+    min_level = 0;
+    max_level = trias.size() - 1;
+
+    sim.pcout << "GC GMG: levels " << min_level << " .. " << max_level
+              << std::endl;
 
     constraints_v.resize(min_level, max_level);
     constraints_p.resize(min_level, max_level);
+    dofhandlers_v.resize(min_level, max_level);
+    dofhandlers_p.resize(min_level, max_level);
+    dofhandlers_projection.resize(min_level, max_level);
 
     mg_matrices_A_block.clear_elements();
     mg_matrices_A_block.resize(min_level, max_level);
