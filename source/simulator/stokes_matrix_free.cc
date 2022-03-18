@@ -1666,6 +1666,7 @@ namespace aspect
     // Project the active level viscosity vector to multilevel vector representations
     // using MG transfer objects. This transfer is based on the same linear operator used to
     // transfer data inside a v-cycle.
+#if false
     MGTransferMatrixFree<dim,GMGNumberType> transfer;
     transfer.build(dof_handler_projection);
 
@@ -1675,6 +1676,29 @@ namespace aspect
     transfer.template interpolate_to_mg<double>(dof_handler_projection,
                                                 level_viscosity_vector,
                                                 active_viscosity_vector);
+#else
+      const unsigned int min_level = 0;
+      const unsigned int max_level = n_levels-1;
+
+      MGLevelObject<
+      MGTwoLevelTransfer<dim, dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>>
+      transfers(min_level, max_level);
+
+      for (unsigned int l = min_level; l < max_level; ++l)
+        transfers[l + 1].reinit(dofhandlers_projection[l + 1], dofhandlers_projection[l]);
+
+      MGTransferGlobalCoarsening<dim, dealii::LinearAlgebra::distributed::Vector<GMGNumberType>> transfer(transfers, [&](const auto l, auto &vec)
+      {
+        (void) l;
+        (void) vec;
+        Assert(false, ExcNotImplemented());
+      });
+
+    transfer.template interpolate_to_mg(dof_handler_projection,
+                                                level_viscosity_vector,
+                                                active_viscosity_vector);
+
+#endif
 
     for (unsigned int level=0; level<n_levels; ++level)
       {
@@ -1707,10 +1731,10 @@ namespace aspect
               {
                 typename DoFHandler<dim>::active_cell_iterator FEQ_cell =
                   mg_matrices_A_block[level].get_matrix_free()->get_cell_iterator(cell,i);
-                typename DoFHandler<dim>::active_cell_iterator DG_cell(&(sim.triangulation),
+                typename DoFHandler<dim>::active_cell_iterator DG_cell(&(dofhandlers_projection[level].get_triangulation()),
                                                                       FEQ_cell->level(),
                                                                       FEQ_cell->index(),
-                                                                      &dof_handler_projection);
+                                                                      &dofhandlers_projection[level]);
                 DG_cell->get_active_or_mg_dof_indices(local_dof_indices);
 
                 // For DGQ0, we simply use the viscosity at the single
@@ -2975,7 +2999,7 @@ namespace aspect
                   cell_matrix = 0;
                   fe_values.reinit (cell);
 
-                  typename DoFHandler<dim>::active_cell_iterator DG_cell(&(sim.triangulation),
+                  typename DoFHandler<dim>::active_cell_iterator DG_cell(&(dof_handler_projection.get_triangulation()),
                                                                         level,
                                                                         cell->index(),
                                                                         &dof_handler_projection);
