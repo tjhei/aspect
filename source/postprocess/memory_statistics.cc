@@ -58,6 +58,7 @@ namespace aspect
 
       statistics.add_value ("Solution vector memory consumption (MB) ", this->get_solution().memory_consumption()/mb);
 
+#if false
       if (this->is_stokes_matrix_free())
         {
           const double mg_transfer_mem = this->get_stokes_matrix_free().get_mg_transfer_A().memory_consumption()
@@ -67,6 +68,7 @@ namespace aspect
           const double cell_data_mem = this->get_stokes_matrix_free().get_cell_data_memory_consumption();
           statistics.add_value ("Matrix-free cell data memory consumption (MB) ", cell_data_mem/mb);
         }
+#endif
 
       if (output_vmpeak)
         {
