@@ -241,7 +241,6 @@ namespace aspect
         void
         reinit(const Mapping<dim>              &mapping,
                const DoFHandler<dim>           &dof_handler,
-               //       const Quadrature<dim> &          quad,
                const AffineConstraints<number> &constraints);
 
         /**
@@ -316,7 +315,6 @@ namespace aspect
         void
         reinit(const Mapping<dim>              &mapping,
                const DoFHandler<dim>           &dof_handler,
-               //       const Quadrature<dim> &          quad,
                const AffineConstraints<number> &constraints);
 
         /**
@@ -625,9 +623,10 @@ namespace aspect
       double minimum_viscosity;
       double maximum_viscosity;
 
-//      DoFHandler<dim> dof_handler_v;
-//      DoFHandler<dim> dof_handler_p;
-//      DoFHandler<dim> dof_handler_projection;
+      std::vector<std::shared_ptr<const Triangulation<dim, dim>>> trias;
+      MGLevelObject<DoFHandler<dim>> dofhandlers_v;
+      MGLevelObject<DoFHandler<dim>> dofhandlers_p;
+      MGLevelObject<DoFHandler<dim>> dofhandlers_projection;
 
       FESystem<dim> fe_v;
       FESystem<dim> fe_p;
@@ -658,8 +657,6 @@ namespace aspect
       ABlockMatrixType A_block_matrix;
       SchurComplementMatrixType Schur_complement_block_matrix;
 
-//      AffineConstraints<double> constraints_v;
-//      AffineConstraints<double> constraints_p;
       MGLevelObject<AffineConstraints<double>> constraints_v;
       MGLevelObject<AffineConstraints<double>> constraints_p;
 
@@ -672,12 +669,6 @@ namespace aspect
 
       std::unique_ptr<MGTransferGlobalCoarsening<dim,dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>> mg_transfer_A_block;
       std::unique_ptr<MGTransferGlobalCoarsening<dim,dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>> mg_transfer_Schur_complement;
-
-      std::vector<std::shared_ptr<const Triangulation<dim, dim>>> trias;
-      MGLevelObject<DoFHandler<dim>> dofhandlers_v;
-      MGLevelObject<DoFHandler<dim>> dofhandlers_p;
-      MGLevelObject<DoFHandler<dim>> dofhandlers_projection;
-
 
       std::vector<std::shared_ptr<MatrixFree<dim,double>>> matrix_free_objects;
   };
