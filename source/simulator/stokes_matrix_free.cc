@@ -1139,7 +1139,7 @@ namespace aspect
                                                                          const DoFHandler<dim>           &dof_handler,
                                                                          const AffineConstraints<number> &constraints)
   {
-    this->constraints.copy_from(constraints);
+    // this->constraints.copy_from(constraints);
 
     typename MatrixFree<dim, number>::AdditionalData data;
     data.mapping_update_flags =
@@ -1508,447 +1508,448 @@ namespace aspect
   template <int dim, int velocity_degree>
   void StokesMatrixFreeHandlerImplementation<dim, velocity_degree>::evaluate_material_model ()
   {
-//    dealii::LinearAlgebra::distributed::Vector<double> active_viscosity_vector(dof_handler_projection.locally_owned_dofs(),
-//                                                                               sim.triangulation.get_communicator());
-
-//    const QGauss<dim> quadrature_formula (sim.parameters.stokes_velocity_degree+1);
-
-//    double minimum_viscosity_local = std::numeric_limits<double>::max();
-//    double maximum_viscosity_local = std::numeric_limits<double>::lowest();
-
-//    // Fill the DGQ0 or DGQ1 vector of viscosity values on the active mesh
-//    {
-//      FEValues<dim> fe_values (*sim.mapping,
-//                               sim.finite_element,
-//                               quadrature_formula,
-//                               update_values   |
-//                               update_gradients |
-//                               update_quadrature_points |
-//                               update_JxW_values);
-
-//      MaterialModel::MaterialModelInputs<dim> in(fe_values.n_quadrature_points, sim.introspection.n_compositional_fields);
-//      MaterialModel::MaterialModelOutputs<dim> out(fe_values.n_quadrature_points, sim.introspection.n_compositional_fields);
-
-//      // This function call computes a cellwise projection of data defined at quadrature points to
-//      // a vector defined by the projection DoFHandler. As an input, we must define a lambda which returns
-//      // a viscosity value for each quadrature point of the given cell. The projection is then stored in
-//      // the active level viscosity vector provided.
-//      Utilities::project_cellwise<dim, dealii::LinearAlgebra::distributed::Vector<double>>(*(sim.mapping),
-//          dof_handler_projection,
-//          0,
-//          quadrature_formula,
-//          [&](const typename DoFHandler<dim>::active_cell_iterator & cell,
-//              const std::vector<Point<dim>> & /*q_points*/,
-//              std::vector<double> &values) -> void
-//      {
-//        typename DoFHandler<dim>::active_cell_iterator FEQ_cell(&sim.triangulation,
-//        cell->level(),
-//        cell->index(),
-//        &(sim.dof_handler));
-
-//        fe_values.reinit (FEQ_cell);
-//        in.reinit(fe_values, FEQ_cell, sim.introspection, sim.current_linearization_point);
-
-//        // Query the material model for the active level viscosities
-//        sim.material_model->fill_additional_material_model_inputs(in, sim.current_linearization_point, fe_values, sim.introspection);
-//        sim.material_model->evaluate(in, out);
-
-//        // If using a cellwise average for viscosity, average the values here.
-//        // When the projection is computed, this will set the viscosity exactly
-//        // to this averaged value.
-//        if (dof_handler_projection.get_fe().degree == 0)
-//          MaterialModel::MaterialAveraging::average (sim.parameters.material_averaging,
-//          FEQ_cell,
-//          quadrature_formula,
-//          *sim.mapping,
-//          out);
-
-//        for (unsigned int i=0; i<values.size(); ++i)
-//          {
-//            // Find the local max/min of the evaluated viscosities.
-//            minimum_viscosity_local = std::min(minimum_viscosity_local, out.viscosities[i]);
-//            maximum_viscosity_local = std::max(maximum_viscosity_local, out.viscosities[i]);
-
-//            values[i] = out.viscosities[i];
-//          }
-//        return;
-//      },
-//      active_viscosity_vector);
-
-//      active_viscosity_vector.compress(VectorOperation::insert);
-//    }
-
-//    minimum_viscosity = dealii::Utilities::MPI::min(minimum_viscosity_local, sim.triangulation.get_communicator());
-//    maximum_viscosity = dealii::Utilities::MPI::max(maximum_viscosity_local, sim.triangulation.get_communicator());
-
-//    FEValues<dim> fe_values_projection (*(sim.mapping),
-//                                        fe_projection,
-//                                        quadrature_formula,
-//                                        update_values);
-
-//    // Create active mesh viscosity table.
-//    {
-
-//      const unsigned int n_cells = stokes_matrix.get_matrix_free()->n_cell_batches();
-
-//      const unsigned int n_q_points = quadrature_formula.size();
-
-//      std::vector<double> values_on_quad;
-
-//      // One value per cell is required for DGQ0 projection and n_q_points
-//      // values per cell for DGQ1.
-//      if (dof_handler_projection.get_fe().degree == 0)
-//        active_cell_data.viscosity.reinit(TableIndices<2>(n_cells, 1));
-//      else if (dof_handler_projection.get_fe().degree == 1)
-//        {
-//          values_on_quad.resize(n_q_points);
-//          active_cell_data.viscosity.reinit(TableIndices<2>(n_cells, n_q_points));
-//        }
-//      else
-//        Assert(false, ExcInternalError());
-
-//      std::vector<types::global_dof_index> local_dof_indices(fe_projection.dofs_per_cell);
-//      for (unsigned int cell=0; cell<n_cells; ++cell)
-//        {
-//          const unsigned int n_components_filled = stokes_matrix.get_matrix_free()->n_active_entries_per_cell_batch(cell);
-
-//          for (unsigned int i=0; i<n_components_filled; ++i)
-//            {
-//              typename DoFHandler<dim>::active_cell_iterator FEQ_cell =
-//                stokes_matrix.get_matrix_free()->get_cell_iterator(cell,i);
-//              typename DoFHandler<dim>::active_cell_iterator DG_cell(&(sim.triangulation),
-//                                                                     FEQ_cell->level(),
-//                                                                     FEQ_cell->index(),
-//                                                                     &dof_handler_projection);
-//              DG_cell->get_active_or_mg_dof_indices(local_dof_indices);
-
-//              // For DGQ0, we simply use the viscosity at the single
-//              // support point of the element. For DGQ1, we must project
-//              // back to quadrature point values.
-//              if (dof_handler_projection.get_fe().degree == 0)
-//                active_cell_data.viscosity(cell, 0)[i] = active_viscosity_vector(local_dof_indices[0]);
-//              else
-//                {
-//                  fe_values_projection.reinit(DG_cell);
-//                  fe_values_projection.get_function_values(active_viscosity_vector,
-//                                                           local_dof_indices,
-//                                                           values_on_quad);
-
-//                  // Do not allow viscosity to be greater than or less than the limits
-//                  // of the evaluated viscosity on the active level.
-//                  for (unsigned int q=0; q<n_q_points; ++q)
-//                    active_cell_data.viscosity(cell, q)[i]
-//                      = std::min(std::max(values_on_quad[q], minimum_viscosity), maximum_viscosity);
-//                }
-//            }
-//        }
-//    }
-
-//    active_cell_data.is_compressible = sim.material_model->is_compressible();
-//    active_cell_data.pressure_scaling = sim.pressure_scaling;
-
-//    // Store viscosity tables and other data into the active level matrix-free objects.
-//    stokes_matrix.set_cell_data(active_cell_data);
-
-//    if (sim.parameters.n_expensive_stokes_solver_steps > 0)
-//      {
-//        A_block_matrix.set_cell_data(active_cell_data);
-//        Schur_complement_block_matrix.set_cell_data(active_cell_data);
-//      }
-
-//    const unsigned int n_levels = sim.triangulation.n_global_levels();
-//    level_cell_data.resize(0,n_levels-1);
-
-//    level_viscosity_vector = 0.;
-//    level_viscosity_vector.resize(0,n_levels-1);
-
-//    // Project the active level viscosity vector to multilevel vector representations
-//    // using MG transfer objects. This transfer is based on the same linear operator used to
-//    // transfer data inside a v-cycle.
-//    MGTransferMatrixFree<dim,GMGNumberType> transfer;
-//    transfer.build(dof_handler_projection);
-
-//    // Explicitly pick the version with template argument double to convert
-//    // double-valued active_viscosity_vector to GMGNumberType-valued
-//    // level_viscosity_vector:
-//    transfer.template interpolate_to_mg<double>(dof_handler_projection,
-//                                                level_viscosity_vector,
-//                                                active_viscosity_vector);
-
-//    for (unsigned int level=0; level<n_levels; ++level)
-//      {
-//        level_cell_data[level].is_compressible = sim.material_model->is_compressible();
-//        level_cell_data[level].pressure_scaling = sim.pressure_scaling;
-
-//        // Create viscosity tables on each level.
-//        const unsigned int n_cells = mg_matrices_A_block[level].get_matrix_free()->n_cell_batches();
-
-//        const unsigned int n_q_points = quadrature_formula.size();
-
-//        std::vector<GMGNumberType> values_on_quad;
-
-//        // One value per cell is required for DGQ0 projection and n_q_points
-//        // values per cell for DGQ1.
-//        if (dof_handler_projection.get_fe().degree == 0)
-//          level_cell_data[level].viscosity.reinit(TableIndices<2>(n_cells, 1));
-//        else
-//          {
-//            values_on_quad.resize(n_q_points);
-//            level_cell_data[level].viscosity.reinit(TableIndices<2>(n_cells, n_q_points));
-//          }
-
-//        std::vector<types::global_dof_index> local_dof_indices(fe_projection.dofs_per_cell);
-//        for (unsigned int cell=0; cell<n_cells; ++cell)
-//          {
-//            const unsigned int n_components_filled = mg_matrices_A_block[level].get_matrix_free()->n_active_entries_per_cell_batch(cell);
-
-//            for (unsigned int i=0; i<n_components_filled; ++i)
-//              {
-//                typename DoFHandler<dim>::level_cell_iterator FEQ_cell =
-//                  mg_matrices_A_block[level].get_matrix_free()->get_cell_iterator(cell,i);
-//                typename DoFHandler<dim>::level_cell_iterator DG_cell(&(sim.triangulation),
-//                                                                      FEQ_cell->level(),
-//                                                                      FEQ_cell->index(),
-//                                                                      &dof_handler_projection);
-//                DG_cell->get_active_or_mg_dof_indices(local_dof_indices);
-
-//                // For DGQ0, we simply use the viscosity at the single
-//                // support point of the element. For DGQ1, we must project
-//                // back to quadrature point values.
-//                if (dof_handler_projection.get_fe().degree == 0)
-//                  level_cell_data[level].viscosity(cell, 0)[i] = level_viscosity_vector[level](local_dof_indices[0]);
-//                else
-//                  {
-//                    fe_values_projection.reinit(DG_cell);
-//                    fe_values_projection.get_function_values(level_viscosity_vector[level],
-//                                                             local_dof_indices,
-//                                                             values_on_quad);
-
-//                    // Do not allow viscosity to be greater than or less than the limits
-//                    // of the evaluated viscosity on the active level.
-//                    for (unsigned int q=0; q<n_q_points; ++q)
-//                      level_cell_data[level].viscosity(cell,q)[i]
-//                        = std::min(std::max(values_on_quad[q], static_cast<GMGNumberType>(minimum_viscosity)),
-//                                   static_cast<GMGNumberType>(maximum_viscosity));
-//                  }
-//              }
-//          }
-
-//        // Store viscosity tables and other data into the multigrid level matrix-free objects.
-//        mg_matrices_A_block[level].set_cell_data (level_cell_data[level]);
-//        mg_matrices_Schur_complement[level].set_cell_data (level_cell_data[level]);
-//      }
-
-//    {
-//      // create active mesh tables for derivatives needed in Newton method
-//      // and the strain rate.
-//      if (sim.newton_handler != nullptr
-//          && sim.newton_handler->parameters.newton_derivative_scaling_factor != 0)
-//        {
-//          const double newton_derivative_scaling_factor =
-//            sim.newton_handler->parameters.newton_derivative_scaling_factor;
-
-//          active_cell_data.enable_newton_derivatives = true;
-
-//          // TODO: these are not implemented yet
-//          for (unsigned int level=0; level<n_levels; ++level)
-//            level_cell_data[level].enable_newton_derivatives = false;
-
-
-//          FEValues<dim> fe_values (*sim.mapping,
-//                                   sim.finite_element,
-//                                   quadrature_formula,
-//                                   update_values   |
-//                                   update_gradients |
-//                                   update_quadrature_points |
-//                                   update_JxW_values);
-
-//          MaterialModel::MaterialModelInputs<dim> in(fe_values.n_quadrature_points, sim.introspection.n_compositional_fields);
-//          MaterialModel::MaterialModelOutputs<dim> out(fe_values.n_quadrature_points, sim.introspection.n_compositional_fields);
-//          sim.newton_handler->create_material_model_outputs(out);
-
-//          const unsigned int n_cells = stokes_matrix.get_matrix_free()->n_cell_batches();
-//          const unsigned int n_q_points = quadrature_formula.size();
-
-//          active_cell_data.strain_rate_table.reinit(TableIndices<2>(n_cells, n_q_points));
-//          active_cell_data.newton_factor_wrt_pressure_table.reinit(TableIndices<2>(n_cells, n_q_points));
-//          active_cell_data.newton_factor_wrt_strain_rate_table.reinit(TableIndices<2>(n_cells, n_q_points));
-
-//          for (unsigned int cell=0; cell<n_cells; ++cell)
-//            {
-//              const unsigned int n_components_filled = stokes_matrix.get_matrix_free()->n_active_entries_per_cell_batch(cell);
-
-//              for (unsigned int i=0; i<n_components_filled; ++i)
-//                {
-//                  typename DoFHandler<dim>::active_cell_iterator matrix_free_cell =
-//                    stokes_matrix.get_matrix_free()->get_cell_iterator(cell,i);
-//                  typename DoFHandler<dim>::active_cell_iterator simulator_cell(&(sim.triangulation),
-//                                                                                matrix_free_cell->level(),
-//                                                                                matrix_free_cell->index(),
-//                                                                                &(sim.dof_handler));
-
-//                  fe_values.reinit(simulator_cell);
-//                  in.reinit(fe_values, simulator_cell, sim.introspection, sim.current_linearization_point);
-
-//                  sim.material_model->evaluate(in, out);
-//                  sim.material_model->fill_additional_material_model_inputs(in, sim.current_linearization_point, fe_values, sim.introspection);
-
-//                  const MaterialModel::MaterialModelDerivatives<dim> *derivatives
-//                    = out.template get_additional_output<MaterialModel::MaterialModelDerivatives<dim> >();
-
-//                  Assert(derivatives != nullptr,
-//                         ExcMessage ("Error: The Newton method requires the material to "
-//                                     "compute derivatives."));
-
-//                  for (unsigned int q=0; q<n_q_points; ++q)
-//                    {
-//                      // use the spd factor when the stabilization is PD or SPD.
-//                      const double alpha =  (sim.newton_handler->parameters.velocity_block_stabilization
-//                                             & Newton::Parameters::Stabilization::PD)
-//                                            != Newton::Parameters::Stabilization::none
-//                                            ?
-//                                            Utilities::compute_spd_factor<dim>(out.viscosities[q],
-//                                                                               in.strain_rate[q],
-//                                                                               derivatives->viscosity_derivative_wrt_strain_rate[q],
-//                                                                               sim.newton_handler->parameters.SPD_safety_factor)
-//                                            :
-//                                            1.0;
-
-//                      active_cell_data.newton_factor_wrt_pressure_table(cell,q)[i]
-//                        = derivatives->viscosity_derivative_wrt_pressure[q] * newton_derivative_scaling_factor;
-
-//                      for (unsigned int m=0; m<dim; ++m)
-//                        for (unsigned int n=0; n<dim; ++n)
-//                          {
-//                            active_cell_data.strain_rate_table(cell, q)[m][n][i]
-//                              = in.strain_rate[q][m][n];
-
-//                            active_cell_data.newton_factor_wrt_strain_rate_table(cell, q)[m][n][i]
-//                              = derivatives->viscosity_derivative_wrt_strain_rate[q][m][n]
-//                                * newton_derivative_scaling_factor * alpha;
-//                          }
-//                    }
-//                }
-//            }
-
-//          // symmetrize the Newton_system when the stabilization is symmetric or SPD
-//          const bool symmetrize_newton_system =
-//            (sim.newton_handler->parameters.velocity_block_stabilization & Newton::Parameters::Stabilization::symmetric)
-//            != Newton::Parameters::Stabilization::none;
-//          active_cell_data.symmetrize_newton_system = symmetrize_newton_system;
-//        }
-//      else
-//        {
-//          // delete data used for Newton derivatives if necessary
-//          // TODO: use Table::clear() once implemented in 10.0.pre
-//          active_cell_data.enable_newton_derivatives = false;
-//          active_cell_data.newton_factor_wrt_pressure_table.reinit(TableIndices<2>(0,0));
-//          active_cell_data.strain_rate_table.reinit(TableIndices<2>(0,0));
-//          active_cell_data.newton_factor_wrt_strain_rate_table.reinit(TableIndices<2>(0,0));
-
-//          for (unsigned int level=0; level<n_levels; ++level)
-//            level_cell_data[level].enable_newton_derivatives = false;
-//        }
-//    }
-
-//    {
-//      // Create active mesh tables to store the product of the pressure perturbation and
-//      // the normalized gravity used in the free surface stabilization.
-//      // Currently, mutilevel is not implemented yet, it may slow down the convergence.
-
-//      // TODO: implement multilevel surface terms for the free surface stabilization.
-
-//      active_cell_data.apply_stabilization_free_surface_faces = sim.mesh_deformation
-//                                                                && !sim.mesh_deformation->get_free_surface_boundary_indicators().empty();
-//      if (active_cell_data.apply_stabilization_free_surface_faces == true)
-//        {
-//          const double free_surface_theta =
-//            sim.mesh_deformation->template get_matching_mesh_deformation_object<MeshDeformation::FreeSurface<dim>>()
-//          .get_free_surface_theta();
-
-//          const QGauss<dim-1> face_quadrature_formula (sim.parameters.stokes_velocity_degree+1);
-
-//          const unsigned int n_face_q_points = face_quadrature_formula.size();
-
-//          // We need the gradients for the material model inputs.
-//          FEFaceValues<dim> fe_face_values (*sim.mapping,
-//                                            sim.finite_element,
-//                                            face_quadrature_formula,
-//                                            update_values   |
-//                                            update_gradients |
-//                                            update_quadrature_points |
-//                                            update_JxW_values);
-
-//          const unsigned int n_faces_boundary = stokes_matrix.get_matrix_free()->n_boundary_face_batches();
-//          const unsigned int n_faces_interior = stokes_matrix.get_matrix_free()->n_inner_face_batches();
-
-//          active_cell_data.free_surface_boundary_indicators =
-//            sim.mesh_deformation->get_free_surface_boundary_indicators();
-
-//          MaterialModel::MaterialModelInputs<dim> face_material_inputs(n_face_q_points, sim.introspection.n_compositional_fields);
-//          MaterialModel::MaterialModelOutputs<dim> face_material_outputs(n_face_q_points, sim.introspection.n_compositional_fields);
-
-//          active_cell_data.free_surface_stabilization_term_table.reinit(n_faces_boundary, n_face_q_points);
-
-//          for (unsigned int face=n_faces_interior; face<n_faces_boundary + n_faces_interior; ++face)
-//            {
-//              const unsigned int n_components_filled = stokes_matrix.get_matrix_free()->n_active_entries_per_face_batch(face);
-
-//              for (unsigned int i=0; i<n_components_filled; ++i)
-//                {
-//                  // The first element of the pair is the active cell iterator
-//                  // the second element of the pair is the face number
-//                  const auto cell_face_pair = stokes_matrix.get_matrix_free()->get_face_iterator(face, i, true);
-
-//                  typename DoFHandler<dim>::active_cell_iterator matrix_free_cell =
-//                    cell_face_pair.first;
-//                  typename DoFHandler<dim>::active_cell_iterator simulator_cell(&(sim.triangulation),
-//                                                                                matrix_free_cell->level(),
-//                                                                                matrix_free_cell->index(),
-//                                                                                &(sim.dof_handler));
-
-//                  const types::boundary_id boundary_indicator = stokes_matrix.get_matrix_free()->get_boundary_id(face);
-//                  Assert(boundary_indicator == simulator_cell->face(cell_face_pair.second)->boundary_id(), ExcInternalError());
-
-//                  // only apply on free surface faces
-//                  if (active_cell_data.free_surface_boundary_indicators.find(boundary_indicator)
-//                      == active_cell_data.free_surface_boundary_indicators.end())
-//                    continue;
-
-//                  fe_face_values.reinit(simulator_cell, cell_face_pair.second);
-
-//                  face_material_inputs.reinit(fe_face_values,
-//                                              simulator_cell,
-//                                              sim.introspection,
-//                                              sim.solution);
-
-//                  sim.compute_material_model_input_values(sim.solution,
-//                                                          fe_face_values,
-//                                                          simulator_cell,
-//                                                          false,
-//                                                          face_material_inputs);
-//                  sim.material_model->evaluate(face_material_inputs, face_material_outputs);
-
-//                  for (unsigned int q = 0; q < n_face_q_points; ++q)
-//                    {
-//                      const Tensor<1,dim>
-//                      gravity = sim.gravity_model->gravity_vector(fe_face_values.quadrature_point(q));
-//                      const double g_norm = gravity.norm();
-
-//                      const Tensor<1,dim> g_hat = (g_norm == 0.0 ? Tensor<1,dim>() : gravity/g_norm);
-
-//                      const double pressure_perturbation = face_material_outputs.densities[q] *
-//                                                           sim.time_step *
-//                                                           free_surface_theta *
-//                                                           g_norm;
-//                      for (unsigned int d = 0; d < dim; ++d)
-//                        active_cell_data.free_surface_stabilization_term_table(face - n_faces_interior, q)[d][i]
-//                          = pressure_perturbation * g_hat[d];
-//                    }
-//                }
-//            }
-//        }
-//    }
+    const auto & dof_handler_projection = dofhandlers_projection[dofhandlers_projection.max_level()];
+    dealii::LinearAlgebra::distributed::Vector<double> active_viscosity_vector(dof_handler_projection.locally_owned_dofs(),
+                                                                               sim.triangulation.get_communicator());
+
+    const QGauss<dim> quadrature_formula (sim.parameters.stokes_velocity_degree+1);
+
+    double minimum_viscosity_local = std::numeric_limits<double>::max();
+    double maximum_viscosity_local = std::numeric_limits<double>::lowest();
+
+    // Fill the DGQ0 or DGQ1 vector of viscosity values on the active mesh
+    {
+      FEValues<dim> fe_values (*sim.mapping,
+                               sim.finite_element,
+                               quadrature_formula,
+                               update_values   |
+                               update_gradients |
+                               update_quadrature_points |
+                               update_JxW_values);
+
+      MaterialModel::MaterialModelInputs<dim> in(fe_values.n_quadrature_points, sim.introspection.n_compositional_fields);
+      MaterialModel::MaterialModelOutputs<dim> out(fe_values.n_quadrature_points, sim.introspection.n_compositional_fields);
+
+      // This function call computes a cellwise projection of data defined at quadrature points to
+      // a vector defined by the projection DoFHandler. As an input, we must define a lambda which returns
+      // a viscosity value for each quadrature point of the given cell. The projection is then stored in
+      // the active level viscosity vector provided.
+      Utilities::project_cellwise<dim, dealii::LinearAlgebra::distributed::Vector<double>>(*(sim.mapping),
+          dof_handler_projection,
+          0,
+          quadrature_formula,
+          [&](const typename DoFHandler<dim>::active_cell_iterator & cell,
+              const std::vector<Point<dim>> & /*q_points*/,
+              std::vector<double> &values) -> void
+      {
+        typename DoFHandler<dim>::active_cell_iterator FEQ_cell(&sim.triangulation,
+        cell->level(),
+        cell->index(),
+        &(sim.dof_handler));
+
+        fe_values.reinit (FEQ_cell);
+        in.reinit(fe_values, FEQ_cell, sim.introspection, sim.current_linearization_point);
+
+        // Query the material model for the active level viscosities
+        sim.material_model->fill_additional_material_model_inputs(in, sim.current_linearization_point, fe_values, sim.introspection);
+        sim.material_model->evaluate(in, out);
+
+        // If using a cellwise average for viscosity, average the values here.
+        // When the projection is computed, this will set the viscosity exactly
+        // to this averaged value.
+        if (dof_handler_projection.get_fe().degree == 0)
+          MaterialModel::MaterialAveraging::average (sim.parameters.material_averaging,
+          FEQ_cell,
+          quadrature_formula,
+          *sim.mapping,
+          out);
+
+        for (unsigned int i=0; i<values.size(); ++i)
+          {
+            // Find the local max/min of the evaluated viscosities.
+            minimum_viscosity_local = std::min(minimum_viscosity_local, out.viscosities[i]);
+            maximum_viscosity_local = std::max(maximum_viscosity_local, out.viscosities[i]);
+
+            values[i] = out.viscosities[i];
+          }
+        return;
+      },
+      active_viscosity_vector);
+
+      active_viscosity_vector.compress(VectorOperation::insert);
+    }
+
+    minimum_viscosity = dealii::Utilities::MPI::min(minimum_viscosity_local, sim.triangulation.get_communicator());
+    maximum_viscosity = dealii::Utilities::MPI::max(maximum_viscosity_local, sim.triangulation.get_communicator());
+
+    FEValues<dim> fe_values_projection (*(sim.mapping),
+                                        fe_projection,
+                                        quadrature_formula,
+                                        update_values);
+
+    // Create active mesh viscosity table.
+    {
+
+      const unsigned int n_cells = stokes_matrix.get_matrix_free()->n_cell_batches();
+
+      const unsigned int n_q_points = quadrature_formula.size();
+
+      std::vector<double> values_on_quad;
+
+      // One value per cell is required for DGQ0 projection and n_q_points
+      // values per cell for DGQ1.
+      if (dof_handler_projection.get_fe().degree == 0)
+        active_cell_data.viscosity.reinit(TableIndices<2>(n_cells, 1));
+      else if (dof_handler_projection.get_fe().degree == 1)
+        {
+          values_on_quad.resize(n_q_points);
+          active_cell_data.viscosity.reinit(TableIndices<2>(n_cells, n_q_points));
+        }
+      else
+        Assert(false, ExcInternalError());
+
+      std::vector<types::global_dof_index> local_dof_indices(fe_projection.dofs_per_cell);
+      for (unsigned int cell=0; cell<n_cells; ++cell)
+        {
+          const unsigned int n_components_filled = stokes_matrix.get_matrix_free()->n_active_entries_per_cell_batch(cell);
+
+          for (unsigned int i=0; i<n_components_filled; ++i)
+            {
+              typename DoFHandler<dim>::active_cell_iterator FEQ_cell =
+                stokes_matrix.get_matrix_free()->get_cell_iterator(cell,i);
+              typename DoFHandler<dim>::active_cell_iterator DG_cell(&(sim.triangulation),
+                                                                     FEQ_cell->level(),
+                                                                     FEQ_cell->index(),
+                                                                     &dof_handler_projection);
+              DG_cell->get_active_or_mg_dof_indices(local_dof_indices);
+
+              // For DGQ0, we simply use the viscosity at the single
+              // support point of the element. For DGQ1, we must project
+              // back to quadrature point values.
+              if (dof_handler_projection.get_fe().degree == 0)
+                active_cell_data.viscosity(cell, 0)[i] = active_viscosity_vector(local_dof_indices[0]);
+              else
+                {
+                  fe_values_projection.reinit(DG_cell);
+                  fe_values_projection.get_function_values(active_viscosity_vector,
+                                                           local_dof_indices,
+                                                           values_on_quad);
+
+                  // Do not allow viscosity to be greater than or less than the limits
+                  // of the evaluated viscosity on the active level.
+                  for (unsigned int q=0; q<n_q_points; ++q)
+                    active_cell_data.viscosity(cell, q)[i]
+                      = std::min(std::max(values_on_quad[q], minimum_viscosity), maximum_viscosity);
+                }
+            }
+        }
+    }
+
+    active_cell_data.is_compressible = sim.material_model->is_compressible();
+    active_cell_data.pressure_scaling = sim.pressure_scaling;
+
+    // Store viscosity tables and other data into the active level matrix-free objects.
+    stokes_matrix.set_cell_data(active_cell_data);
+
+    if (sim.parameters.n_expensive_stokes_solver_steps > 0)
+      {
+        A_block_matrix.set_cell_data(active_cell_data);
+        Schur_complement_block_matrix.set_cell_data(active_cell_data);
+      }
+
+    const unsigned int n_levels = sim.triangulation.n_global_levels();
+    level_cell_data.resize(0,n_levels-1);
+
+    level_viscosity_vector = 0.;
+    level_viscosity_vector.resize(0,n_levels-1);
+
+    // Project the active level viscosity vector to multilevel vector representations
+    // using MG transfer objects. This transfer is based on the same linear operator used to
+    // transfer data inside a v-cycle.
+    MGTransferMatrixFree<dim,GMGNumberType> transfer;
+    transfer.build(dof_handler_projection);
+
+    // Explicitly pick the version with template argument double to convert
+    // double-valued active_viscosity_vector to GMGNumberType-valued
+    // level_viscosity_vector:
+    transfer.template interpolate_to_mg<double>(dof_handler_projection,
+                                                level_viscosity_vector,
+                                                active_viscosity_vector);
+
+    for (unsigned int level=0; level<n_levels; ++level)
+      {
+        level_cell_data[level].is_compressible = sim.material_model->is_compressible();
+        level_cell_data[level].pressure_scaling = sim.pressure_scaling;
+
+        // Create viscosity tables on each level.
+        const unsigned int n_cells = mg_matrices_A_block[level].get_matrix_free()->n_cell_batches();
+
+        const unsigned int n_q_points = quadrature_formula.size();
+
+        std::vector<GMGNumberType> values_on_quad;
+
+        // One value per cell is required for DGQ0 projection and n_q_points
+        // values per cell for DGQ1.
+        if (dof_handler_projection.get_fe().degree == 0)
+          level_cell_data[level].viscosity.reinit(TableIndices<2>(n_cells, 1));
+        else
+          {
+            values_on_quad.resize(n_q_points);
+            level_cell_data[level].viscosity.reinit(TableIndices<2>(n_cells, n_q_points));
+          }
+
+        std::vector<types::global_dof_index> local_dof_indices(fe_projection.dofs_per_cell);
+        for (unsigned int cell=0; cell<n_cells; ++cell)
+          {
+            const unsigned int n_components_filled = mg_matrices_A_block[level].get_matrix_free()->n_active_entries_per_cell_batch(cell);
+
+            for (unsigned int i=0; i<n_components_filled; ++i)
+              {
+                typename DoFHandler<dim>::active_cell_iterator FEQ_cell =
+                  mg_matrices_A_block[level].get_matrix_free()->get_cell_iterator(cell,i);
+                typename DoFHandler<dim>::active_cell_iterator DG_cell(&(sim.triangulation),
+                                                                      FEQ_cell->level(),
+                                                                      FEQ_cell->index(),
+                                                                      &dof_handler_projection);
+                DG_cell->get_active_or_mg_dof_indices(local_dof_indices);
+
+                // For DGQ0, we simply use the viscosity at the single
+                // support point of the element. For DGQ1, we must project
+                // back to quadrature point values.
+                if (dof_handler_projection.get_fe().degree == 0)
+                  level_cell_data[level].viscosity(cell, 0)[i] = level_viscosity_vector[level](local_dof_indices[0]);
+                else
+                  {
+                    fe_values_projection.reinit(DG_cell);
+                    fe_values_projection.get_function_values(level_viscosity_vector[level],
+                                                             local_dof_indices,
+                                                             values_on_quad);
+
+                    // Do not allow viscosity to be greater than or less than the limits
+                    // of the evaluated viscosity on the active level.
+                    for (unsigned int q=0; q<n_q_points; ++q)
+                      level_cell_data[level].viscosity(cell,q)[i]
+                        = std::min(std::max(values_on_quad[q], static_cast<GMGNumberType>(minimum_viscosity)),
+                                   static_cast<GMGNumberType>(maximum_viscosity));
+                  }
+              }
+          }
+
+        // Store viscosity tables and other data into the multigrid level matrix-free objects.
+        mg_matrices_A_block[level].set_cell_data (level_cell_data[level]);
+        mg_matrices_Schur_complement[level].set_cell_data (level_cell_data[level]);
+      }
+
+    {
+      // create active mesh tables for derivatives needed in Newton method
+      // and the strain rate.
+      if (sim.newton_handler != nullptr
+          && sim.newton_handler->parameters.newton_derivative_scaling_factor != 0)
+        {
+          const double newton_derivative_scaling_factor =
+            sim.newton_handler->parameters.newton_derivative_scaling_factor;
+
+          active_cell_data.enable_newton_derivatives = true;
+
+          // TODO: these are not implemented yet
+          for (unsigned int level=0; level<n_levels; ++level)
+            level_cell_data[level].enable_newton_derivatives = false;
+
+
+          FEValues<dim> fe_values (*sim.mapping,
+                                   sim.finite_element,
+                                   quadrature_formula,
+                                   update_values   |
+                                   update_gradients |
+                                   update_quadrature_points |
+                                   update_JxW_values);
+
+          MaterialModel::MaterialModelInputs<dim> in(fe_values.n_quadrature_points, sim.introspection.n_compositional_fields);
+          MaterialModel::MaterialModelOutputs<dim> out(fe_values.n_quadrature_points, sim.introspection.n_compositional_fields);
+          sim.newton_handler->create_material_model_outputs(out);
+
+          const unsigned int n_cells = stokes_matrix.get_matrix_free()->n_cell_batches();
+          const unsigned int n_q_points = quadrature_formula.size();
+
+          active_cell_data.strain_rate_table.reinit(TableIndices<2>(n_cells, n_q_points));
+          active_cell_data.newton_factor_wrt_pressure_table.reinit(TableIndices<2>(n_cells, n_q_points));
+          active_cell_data.newton_factor_wrt_strain_rate_table.reinit(TableIndices<2>(n_cells, n_q_points));
+
+          for (unsigned int cell=0; cell<n_cells; ++cell)
+            {
+              const unsigned int n_components_filled = stokes_matrix.get_matrix_free()->n_active_entries_per_cell_batch(cell);
+
+              for (unsigned int i=0; i<n_components_filled; ++i)
+                {
+                  typename DoFHandler<dim>::active_cell_iterator matrix_free_cell =
+                    stokes_matrix.get_matrix_free()->get_cell_iterator(cell,i);
+                  typename DoFHandler<dim>::active_cell_iterator simulator_cell(&(sim.triangulation),
+                                                                                matrix_free_cell->level(),
+                                                                                matrix_free_cell->index(),
+                                                                                &(sim.dof_handler));
+
+                  fe_values.reinit(simulator_cell);
+                  in.reinit(fe_values, simulator_cell, sim.introspection, sim.current_linearization_point);
+
+                  sim.material_model->evaluate(in, out);
+                  sim.material_model->fill_additional_material_model_inputs(in, sim.current_linearization_point, fe_values, sim.introspection);
+
+                  const MaterialModel::MaterialModelDerivatives<dim> *derivatives
+                    = out.template get_additional_output<MaterialModel::MaterialModelDerivatives<dim> >();
+
+                  Assert(derivatives != nullptr,
+                         ExcMessage ("Error: The Newton method requires the material to "
+                                     "compute derivatives."));
+
+                  for (unsigned int q=0; q<n_q_points; ++q)
+                    {
+                      // use the spd factor when the stabilization is PD or SPD.
+                      const double alpha =  (sim.newton_handler->parameters.velocity_block_stabilization
+                                             & Newton::Parameters::Stabilization::PD)
+                                            != Newton::Parameters::Stabilization::none
+                                            ?
+                                            Utilities::compute_spd_factor<dim>(out.viscosities[q],
+                                                                               in.strain_rate[q],
+                                                                               derivatives->viscosity_derivative_wrt_strain_rate[q],
+                                                                               sim.newton_handler->parameters.SPD_safety_factor)
+                                            :
+                                            1.0;
+
+                      active_cell_data.newton_factor_wrt_pressure_table(cell,q)[i]
+                        = derivatives->viscosity_derivative_wrt_pressure[q] * newton_derivative_scaling_factor;
+
+                      for (unsigned int m=0; m<dim; ++m)
+                        for (unsigned int n=0; n<dim; ++n)
+                          {
+                            active_cell_data.strain_rate_table(cell, q)[m][n][i]
+                              = in.strain_rate[q][m][n];
+
+                            active_cell_data.newton_factor_wrt_strain_rate_table(cell, q)[m][n][i]
+                              = derivatives->viscosity_derivative_wrt_strain_rate[q][m][n]
+                                * newton_derivative_scaling_factor * alpha;
+                          }
+                    }
+                }
+            }
+
+          // symmetrize the Newton_system when the stabilization is symmetric or SPD
+          const bool symmetrize_newton_system =
+            (sim.newton_handler->parameters.velocity_block_stabilization & Newton::Parameters::Stabilization::symmetric)
+            != Newton::Parameters::Stabilization::none;
+          active_cell_data.symmetrize_newton_system = symmetrize_newton_system;
+        }
+      else
+        {
+          // delete data used for Newton derivatives if necessary
+          // TODO: use Table::clear() once implemented in 10.0.pre
+          active_cell_data.enable_newton_derivatives = false;
+          active_cell_data.newton_factor_wrt_pressure_table.reinit(TableIndices<2>(0,0));
+          active_cell_data.strain_rate_table.reinit(TableIndices<2>(0,0));
+          active_cell_data.newton_factor_wrt_strain_rate_table.reinit(TableIndices<2>(0,0));
+
+          for (unsigned int level=0; level<n_levels; ++level)
+            level_cell_data[level].enable_newton_derivatives = false;
+        }
+    }
+
+    {
+      // Create active mesh tables to store the product of the pressure perturbation and
+      // the normalized gravity used in the free surface stabilization.
+      // Currently, mutilevel is not implemented yet, it may slow down the convergence.
+
+      // TODO: implement multilevel surface terms for the free surface stabilization.
+
+      active_cell_data.apply_stabilization_free_surface_faces = sim.mesh_deformation
+                                                                && !sim.mesh_deformation->get_free_surface_boundary_indicators().empty();
+      if (active_cell_data.apply_stabilization_free_surface_faces == true)
+        {
+          const double free_surface_theta =
+            sim.mesh_deformation->template get_matching_mesh_deformation_object<MeshDeformation::FreeSurface<dim>>()
+          .get_free_surface_theta();
+
+          const QGauss<dim-1> face_quadrature_formula (sim.parameters.stokes_velocity_degree+1);
+
+          const unsigned int n_face_q_points = face_quadrature_formula.size();
+
+          // We need the gradients for the material model inputs.
+          FEFaceValues<dim> fe_face_values (*sim.mapping,
+                                            sim.finite_element,
+                                            face_quadrature_formula,
+                                            update_values   |
+                                            update_gradients |
+                                            update_quadrature_points |
+                                            update_JxW_values);
+
+          const unsigned int n_faces_boundary = stokes_matrix.get_matrix_free()->n_boundary_face_batches();
+          const unsigned int n_faces_interior = stokes_matrix.get_matrix_free()->n_inner_face_batches();
+
+          active_cell_data.free_surface_boundary_indicators =
+            sim.mesh_deformation->get_free_surface_boundary_indicators();
+
+          MaterialModel::MaterialModelInputs<dim> face_material_inputs(n_face_q_points, sim.introspection.n_compositional_fields);
+          MaterialModel::MaterialModelOutputs<dim> face_material_outputs(n_face_q_points, sim.introspection.n_compositional_fields);
+
+          active_cell_data.free_surface_stabilization_term_table.reinit(n_faces_boundary, n_face_q_points);
+
+          for (unsigned int face=n_faces_interior; face<n_faces_boundary + n_faces_interior; ++face)
+            {
+              const unsigned int n_components_filled = stokes_matrix.get_matrix_free()->n_active_entries_per_face_batch(face);
+
+              for (unsigned int i=0; i<n_components_filled; ++i)
+                {
+                  // The first element of the pair is the active cell iterator
+                  // the second element of the pair is the face number
+                  const auto cell_face_pair = stokes_matrix.get_matrix_free()->get_face_iterator(face, i, true);
+
+                  typename DoFHandler<dim>::active_cell_iterator matrix_free_cell =
+                    cell_face_pair.first;
+                  typename DoFHandler<dim>::active_cell_iterator simulator_cell(&(sim.triangulation),
+                                                                                matrix_free_cell->level(),
+                                                                                matrix_free_cell->index(),
+                                                                                &(sim.dof_handler));
+
+                  const types::boundary_id boundary_indicator = stokes_matrix.get_matrix_free()->get_boundary_id(face);
+                  Assert(boundary_indicator == simulator_cell->face(cell_face_pair.second)->boundary_id(), ExcInternalError());
+
+                  // only apply on free surface faces
+                  if (active_cell_data.free_surface_boundary_indicators.find(boundary_indicator)
+                      == active_cell_data.free_surface_boundary_indicators.end())
+                    continue;
+
+                  fe_face_values.reinit(simulator_cell, cell_face_pair.second);
+
+                  face_material_inputs.reinit(fe_face_values,
+                                              simulator_cell,
+                                              sim.introspection,
+                                              sim.solution);
+
+                  sim.compute_material_model_input_values(sim.solution,
+                                                          fe_face_values,
+                                                          simulator_cell,
+                                                          false,
+                                                          face_material_inputs);
+                  sim.material_model->evaluate(face_material_inputs, face_material_outputs);
+
+                  for (unsigned int q = 0; q < n_face_q_points; ++q)
+                    {
+                      const Tensor<1,dim>
+                      gravity = sim.gravity_model->gravity_vector(fe_face_values.quadrature_point(q));
+                      const double g_norm = gravity.norm();
+
+                      const Tensor<1,dim> g_hat = (g_norm == 0.0 ? Tensor<1,dim>() : gravity/g_norm);
+
+                      const double pressure_perturbation = face_material_outputs.densities[q] *
+                                                           sim.time_step *
+                                                           free_surface_theta *
+                                                           g_norm;
+                      for (unsigned int d = 0; d < dim; ++d)
+                        active_cell_data.free_surface_stabilization_term_table(face - n_faces_interior, q)[d][i]
+                          = pressure_perturbation * g_hat[d];
+                    }
+                }
+            }
+        }
+    }
   }
 
 
@@ -2917,6 +2918,9 @@ namespace aspect
       {
         mg_matrices_Schur_complement[level].compute_diagonal();
 
+        const auto & dof_handler_v = dofhandlers_v[level];
+        const auto &dof_handler_projection = dofhandlers_projection[level];
+
         // If we have a tangential boundary we must compute the A block
         // diagonal outside of the matrix-free object
         if (!(sim.boundary_velocity_manager.get_tangential_boundary_velocity_indicators().empty())
@@ -2925,114 +2929,112 @@ namespace aspect
           {
             AssertThrow(false, ExcNotImplemented());
 
-//            IndexSet locally_relevant_dofs;
-//            DoFTools::extract_locally_relevant_level_dofs (dof_handler_v, level, locally_relevant_dofs);
+            IndexSet locally_relevant_dofs;
+            DoFTools::extract_locally_relevant_dofs (dof_handler_v, locally_relevant_dofs);
 
-//            DiagonalMatrix<dealii::LinearAlgebra::distributed::Vector<double>> diagonal_matrix;
-//            dealii::LinearAlgebra::distributed::Vector<double> &diagonal_vector =
-//              diagonal_matrix.get_vector();
+            DiagonalMatrix<dealii::LinearAlgebra::distributed::Vector<double>> diagonal_matrix;
+            dealii::LinearAlgebra::distributed::Vector<double> &diagonal_vector =
+              diagonal_matrix.get_vector();
 
-//            diagonal_vector.reinit(dof_handler_v.locally_owned_mg_dofs(level),
-//                                   locally_relevant_dofs,
-//                                   sim.mpi_communicator);
+            diagonal_vector.reinit(dof_handler_v.locally_owned_mg_dofs(level),
+                                   locally_relevant_dofs,
+                                   sim.mpi_communicator);
 
-//            QGauss<dim>  quadrature_formula(sim.parameters.stokes_velocity_degree+1);
-//            FEValues<dim> fe_values (*(sim.mapping), fe_v, quadrature_formula,
-//                                     update_values   | update_gradients |
-//                                     update_quadrature_points | update_JxW_values);
-//            FEValues<dim> fe_values_projection (*(sim.mapping),
-//                                                fe_projection,
-//                                                quadrature_formula,
-//                                                update_values);
+            QGauss<dim>  quadrature_formula(sim.parameters.stokes_velocity_degree+1);
+            FEValues<dim> fe_values (*(sim.mapping), fe_v, quadrature_formula,
+                                     update_values   | update_gradients |
+                                     update_quadrature_points | update_JxW_values);
+            FEValues<dim> fe_values_projection (*(sim.mapping),
+                                                fe_projection,
+                                                quadrature_formula,
+                                                update_values);
 
-//            const unsigned int   dofs_per_cell   = fe_v.dofs_per_cell;
-//            const unsigned int   n_q_points      = quadrature_formula.size();
+            const unsigned int   dofs_per_cell   = fe_v.dofs_per_cell;
+            const unsigned int   n_q_points      = quadrature_formula.size();
 
-//            FullMatrix<double>   cell_matrix (dofs_per_cell, dofs_per_cell);
+            FullMatrix<double>   cell_matrix (dofs_per_cell, dofs_per_cell);
 
-//            std::vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
-//            const FEValuesExtractors::Vector velocities (0);
+            std::vector<types::global_dof_index> local_dof_indices (dofs_per_cell);
+            const FEValuesExtractors::Vector velocities (0);
 
-//            std::vector<SymmetricTensor<2,dim>> symgrad_phi_u (dofs_per_cell);
-//            std::vector<double> div_phi_u (dofs_per_cell);
+            std::vector<SymmetricTensor<2,dim>> symgrad_phi_u (dofs_per_cell);
+            std::vector<double> div_phi_u (dofs_per_cell);
 
-//            AffineConstraints<double> boundary_constraints;
-//            boundary_constraints.reinit(locally_relevant_dofs);
-//            boundary_constraints.add_lines (mg_constrained_dofs_A_block.get_refinement_edge_indices(level));
-//            boundary_constraints.add_lines (mg_constrained_dofs_A_block.get_boundary_indices(level));
-//            // let Dirichlet values win over no normal flux:
-//            boundary_constraints.merge(mg_constrained_dofs_A_block.get_user_constraint_matrix(level),
-//                                       AffineConstraints<double>::left_object_wins);
-//            boundary_constraints.close();
+            AffineConstraints<double> boundary_constraints;
+            boundary_constraints.reinit(locally_relevant_dofs);
+            boundary_constraints.add_lines (mg_constrained_dofs_A_block.get_refinement_edge_indices(level));
+            boundary_constraints.add_lines (mg_constrained_dofs_A_block.get_boundary_indices(level));
+            // let Dirichlet values win over no normal flux:
+            boundary_constraints.merge(mg_constrained_dofs_A_block.get_user_constraint_matrix(level),
+                                       AffineConstraints<double>::left_object_wins);
+            boundary_constraints.close();
+            
+            for (const auto & cell : dof_handler_v.active_cell_iterators())
+              if (cell->is_locally_owned())
+                {
+                  cell_matrix = 0;
+                  fe_values.reinit (cell);
 
-//            typename DoFHandler<dim>::level_cell_iterator cell = dof_handler_v.begin(level),
-//                                                          endc = dof_handler_v.end(level);
-//            for (; cell!=endc; ++cell)
-//              if (cell->level_subdomain_id() == sim.triangulation.locally_owned_subdomain())
-//                {
-//                  cell_matrix = 0;
-//                  fe_values.reinit (cell);
+                  typename DoFHandler<dim>::active_cell_iterator DG_cell(&(sim.triangulation),
+                                                                        level,
+                                                                        cell->index(),
+                                                                        &dof_handler_projection);
+                  std::vector<types::global_dof_index> dg_dof_indices(dof_handler_projection.get_fe(0).dofs_per_cell);
+                  DG_cell->get_active_or_mg_dof_indices(dg_dof_indices);
 
-//                  typename DoFHandler<dim>::level_cell_iterator DG_cell(&(sim.triangulation),
-//                                                                        level,
-//                                                                        cell->index(),
-//                                                                        &dof_handler_projection);
-//                  std::vector<types::global_dof_index> dg_dof_indices(dof_handler_projection.get_fe(0).dofs_per_cell);
-//                  DG_cell->get_active_or_mg_dof_indices(dg_dof_indices);
+                  // For DGQ1, project viscosity from DoF vector to quadrature.
+                  std::vector<GMGNumberType> visc_on_quad(n_q_points);
+                  if (dof_handler_projection.get_fe().degree == 1)
+                    {
+                      fe_values_projection.reinit(DG_cell);
+                      fe_values_projection.get_function_values(level_viscosity_vector[level],
+                                                               dg_dof_indices,
+                                                               visc_on_quad);
+                    }
 
-//                  // For DGQ1, project viscosity from DoF vector to quadrature.
-//                  std::vector<GMGNumberType> visc_on_quad(n_q_points);
-//                  if (dof_handler_projection.get_fe().degree == 1)
-//                    {
-//                      fe_values_projection.reinit(DG_cell);
-//                      fe_values_projection.get_function_values(level_viscosity_vector[level],
-//                                                               dg_dof_indices,
-//                                                               visc_on_quad);
-//                    }
+                  for (unsigned int q=0; q<n_q_points; ++q)
+                    {
+                      const double viscosity = (dof_handler_projection.get_fe().degree == 0
+                                                ?
+                                                level_viscosity_vector[level](dg_dof_indices[0])
+                                                :
+                                                std::min(std::max(visc_on_quad[q], static_cast<GMGNumberType>(minimum_viscosity)),
+                                                         static_cast<GMGNumberType>(maximum_viscosity)));
 
-//                  for (unsigned int q=0; q<n_q_points; ++q)
-//                    {
-//                      const double viscosity = (dof_handler_projection.get_fe().degree == 0
-//                                                ?
-//                                                level_viscosity_vector[level](dg_dof_indices[0])
-//                                                :
-//                                                std::min(std::max(visc_on_quad[q], static_cast<GMGNumberType>(minimum_viscosity)),
-//                                                         static_cast<GMGNumberType>(maximum_viscosity)));
+                      for (unsigned int k=0; k<dofs_per_cell; ++k)
+                        {
+                          symgrad_phi_u[k] = fe_values[velocities].symmetric_gradient (k, q);
 
-//                      for (unsigned int k=0; k<dofs_per_cell; ++k)
-//                        {
-//                          symgrad_phi_u[k] = fe_values[velocities].symmetric_gradient (k, q);
+                          if (is_compressible)
+                            div_phi_u[k] = fe_values[velocities].divergence (k, q);
+                        }
 
-//                          if (is_compressible)
-//                            div_phi_u[k] = fe_values[velocities].divergence (k, q);
-//                        }
+                      const double JxW = fe_values.JxW(q);
+                      for (unsigned int i=0; i<dofs_per_cell; ++i)
+                        for (unsigned int j=0; j<dofs_per_cell; ++j)
+                          {
+                            cell_matrix(i,j) += 2. * viscosity * (symgrad_phi_u[i]*symgrad_phi_u[j])
+                                                * JxW;
 
-//                      const double JxW = fe_values.JxW(q);
-//                      for (unsigned int i=0; i<dofs_per_cell; ++i)
-//                        for (unsigned int j=0; j<dofs_per_cell; ++j)
-//                          {
-//                            cell_matrix(i,j) += 2. * viscosity * (symgrad_phi_u[i]*symgrad_phi_u[j])
-//                                                * JxW;
+                            if (is_compressible)
+                              cell_matrix(i,j) +=  (-2./3.) * viscosity * (div_phi_u[i]*div_phi_u[j])
+                                                   * JxW;
+                          }
+                    }
 
-//                            if (is_compressible)
-//                              cell_matrix(i,j) +=  (-2./3.) * viscosity * (div_phi_u[i]*div_phi_u[j])
-//                                                   * JxW;
-//                          }
-//                    }
+                  cell->get_mg_dof_indices (local_dof_indices);
 
-//                  cell->get_mg_dof_indices (local_dof_indices);
+                  boundary_constraints.distribute_local_to_global (cell_matrix,
+                                                                   local_dof_indices,
+                                                                   diagonal_matrix);
+                }
 
-//                  boundary_constraints.distribute_local_to_global (cell_matrix,
-//                                                                   local_dof_indices,
-//                                                                   diagonal_matrix);
-//                }
+            diagonal_matrix.compress(VectorOperation::add);
 
-//            diagonal_matrix.compress(VectorOperation::add);
-
-//            dealii::LinearAlgebra::distributed::Vector<GMGNumberType> diagonal;
-//            // This assignment converts from type double to GMGNumberType.
-//            diagonal = diagonal_matrix.get_vector();
-//            mg_matrices_A_block[level].set_diagonal(diagonal);
+            dealii::LinearAlgebra::distributed::Vector<GMGNumberType> diagonal;
+            // This assignment converts from type double to GMGNumberType.
+            diagonal = diagonal_matrix.get_vector();
+            mg_matrices_A_block[level].set_diagonal(diagonal);
           }
         else
           {
