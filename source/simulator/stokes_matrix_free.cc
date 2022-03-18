@@ -1494,7 +1494,7 @@ namespace aspect
   template <int dim, int velocity_degree>
   void StokesMatrixFreeHandlerImplementation<dim, velocity_degree>::evaluate_material_model ()
   {
-    const auto & dof_handler_projection = dofhandlers_projection[dofhandlers_projection.max_level()];
+    const auto &dof_handler_projection = dofhandlers_projection[dofhandlers_projection.max_level()];
     dealii::LinearAlgebra::distributed::Vector<double> active_viscosity_vector(dof_handler_projection.locally_owned_dofs(),
                                                                                sim.triangulation.get_communicator());
 
@@ -1663,26 +1663,26 @@ namespace aspect
                                                 level_viscosity_vector,
                                                 active_viscosity_vector);
 #else
-      const unsigned int min_level = 0;
-      const unsigned int max_level = n_levels-1;
+    const unsigned int min_level = 0;
+    const unsigned int max_level = n_levels-1;
 
-      MGLevelObject<
-      MGTwoLevelTransfer<dim, dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>>
-      transfers(min_level, max_level);
+    MGLevelObject<
+    MGTwoLevelTransfer<dim, dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>>
+    transfers(min_level, max_level);
 
-      for (unsigned int l = min_level; l < max_level; ++l)
-        transfers[l + 1].reinit(dofhandlers_projection[l + 1], dofhandlers_projection[l]);
+    for (unsigned int l = min_level; l < max_level; ++l)
+      transfers[l + 1].reinit(dofhandlers_projection[l + 1], dofhandlers_projection[l]);
 
-      MGTransferGlobalCoarsening<dim, dealii::LinearAlgebra::distributed::Vector<GMGNumberType>> transfer(transfers, [&](const auto l, auto &vec)
-      {
-        (void) l;
-        (void) vec;
-        Assert(false, ExcNotImplemented());
-      });
+    MGTransferGlobalCoarsening<dim, dealii::LinearAlgebra::distributed::Vector<GMGNumberType>> transfer(transfers, [&](const auto l, auto &vec)
+    {
+      (void) l;
+      (void) vec;
+      Assert(false, ExcNotImplemented());
+    });
 
     transfer.template interpolate_to_mg(dof_handler_projection,
-                                                level_viscosity_vector,
-                                                active_viscosity_vector);
+                                        level_viscosity_vector,
+                                        active_viscosity_vector);
 
 #endif
 
@@ -1718,9 +1718,9 @@ namespace aspect
                 typename DoFHandler<dim>::active_cell_iterator FEQ_cell =
                   mg_matrices_A_block[level].get_matrix_free()->get_cell_iterator(cell,i);
                 typename DoFHandler<dim>::active_cell_iterator DG_cell(&(dofhandlers_projection[level].get_triangulation()),
-                                                                      FEQ_cell->level(),
-                                                                      FEQ_cell->index(),
-                                                                      &dofhandlers_projection[level]);
+                                                                       FEQ_cell->level(),
+                                                                       FEQ_cell->index(),
+                                                                       &dofhandlers_projection[level]);
                 DG_cell->get_active_or_mg_dof_indices(local_dof_indices);
 
                 // For DGQ0, we simply use the viscosity at the single
@@ -2924,7 +2924,7 @@ namespace aspect
       {
         mg_matrices_Schur_complement[level].compute_diagonal();
 
-        const auto & dof_handler_v = dofhandlers_v[level];
+        const auto &dof_handler_v = dofhandlers_v[level];
         const auto &dof_handler_projection = dofhandlers_projection[level];
 
         // If we have a tangential boundary we must compute the A block
@@ -2974,17 +2974,17 @@ namespace aspect
             boundary_constraints.merge(mg_constrained_dofs_A_block.get_user_constraint_matrix(level),
                                        AffineConstraints<double>::left_object_wins);
             boundary_constraints.close();
-            
-            for (const auto & cell : dof_handler_v.active_cell_iterators())
+
+            for (const auto &cell : dof_handler_v.active_cell_iterators())
               if (cell->is_locally_owned())
                 {
                   cell_matrix = 0;
                   fe_values.reinit (cell);
 
                   typename DoFHandler<dim>::active_cell_iterator DG_cell(&(dof_handler_projection.get_triangulation()),
-                                                                        level,
-                                                                        cell->index(),
-                                                                        &dof_handler_projection);
+                                                                         level,
+                                                                         cell->index(),
+                                                                         &dof_handler_projection);
                   std::vector<types::global_dof_index> dg_dof_indices(dof_handler_projection.get_fe(0).dofs_per_cell);
                   DG_cell->get_active_or_mg_dof_indices(dg_dof_indices);
 
