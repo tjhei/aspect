@@ -904,7 +904,7 @@ namespace aspect
     const AffineConstraints<number> &constraints)
   {
 
-    this->constraints.copy_from(constraints);
+    //this->constraints.copy_from(constraints);
 
     typename MatrixFree<dim, number>::AdditionalData data;
     data.mapping_update_flags =
@@ -2213,7 +2213,7 @@ namespace aspect
     // ABlock GMG
     Multigrid<VectorType > mg_A(mg_matrix_A,
                                 mg_coarse_A,
-                                mg_transfer_A_block,
+                                *mg_transfer_A_block,
                                 mg_smoother_A,
                                 mg_smoother_A/*,
                                min_level,
@@ -2223,15 +2223,15 @@ namespace aspect
     // Schur complement matrix GMG
     Multigrid<VectorType > mg_Schur(mg_matrix_Schur,
                                     mg_coarse_Schur,
-                                    mg_transfer_Schur_complement,
+                                    *mg_transfer_Schur_complement,
                                     mg_smoother_Schur,
                                     mg_smoother_Schur);
     //mg_Schur.set_edge_matrices(mg_interface_Schur, mg_interface_Schur);
 
     // GMG Preconditioner for ABlock and Schur complement
-    using GMGPreconditioner = PreconditionMG<dim, VectorType,decltype(mg_transfer_A_block)>;
-    GMGPreconditioner prec_A(dofhandlers_v[dofhandlers_v.max_level()], mg_A, mg_transfer_A_block);
-    GMGPreconditioner prec_Schur(dofhandlers_p[dofhandlers_p.max_level()], mg_Schur, mg_transfer_Schur_complement);
+    using GMGPreconditioner = PreconditionMG<dim, VectorType,decltype(*mg_transfer_A_block)>;
+    GMGPreconditioner prec_A(dofhandlers_v[dofhandlers_v.max_level()], mg_A, *mg_transfer_A_block);
+    GMGPreconditioner prec_Schur(dofhandlers_p[dofhandlers_p.max_level()], mg_Schur, *mg_transfer_Schur_complement);
 
 
     // Many parts of the solver depend on the block layout (velocity = 0,
