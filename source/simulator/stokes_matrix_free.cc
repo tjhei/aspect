@@ -903,9 +903,6 @@ namespace aspect
     const DoFHandler<dim>           &dof_handler,
     const AffineConstraints<number> &constraints)
   {
-
-    //this->constraints.copy_from(constraints);
-
     typename MatrixFree<dim, number>::AdditionalData data;
     data.mapping_update_flags =
       update_quadrature_points | update_gradients | update_values;
@@ -1139,8 +1136,6 @@ namespace aspect
                                                                          const DoFHandler<dim>           &dof_handler,
                                                                          const AffineConstraints<number> &constraints)
   {
-    // this->constraints.copy_from(constraints);
-
     typename MatrixFree<dim, number>::AdditionalData data;
     data.mapping_update_flags =
       update_quadrature_points | update_gradients | update_values;
@@ -1156,11 +1151,7 @@ namespace aspect
     ablock_mf_storage->reinit(mapping,dof_handler, constraints,
                               QGauss<1>(degree_v+1), additional_data);
 
-
-
     this->initialize(ablock_mf_storage);
-
-
   }
 
 
@@ -1407,11 +1398,6 @@ namespace aspect
   StokesMatrixFreeHandlerImplementation<dim, velocity_degree>::StokesMatrixFreeHandlerImplementation (Simulator<dim> &simulator,
       ParameterHandler &prm)
     : sim(simulator),
-
-  /*      dof_handler_v(simulator.triangulation),
-        dof_handler_p(simulator.triangulation),
-        dof_handler_projection(simulator.triangulation),
-  */
 
       fe_v (FE_Q<dim>(sim.parameters.stokes_velocity_degree), dim),
       fe_p (FE_Q<dim>(sim.parameters.stokes_velocity_degree-1),1),
@@ -2215,20 +2201,22 @@ namespace aspect
                   << "    Stokes solver: " << std::flush;
       }
 
+#if false
     // Interface matrices
     // Ablock GMG
-//    MGLevelObject<MatrixFreeOperators::MGInterfaceOperator<GMGABlockMatrixType>> mg_interface_matrices_A;
-//    mg_interface_matrices_A.resize(0, sim.triangulation.n_global_levels()-1);
-//    for (unsigned int level=0; level<sim.triangulation.n_global_levels(); ++level)
-//      mg_interface_matrices_A[level].initialize(mg_matrices_A_block[level]);
-//    mg::Matrix<VectorType > mg_interface_A(mg_interface_matrices_A);
+    MGLevelObject<MatrixFreeOperators::MGInterfaceOperator<GMGABlockMatrixType>> mg_interface_matrices_A;
+    mg_interface_matrices_A.resize(0, sim.triangulation.n_global_levels()-1);
+    for (unsigned int level=0; level<sim.triangulation.n_global_levels(); ++level)
+      mg_interface_matrices_A[level].initialize(mg_matrices_A_block[level]);
+    mg::Matrix<VectorType > mg_interface_A(mg_interface_matrices_A);
 
-//    // Schur complement matrix GMG
-//    MGLevelObject<MatrixFreeOperators::MGInterfaceOperator<GMGSchurComplementMatrixType>> mg_interface_matrices_Schur;
-//    mg_interface_matrices_Schur.resize(0, sim.triangulation.n_global_levels()-1);
-//    for (unsigned int level=0; level<sim.triangulation.n_global_levels(); ++level)
-//      mg_interface_matrices_Schur[level].initialize(mg_matrices_Schur_complement[level]);
-//    mg::Matrix<VectorType > mg_interface_Schur(mg_interface_matrices_Schur);
+    // Schur complement matrix GMG
+    MGLevelObject<MatrixFreeOperators::MGInterfaceOperator<GMGSchurComplementMatrixType>> mg_interface_matrices_Schur;
+    mg_interface_matrices_Schur.resize(0, sim.triangulation.n_global_levels()-1);
+    for (unsigned int level=0; level<sim.triangulation.n_global_levels(); ++level)
+      mg_interface_matrices_Schur[level].initialize(mg_matrices_Schur_complement[level]);
+    mg::Matrix<VectorType > mg_interface_Schur(mg_interface_matrices_Schur);
+#endif
 
     // MG Matrix
     mg::Matrix<VectorType > mg_matrix_A(mg_matrices_A_block);
@@ -2240,10 +2228,10 @@ namespace aspect
                                 mg_coarse_A,
                                 *mg_transfer_A_block,
                                 mg_smoother_A,
-                                mg_smoother_A/*,
-                               min_level,
-                               max_level*/);
-    //mg_A.set_edge_matrices(mg_interface_A, mg_interface_A);
+                                mg_smoother_A);
+#if false
+    mg_A.set_edge_matrices(mg_interface_A, mg_interface_A);
+#endif
 
     // Schur complement matrix GMG
     Multigrid<VectorType > mg_Schur(mg_matrix_Schur,
@@ -2724,12 +2712,6 @@ namespace aspect
     const Mapping<dim> &mapping = *sim.mapping;
 
     trias = dealii::MGTransferGlobalCoarseningTools::create_geometric_coarsening_sequence (sim.triangulation);
-    /* //    later:
-            RepartitioningPolicyTools::DefaultPolicy<dim>(),
-            true,
-            / *repartition_fine_triangulation =* / false ); */
-
-
 
     const unsigned int min_level = 0;
     const unsigned int max_level = trias.size() - 1;
@@ -2805,18 +2787,18 @@ namespace aspect
           op.reinit(mapping, dof_handler, constraint);
 
         }
+
+        // Coefficient transfer objects:
+        {
+          auto &dof_handler_projection = dofhandlers_projection[l];
+
+          dof_handler_projection.reinit(tria);
+          dof_handler_projection.distribute_dofs(fe_projection);
+
+          DoFRenumbering::hierarchical(dof_handler_projection);
+
+        }
       }
-
-
-
-//    // Coefficient transfer objects
-//    {
-//      dof_handler_projection.clear();
-//      dof_handler_projection.distribute_dofs(fe_projection);
-
-//      DoFRenumbering::hierarchical(dof_handler_projection);
-//    }
-
 
     // Setup the matrix-free operators
 
