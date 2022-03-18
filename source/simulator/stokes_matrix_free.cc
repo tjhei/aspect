@@ -1673,11 +1673,28 @@ namespace aspect
     for (unsigned int l = min_level; l < max_level; ++l)
       transfers[l + 1].reinit(dofhandlers_projection[l + 1], dofhandlers_projection[l]);
 
+
+    Assert(dof_handler_projection.get_fe().degree == 0,
+           ExcNotImplemented());
+    const int degree = 0;
+
+    MGLevelObject<MatrixFreeOperators::MassOperator<dim, degree>> temp_ops;
+    temp_ops.resize(min_level, max_level);
+
+    for (auto l = min_level; l <= max_level; ++l)
+      {
+        AffineConstraints<double> cs;
+        std::shared_ptr<MatrixFree<dim,double>>
+                                             mf(new MatrixFree<dim,double>());
+        mf->reinit(*sim.mapping, dofhandlers_projection[l], cs, QGauss<1>(degree+1));
+        temp_ops[l].initialize(mf);
+      }
+
     MGTransferGlobalCoarsening<dim, dealii::LinearAlgebra::distributed::Vector<GMGNumberType>> transfer(transfers, [&](const auto l, auto &vec)
     {
       (void) l;
       (void) vec;
-      Assert(false, ExcNotImplemented());
+      temp_ops[l].initialize_dof_vector(vec);
     });
 
     transfer.template interpolate_to_mg(dof_handler_projection,
