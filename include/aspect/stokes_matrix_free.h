@@ -367,6 +367,8 @@ namespace aspect
          * A pointer to the current cell data that contains viscosity and other required parameters per cell.
          */
         const OperatorCellData<dim,number> *cell_data;
+
+        AffineConstraints<number> constraints;
     };
   }
 

@@ -2229,7 +2229,7 @@ namespace aspect
     //mg_Schur.set_edge_matrices(mg_interface_Schur, mg_interface_Schur);
 
     // GMG Preconditioner for ABlock and Schur complement
-    using GMGPreconditioner = PreconditionMG<dim, VectorType,decltype(*mg_transfer_A_block)>;
+    using GMGPreconditioner = PreconditionMG<dim, VectorType,typename std::remove_reference<decltype(*mg_transfer_A_block)>::type>;
     GMGPreconditioner prec_A(dofhandlers_v[dofhandlers_v.max_level()], mg_A, *mg_transfer_A_block);
     GMGPreconditioner prec_Schur(dofhandlers_p[dofhandlers_p.max_level()], mg_Schur, *mg_transfer_Schur_complement);
 
@@ -2909,6 +2909,8 @@ namespace aspect
 
     const bool is_compressible = sim.material_model->is_compressible();
 
+    (void) is_compressible;
+
     // Assemble and store the diagonal of the GMG level matrices derived from:
     // 2*eta*(symgrad u, symgrad v) - (if compressible) 2*eta/3*(div u, div v)
     for (unsigned int level=0; level < sim.triangulation.n_global_levels(); ++level)
@@ -3066,7 +3068,9 @@ namespace aspect
   const DoFHandler<dim> &
   StokesMatrixFreeHandlerImplementation<dim, velocity_degree>::get_dof_handler_projection () const
   {
-    //return dof_handler_projection;
+    AssertThrow(false, ExcNotImplemented());
+    static DoFHandler<dim> dof_handler_projection;
+    return dof_handler_projection;
   }
 
 
@@ -3093,7 +3097,8 @@ namespace aspect
   const MGTransferMatrixFree<dim,GMGNumberType> &
   StokesMatrixFreeHandlerImplementation<dim, velocity_degree>::get_mg_transfer_A() const
   {
-    //return mg_transfer_A_block;
+    static MGTransferMatrixFree<dim,GMGNumberType> mg_transfer_A_block;
+    return mg_transfer_A_block;
   }
 
 
@@ -3102,7 +3107,9 @@ namespace aspect
   const MGTransferMatrixFree<dim,GMGNumberType> &
   StokesMatrixFreeHandlerImplementation<dim, velocity_degree>::get_mg_transfer_S() const
   {
-    //return mg_transfer_Schur_complement;
+    AssertThrow(false, ExcNotImplemented());
+    static MGTransferMatrixFree<dim,GMGNumberType> mg_transfer_Schur_complement;
+    return mg_transfer_Schur_complement;
   }
 
 
