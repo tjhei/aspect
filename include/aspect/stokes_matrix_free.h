@@ -241,6 +241,7 @@ namespace aspect
         void
         reinit(const Mapping<dim>              &mapping,
                const DoFHandler<dim>           &dof_handler,
+               const DoFHandler<dim>           &dof_handler_other,
                const AffineConstraints<number> &constraints);
 
         /**
@@ -320,6 +321,7 @@ namespace aspect
         void
         reinit(const Mapping<dim>              &mapping,
                const DoFHandler<dim>           &dof_handler,
+               const DoFHandler<dim>           &dof_handler_other,
                const AffineConstraints<number> &constraints);
 
         /**

@@ -901,6 +901,7 @@ namespace aspect
   MatrixFreeStokesOperators::MassMatrixOperator<dim,degree_p,number>::reinit(
     const Mapping<dim>              &mapping,
     const DoFHandler<dim>           &dof_handler,
+    const DoFHandler<dim>           &dof_handler_other,
     const AffineConstraints<number> &constraints)
   {
     typename MatrixFree<dim, number>::AdditionalData data;
@@ -915,10 +916,14 @@ namespace aspect
                                             update_JxW_values | update_quadrature_points);
     std::shared_ptr<MatrixFree<dim,double>>
                                          mf(new MatrixFree<dim,double>());
-    mf->reinit(mapping,dof_handler, constraints,
+
+    AffineConstraints<number> dummy;                                     
+    mf->reinit(mapping,
+                              std::vector< const DoFHandler< dim > *> {&dof_handler, &dof_handler_other}, 
+                              std::vector< const AffineConstraints< number > *> {&constraints, &dummy} ,
                QGauss<1>(degree_p+2), additional_data);
 
-    this->initialize(mf);
+    this->initialize(mf, std::vector< unsigned int >{0}, std::vector< unsigned int >{0});
   }
 
   template <int dim, int degree_p, typename number>
@@ -950,9 +955,6 @@ namespace aspect
                  const std::pair<unsigned int, unsigned int>           &cell_range) const
   {
     FEEvaluation<dim,degree_p,degree_p+2,1,number> pressure (data);
-
-    const bool use_viscosity_at_quadrature_points
-      = (cell_data->viscosity.size(1) == pressure.n_q_points);
 
     for (unsigned int cell=cell_range.first; cell<cell_range.second; ++cell)
       {
@@ -1170,6 +1172,7 @@ namespace aspect
   void
   MatrixFreeStokesOperators::ABlockOperator<dim,degree_v,number>::reinit(const Mapping<dim>              &mapping,
                                                                          const DoFHandler<dim>           &dof_handler,
+                                                                         const DoFHandler<dim>           &dof_handler_other,
                                                                          const AffineConstraints<number> &constraints)
   {
     typename MatrixFree<dim, number>::AdditionalData data;
@@ -1184,10 +1187,14 @@ namespace aspect
                                             update_JxW_values | update_quadrature_points);
     std::shared_ptr<MatrixFree<dim,double>>
                                          ablock_mf_storage(new MatrixFree<dim,double>());
-    ablock_mf_storage->reinit(mapping,dof_handler, constraints,
+
+    AffineConstraints<number> dummy;
+    ablock_mf_storage->reinit(mapping, 
+                              std::vector< const DoFHandler< dim > *> {&dof_handler, &dof_handler_other}, 
+                              std::vector< const AffineConstraints< number > *> {&constraints, &dummy} ,
                               QGauss<1>(degree_v+1), additional_data);
 
-    this->initialize(ablock_mf_storage);
+    this->initialize(ablock_mf_storage, std::vector< unsigned int >{0}, std::vector< unsigned int >{0});
   }
 
 
@@ -1247,9 +1254,6 @@ namespace aspect
                  const std::pair<unsigned int, unsigned int>           &cell_range) const
   {
     FEEvaluation<dim,degree_v,degree_v+1,dim,number> velocity (data,0);
-
-    const bool use_viscosity_at_quadrature_points
-      = (cell_data->viscosity.size(1) == velocity.n_q_points);
 
     for (unsigned int cell=cell_range.first; cell<cell_range.second; ++cell)
       {
@@ -1769,7 +1773,7 @@ namespace aspect
 
     transfer.template interpolate_to_mg(dof_handler_projection,
                                         level_viscosity_vector,
-                                        active_viscosity_vector);
+                                        active_viscosity_vector);                                     
 
 #endif
 
@@ -2797,7 +2801,7 @@ namespace aspect
     matrix_free_objects.clear();
 
     const Mapping<dim> &mapping = *sim.mapping;
-
+   
     trias = dealii::MGTransferGlobalCoarseningTools::create_geometric_coarsening_sequence (sim.triangulation);
 
     min_level = 0;
@@ -2825,7 +2829,7 @@ namespace aspect
         {
           auto &dof_handler = dofhandlers_v[l];
           auto &constraint  = constraints_v[l];
-          auto &op          = mg_matrices_A_block[l];
+          
           dof_handler.reinit(tria);
           dof_handler.distribute_dofs(fe_v);
 
@@ -2857,15 +2861,12 @@ namespace aspect
 
           DoFTools::make_hanging_node_constraints(dof_handler, constraint);
           constraint.close();
-
-          op.reinit(mapping, dof_handler, constraint);
         }
 
         // pressure:
         {
           auto &dof_handler = dofhandlers_p[l];
           auto &constraint  = constraints_p[l];
-          auto &op          = mg_matrices_Schur_complement[l];
           dof_handler.reinit(tria);
           dof_handler.distribute_dofs(fe_p);
 
@@ -2877,9 +2878,10 @@ namespace aspect
           DoFTools::make_hanging_node_constraints(dof_handler, constraint);
           constraint.close();
 
-          op.reinit(mapping, dof_handler, constraint);
-
         }
+
+        mg_matrices_A_block[l].reinit(mapping, dofhandlers_v[l], dofhandlers_p[l], constraints_v[l]);
+        mg_matrices_Schur_complement[l].reinit(mapping, dofhandlers_p[l], dofhandlers_v[l], constraints_p[l]);
 
         // Coefficient transfer objects:
         {
@@ -3026,7 +3028,6 @@ namespace aspect
         if (true)
           {
             mg_matrices_A_block[level].compute_diagonal();
-
           }
         else if (false /*!(sim.boundary_velocity_manager.get_tangential_boundary_velocity_indicators().empty())
             &&
