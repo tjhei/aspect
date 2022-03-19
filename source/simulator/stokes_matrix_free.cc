@@ -956,37 +956,15 @@ namespace aspect
 
     for (unsigned int cell=cell_range.first; cell<cell_range.second; ++cell)
       {
-        VectorizedArray<number> one_over_viscosity = cell_data->viscosity(cell, 0);
 
-        const unsigned int n_components_filled = this->get_matrix_free()->n_active_entries_per_cell_batch(cell);
-
-        // The /= operator for VectorizedArray results in a floating point operation
-        // (divide by 0) since the (*viscosity)(cell) array is not completely filled.
-        // Therefore, we need to divide each entry manually.
-        for (unsigned int c=0; c<n_components_filled; ++c)
-          one_over_viscosity[c] = cell_data->pressure_scaling*cell_data->pressure_scaling/one_over_viscosity[c];
 
         pressure.reinit (cell);
-        pressure.gather_evaluate (src, EvaluationFlags::values);
+        //pressure.gather_evaluate (src, EvaluationFlags::values);
+        pressure.read_dof_values(src);
 
-        for (unsigned int q=0; q<pressure.n_q_points; ++q)
-          {
-            // Only update the viscosity if a Q1 projection is used.
-            if (use_viscosity_at_quadrature_points)
-              {
-                one_over_viscosity = cell_data->viscosity(cell, q);
+        this->cell_operation(pressure);
 
-                const unsigned int n_components_filled = this->get_matrix_free()->n_active_entries_per_cell_batch(cell);
-
-                for (unsigned int c=0; c<n_components_filled; ++c)
-                  one_over_viscosity[c] = cell_data->pressure_scaling*cell_data->pressure_scaling/one_over_viscosity[c];
-              }
-
-            pressure.submit_value(one_over_viscosity*
-                                  pressure.get_value(q),q);
-          }
-
-        pressure.integrate_scatter (EvaluationFlags::values, dst);
+        pressure.distribute_local_to_global(dst);
       }
   }
 
@@ -1002,6 +980,52 @@ namespace aspect
                                                                                    data->cell_loop(&MassMatrixOperator::local_apply, this, dst, src);
   }
 
+  template <int dim, int degree_p, typename number>
+  void
+  MatrixFreeStokesOperators::MassMatrixOperator<dim,degree_p,number>
+  ::cell_operation(FEEvaluation<dim,
+                   degree_p,
+                   degree_p+2,
+                   1,
+                   number> &pressure) const
+  {
+    pressure.evaluate(EvaluationFlags::values);
+
+    const bool use_viscosity_at_quadrature_points
+      = (cell_data->viscosity.size(1) == pressure.n_q_points);
+    const unsigned int cell = pressure.get_current_cell_index();
+
+    VectorizedArray<number> one_over_viscosity = cell_data->viscosity(cell, 0);
+
+    const unsigned int n_components_filled = this->get_matrix_free()->n_active_entries_per_cell_batch(cell);
+
+    // The /= operator for VectorizedArray results in a floating point operation
+    // (divide by 0) since the (*viscosity)(cell) array is not completely filled.
+    // Therefore, we need to divide each entry manually.
+    for (unsigned int c=0; c<n_components_filled; ++c)
+      one_over_viscosity[c] = cell_data->pressure_scaling*cell_data->pressure_scaling/one_over_viscosity[c];
+
+
+    for (unsigned int q=0; q<pressure.n_q_points; ++q)
+      {
+
+        // Only update the viscosity if a Q1 projection is used.
+        if (use_viscosity_at_quadrature_points)
+          {
+            one_over_viscosity = cell_data->viscosity(cell, q);
+
+            const unsigned int n_components_filled = this->get_matrix_free()->n_active_entries_per_cell_batch(cell);
+
+            for (unsigned int c=0; c<n_components_filled; ++c)
+              one_over_viscosity[c] = cell_data->pressure_scaling*cell_data->pressure_scaling/one_over_viscosity[c];
+          }
+
+        pressure.submit_value(one_over_viscosity*
+                              pressure.get_value(q),q);
+      }
+
+    pressure.integrate(EvaluationFlags::values);
+  }
 
 
   template <int dim, int degree_p, typename number>
@@ -1023,10 +1047,22 @@ namespace aspect
     this->data->initialize_dof_vector(inverse_diagonal);
     this->data->initialize_dof_vector(diagonal);
 
-    this->data->cell_loop (&MassMatrixOperator::local_compute_diagonal, this,
-                           diagonal, dummy);
+    if (true)
+      {
+        MatrixFreeTools::compute_diagonal(
+          *(this->get_matrix_free()),
+          diagonal,
+          &MatrixFreeStokesOperators::MassMatrixOperator<dim,degree_p,number>::cell_operation,
+          this);
+        this->set_constrained_entries_to_one(diagonal);
+      }
+    else
+      {
+        this->data->cell_loop (&MassMatrixOperator::local_compute_diagonal, this,
+                               diagonal, dummy);
 
-    this->set_constrained_entries_to_one(diagonal);
+        this->set_constrained_entries_to_one(diagonal);
+      }
     inverse_diagonal = diagonal;
 
     // Finally loop over all of the computed diagonal elements and invert them.
@@ -1163,7 +1199,44 @@ namespace aspect
     this->cell_data = &data;
   }
 
+  template <int dim, int degree_v, typename number>
+  void
+  MatrixFreeStokesOperators::ABlockOperator<dim,degree_v,number>
+  ::cell_operation(FEEvaluation<dim,
+                   degree_v,
+                   degree_v+1,
+                   dim,
+                   number> &velocity) const
+  {
+    const bool use_viscosity_at_quadrature_points
+      = (cell_data->viscosity.size(1) == velocity.n_q_points);
 
+    const unsigned int cell = velocity.get_current_cell_index();
+    VectorizedArray<number> viscosity_x_2 = 2.0*cell_data->viscosity(cell, 0);
+
+    velocity.evaluate (EvaluationFlags::gradients);
+
+    for (unsigned int q=0; q<velocity.n_q_points; ++q)
+      {
+        // Only update the viscosity if a Q1 projection is used.
+        if (use_viscosity_at_quadrature_points)
+          viscosity_x_2 = 2.0*cell_data->viscosity(cell, q);
+
+        SymmetricTensor<2,dim,VectorizedArray<number>> sym_grad_u =
+                                                      velocity.get_symmetric_gradient (q);
+        sym_grad_u *= viscosity_x_2;
+
+        if (cell_data->is_compressible)
+          {
+            const VectorizedArray<number> div = trace(sym_grad_u);
+            for (unsigned int d=0; d<dim; ++d)
+              sym_grad_u[d][d] -= 1.0/3.0*div;
+          }
+
+        velocity.submit_symmetric_gradient(sym_grad_u, q);
+      }
+    velocity.integrate(EvaluationFlags::gradients);
+  }
 
   template <int dim, int degree_v, typename number>
   void
@@ -1180,33 +1253,18 @@ namespace aspect
 
     for (unsigned int cell=cell_range.first; cell<cell_range.second; ++cell)
       {
-        VectorizedArray<number> viscosity_x_2 = 2.0*cell_data->viscosity(cell, 0);
 
         velocity.reinit (cell);
 
-        velocity.gather_evaluate (src, EvaluationFlags::gradients);
 
-        for (unsigned int q=0; q<velocity.n_q_points; ++q)
-          {
-            // Only update the viscosity if a Q1 projection is used.
-            if (use_viscosity_at_quadrature_points)
-              viscosity_x_2 = 2.0*cell_data->viscosity(cell, q);
 
-            SymmetricTensor<2,dim,VectorizedArray<number>> sym_grad_u =
-                                                          velocity.get_symmetric_gradient (q);
-            sym_grad_u *= viscosity_x_2;
+        //velocity.gather_evaluate (src, EvaluationFlags::gradients);
+        velocity.read_dof_values (src);
+        this->cell_operation(velocity);
 
-            if (cell_data->is_compressible)
-              {
-                const VectorizedArray<number> div = trace(sym_grad_u);
-                for (unsigned int d=0; d<dim; ++d)
-                  sym_grad_u[d][d] -= 1.0/3.0*div;
-              }
 
-            velocity.submit_symmetric_gradient(sym_grad_u, q);
-          }
-
-        velocity.integrate_scatter (EvaluationFlags::gradients, dst);
+        //velocity.integrate_scatter (EvaluationFlags::gradients, dst);
+        velocity.distribute_local_to_global (dst);
       }
   }
 
@@ -1234,9 +1292,21 @@ namespace aspect
     dealii::LinearAlgebra::distributed::Vector<number> &inverse_diagonal =
       this->inverse_diagonal_entries->get_vector();
     this->data->initialize_dof_vector(inverse_diagonal);
-    unsigned int dummy = 0;
-    this->data->cell_loop (&ABlockOperator::local_compute_diagonal, this,
-                           inverse_diagonal, dummy);
+
+    if (true)
+      {
+        MatrixFreeTools::compute_diagonal(
+          *(this->get_matrix_free()),
+          inverse_diagonal,
+          &MatrixFreeStokesOperators::ABlockOperator<dim,degree_v,number>::cell_operation,
+          this);
+      }
+    else
+      {
+        unsigned int dummy = 0;
+        this->data->cell_loop (&ABlockOperator::local_compute_diagonal, this,
+                               inverse_diagonal, dummy);
+      }
 
     this->set_constrained_entries_to_one(inverse_diagonal);
 
@@ -2952,9 +3022,15 @@ namespace aspect
 
         // If we have a tangential boundary we must compute the A block
         // diagonal outside of the matrix-free object
-        if (!(sim.boundary_velocity_manager.get_tangential_boundary_velocity_indicators().empty())
+
+        if (true)
+          {
+            mg_matrices_A_block[level].compute_diagonal();
+
+          }
+        else if (false /*!(sim.boundary_velocity_manager.get_tangential_boundary_velocity_indicators().empty())
             &&
-            sim.geometry_model->has_curved_elements())
+            sim.geometry_model->has_curved_elements()*/)
           {
             AssertThrow(false, ExcNotImplemented());
 

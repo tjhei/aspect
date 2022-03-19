@@ -260,6 +260,11 @@ namespace aspect
          */
         void compute_diagonal () override;
 
+        void cell_operation(FEEvaluation<dim,
+                            degree_p,
+                            degree_p+2,
+                            1,
+                            number> &pressure) const;
       private:
 
         /**
@@ -336,6 +341,19 @@ namespace aspect
          */
         void set_diagonal (const dealii::LinearAlgebra::distributed::Vector<number> &diag);
 
+        void cell_operation(FEEvaluation<dim,
+                            degree_v,
+                            degree_v+1,
+                            dim,
+                            number> &velocity) const;
+
+        /**
+         * Defines the application of the cell matrix.
+         */
+        void local_apply (const dealii::MatrixFree<dim, number> &data,
+                          dealii::LinearAlgebra::distributed::Vector<number> &dst,
+                          const dealii::LinearAlgebra::distributed::Vector<number> &src,
+                          const std::pair<unsigned int, unsigned int> &cell_range) const;
       private:
 
         /**
@@ -345,13 +363,7 @@ namespace aspect
         void apply_add (dealii::LinearAlgebra::distributed::Vector<number> &dst,
                         const dealii::LinearAlgebra::distributed::Vector<number> &src) const override;
 
-        /**
-         * Defines the application of the cell matrix.
-         */
-        void local_apply (const dealii::MatrixFree<dim, number> &data,
-                          dealii::LinearAlgebra::distributed::Vector<number> &dst,
-                          const dealii::LinearAlgebra::distributed::Vector<number> &src,
-                          const std::pair<unsigned int, unsigned int> &cell_range) const;
+
 
         /**
          * Computes the diagonal contribution from a cell matrix.
