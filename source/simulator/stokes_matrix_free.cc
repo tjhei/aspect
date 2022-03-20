@@ -2237,6 +2237,7 @@ namespace aspect
               smoother_data_Schur[0].eig_cg_n_iterations = 100;
             }
           smoother_data_Schur[level].preconditioner = mg_matrices_Schur_complement[level].get_matrix_diagonal_inverse();
+          smoother_data_Schur[level].constraints.copy_from(constraints_p[level]);
         }
       mg_smoother_Schur.initialize(mg_matrices_Schur_complement, smoother_data_Schur);
     }
