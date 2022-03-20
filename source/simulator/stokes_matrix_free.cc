@@ -917,13 +917,13 @@ namespace aspect
     std::shared_ptr<MatrixFree<dim,double>>
                                          mf(new MatrixFree<dim,double>());
 
-    AffineConstraints<number> dummy;                                     
+    AffineConstraints<number> dummy;
     mf->reinit(mapping,
-                              std::vector< const DoFHandler< dim > *> {&dof_handler, &dof_handler_other}, 
-                              std::vector< const AffineConstraints< number > *> {&constraints, &dummy} ,
-               QGauss<1>(degree_p+2), additional_data);
+    std::vector< const DoFHandler< dim > *> {&dof_handler, &dof_handler_other},
+    std::vector< const AffineConstraints< number > *> {&constraints, &dummy} ,
+    QGauss<1>(degree_p+2), additional_data);
 
-    this->initialize(mf, std::vector< unsigned int >{0}, std::vector< unsigned int >{0});
+    this->initialize(mf, std::vector< unsigned int > {0}, std::vector< unsigned int > {0});
   }
 
   template <int dim, int degree_p, typename number>
@@ -1189,12 +1189,12 @@ namespace aspect
                                          ablock_mf_storage(new MatrixFree<dim,double>());
 
     AffineConstraints<number> dummy;
-    ablock_mf_storage->reinit(mapping, 
-                              std::vector< const DoFHandler< dim > *> {&dof_handler, &dof_handler_other}, 
-                              std::vector< const AffineConstraints< number > *> {&constraints, &dummy} ,
-                              QGauss<1>(degree_v+1), additional_data);
+    ablock_mf_storage->reinit(mapping,
+    std::vector< const DoFHandler< dim > *> {&dof_handler, &dof_handler_other},
+    std::vector< const AffineConstraints< number > *> {&constraints, &dummy} ,
+    QGauss<1>(degree_v+1), additional_data);
 
-    this->initialize(ablock_mf_storage, std::vector< unsigned int >{0}, std::vector< unsigned int >{0});
+    this->initialize(ablock_mf_storage, std::vector< unsigned int > {0}, std::vector< unsigned int > {0});
   }
 
 
@@ -1773,7 +1773,7 @@ namespace aspect
 
     transfer.template interpolate_to_mg(dof_handler_projection,
                                         level_viscosity_vector,
-                                        active_viscosity_vector);                                     
+                                        active_viscosity_vector);
 
 #endif
 
@@ -2801,7 +2801,7 @@ namespace aspect
     matrix_free_objects.clear();
 
     const Mapping<dim> &mapping = *sim.mapping;
-   
+
     trias = dealii::MGTransferGlobalCoarseningTools::create_geometric_coarsening_sequence (sim.triangulation);
 
     min_level = 0;
@@ -2829,7 +2829,7 @@ namespace aspect
         {
           auto &dof_handler = dofhandlers_v[l];
           auto &constraint  = constraints_v[l];
-          
+
           dof_handler.reinit(tria);
           dof_handler.distribute_dofs(fe_v);
 
