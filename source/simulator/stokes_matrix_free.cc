@@ -2837,6 +2837,15 @@ namespace aspect
           constraint.reinit(locally_relevant_dofs);
           sim.compute_initial_velocity_boundary_constraints(constraint);
           sim.compute_current_velocity_boundary_constraints(constraint);
+          for (const auto &p : sim.boundary_velocity_manager.get_zero_boundary_velocity_indicators())
+            {
+              VectorTools::interpolate_boundary_values (mapping,
+                                                        dof_handler,
+                                                        p,
+                                                        ZeroFunction<dim>(dim),
+                                                        constraint);
+
+            }
 
 
 //            VectorTools::interpolate_boundary_values(
@@ -2846,6 +2855,8 @@ namespace aspect
 //                Functions::ZeroFunction<dim, typename LevelOperatorType::value_type>(
 //                    dof_handler_in.get_fe().n_components()),
 //                constraint);
+          Assert(sim.boundary_velocity_manager.get_active_boundary_velocity_conditions().size() == 0,
+                 ExcNotImplemented());
 
           Assert(sim.boundary_velocity_manager.get_tangential_boundary_velocity_indicators().size() == 0,
                  ExcNotImplemented());
