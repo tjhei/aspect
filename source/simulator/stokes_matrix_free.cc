@@ -958,8 +958,6 @@ namespace aspect
 
     for (unsigned int cell=cell_range.first; cell<cell_range.second; ++cell)
       {
-
-
         pressure.reinit (cell);
         //pressure.gather_evaluate (src, EvaluationFlags::values);
         pressure.read_dof_values(src);
@@ -1045,7 +1043,6 @@ namespace aspect
     dealii::LinearAlgebra::distributed::Vector<number> &diagonal =
       this->diagonal_entries->get_vector();
 
-    unsigned int dummy = 0;
     this->data->initialize_dof_vector(inverse_diagonal);
     this->data->initialize_dof_vector(diagonal);
 
@@ -1056,10 +1053,12 @@ namespace aspect
           diagonal,
           &MatrixFreeStokesOperators::MassMatrixOperator<dim,degree_p,number>::cell_operation,
           this);
+
         this->set_constrained_entries_to_one(diagonal);
       }
     else
       {
+        unsigned int dummy = 0;
         this->data->cell_loop (&MassMatrixOperator::local_compute_diagonal, this,
                                diagonal, dummy);
 
@@ -1253,19 +1252,15 @@ namespace aspect
                  const dealii::LinearAlgebra::distributed::Vector<number> &src,
                  const std::pair<unsigned int, unsigned int>           &cell_range) const
   {
-    FEEvaluation<dim,degree_v,degree_v+1,dim,number> velocity (data,0);
+    FEEvaluation<dim,degree_v,degree_v+1,dim,number> velocity (data, 0);
 
     for (unsigned int cell=cell_range.first; cell<cell_range.second; ++cell)
       {
-
         velocity.reinit (cell);
-
-
 
         //velocity.gather_evaluate (src, EvaluationFlags::gradients);
         velocity.read_dof_values (src);
         this->cell_operation(velocity);
-
 
         //velocity.integrate_scatter (EvaluationFlags::gradients, dst);
         velocity.distribute_local_to_global (dst);
@@ -1777,7 +1772,7 @@ namespace aspect
 
 #endif
 
-    for (unsigned int level=0; level<n_levels; ++level)
+    for (unsigned int level=min_level; level<=max_level; ++level)
       {
         level_cell_data[level].is_compressible = sim.material_model->is_compressible();
         level_cell_data[level].pressure_scaling = sim.pressure_scaling;
@@ -2196,8 +2191,8 @@ namespace aspect
     mg_smoother_A;
     {
       MGLevelObject<typename ASmootherType::AdditionalData> smoother_data_A;
-      smoother_data_A.resize(0, sim.triangulation.n_global_levels()-1);
-      for (unsigned int level = 0; level<sim.triangulation.n_global_levels(); ++level)
+      smoother_data_A.resize(min_level, max_level);
+      for (unsigned int level = min_level; level<=max_level; ++level)
         {
           if (level > 0)
             {
@@ -2224,8 +2219,8 @@ namespace aspect
     mg_smoother_Schur(4);
     {
       MGLevelObject<typename MSmootherType::AdditionalData> smoother_data_Schur;
-      smoother_data_Schur.resize(0, sim.triangulation.n_global_levels()-1);
-      for (unsigned int level = 0; level<sim.triangulation.n_global_levels(); ++level)
+      smoother_data_Schur.resize(min_level, max_level);
+      for (unsigned int level = min_level; level<=max_level; ++level)
         {
           if (level > 0)
             {
@@ -2251,7 +2246,7 @@ namespace aspect
     //TODO: The setup for the smoother (as well as the entire GMG setup) should
     //       be moved to an assembly timing block instead of the Stokes solve
     //       timing block (as is currently the case).
-    for (unsigned int level = 0; level<sim.triangulation.n_global_levels(); ++level)
+    for (unsigned int level = min_level; level<=max_level; ++level)
       {
         VectorType temp_velocity;
         VectorType temp_pressure;
@@ -3015,8 +3010,9 @@ namespace aspect
 
     // Assemble and store the diagonal of the GMG level matrices derived from:
     // 2*eta*(symgrad u, symgrad v) - (if compressible) 2*eta/3*(div u, div v)
-    for (unsigned int level=0; level < sim.triangulation.n_global_levels(); ++level)
+    for (unsigned int level=min_level; level <= max_level; ++level)
       {
+        sim.pcout << "compute diagonal lvl = " << level << std::endl;
         mg_matrices_Schur_complement[level].compute_diagonal();
 
         const auto &dof_handler_v = dofhandlers_v[level];
