@@ -2286,7 +2286,7 @@ namespace aspect
                   << "    GMG n_levels: " << sim.triangulation.n_global_levels() << std::endl
                   << "    Viscosity range: " << minimum_viscosity << " - " << maximum_viscosity << std::endl;
 
-        const double imbalance = MGTools::workload_imbalance(sim.triangulation);
+        const double imbalance = 0.0;//MGTools::workload_imbalance(sim.triangulation);
         sim.pcout << "    GMG workload imbalance: " << imbalance << std::endl
                   << "    Stokes solver: " << std::flush;
       }
@@ -2815,9 +2815,7 @@ namespace aspect
     dofhandlers_p.resize(min_level, max_level);
     dofhandlers_projection.resize(min_level, max_level);
 
-    mg_matrices_A_block.clear_elements();
     mg_matrices_A_block.resize(min_level, max_level);
-    mg_matrices_Schur_complement.clear_elements();
     mg_matrices_Schur_complement.resize(min_level, max_level);
 
     for (auto l = min_level; l <= max_level; ++l)

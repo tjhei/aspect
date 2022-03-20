@@ -221,7 +221,7 @@ triangulation (mpi_communicator,
                 :
                 parallel::distributed::Triangulation<dim>::mesh_reconstruction_after_repartitioning)),
 */
-    triangulation (mpi_communicator, Triangulation<dim>::limit_level_difference_at_vertices, parallel::distributed::Triangulation<dim>::construct_multigrid_hierarchy),
+    triangulation (mpi_communicator, Triangulation<dim>::limit_level_difference_at_vertices),
 
     mapping(construct_mapping<dim>(*geometry_model,*initial_topography_model)),
 
