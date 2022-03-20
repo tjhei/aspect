@@ -1563,6 +1563,7 @@ namespace aspect
   template <int dim, int velocity_degree>
   void StokesMatrixFreeHandlerImplementation<dim, velocity_degree>::evaluate_material_model ()
   {
+    sim.pcout << "evaluate_material_model()" << std::endl;
     const auto &dof_handler_projection = dofhandlers_projection[dofhandlers_projection.max_level()];
     dealii::LinearAlgebra::distributed::Vector<double> active_viscosity_vector(dof_handler_projection.locally_owned_dofs(),
                                                                                sim.triangulation.get_communicator());
@@ -2207,6 +2208,7 @@ namespace aspect
               smoother_data_A[0].eig_cg_n_iterations = 100;
             }
           smoother_data_A[level].preconditioner = mg_matrices_A_block[level].get_matrix_diagonal_inverse();
+          smoother_data_A[level].constraints.copy_from(constraints_v[level]);
         }
       mg_smoother_A.initialize(mg_matrices_A_block, smoother_data_A);
     }
@@ -2253,6 +2255,7 @@ namespace aspect
         mg_matrices_A_block[level].initialize_dof_vector(temp_velocity);
         mg_matrices_Schur_complement[level].initialize_dof_vector(temp_pressure);
 
+        sim.pcout << "estimate EV level=" << level << std::endl;
         mg_smoother_A[level].estimate_eigenvalues(temp_velocity);
         mg_smoother_Schur[level].estimate_eigenvalues(temp_pressure);
 
