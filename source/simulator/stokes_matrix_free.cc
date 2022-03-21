@@ -2543,14 +2543,15 @@ namespace aspect
         };
 
         // stokes vmult
-        {
-          dealii::LinearAlgebra::distributed::BlockVector<double> tmp_dst = solution_copy;
-          dealii::LinearAlgebra::distributed::BlockVector<double> tmp_src = rhs_copy;
-          time_this("stokes_vmult", 10,
-                    [&] {stokes_matrix.vmult(tmp_dst, tmp_src);},
-                    [&] {tmp_src = tmp_dst;}
-                   );
-        }
+        if (false)
+          {
+            dealii::LinearAlgebra::distributed::BlockVector<double> tmp_dst = solution_copy;
+            dealii::LinearAlgebra::distributed::BlockVector<double> tmp_src = rhs_copy;
+            time_this("stokes_vmult", 10,
+                      [&] {stokes_matrix.vmult(tmp_dst, tmp_src);},
+                      [&] {tmp_src = tmp_dst;}
+                     );
+          }
 
         // stokes preconditioner
         {
@@ -2580,45 +2581,46 @@ namespace aspect
                    );
         }
         // Solve
-        {
-          // hard-code the number of iterations here to always do cheap iterations
-          SolverControl solver_control_cheap (1000, solver_tolerance, true);
-
-          dealii::LinearAlgebra::distributed::BlockVector<double> tmp_dst = solution_copy;
-          dealii::LinearAlgebra::distributed::BlockVector<double> tmp_src = rhs_copy;
-          time_this("Stokes_solve_cheap_idr", 1,
-                    [&]
+        if (false)
           {
-            SolverIDR<dealii::LinearAlgebra::distributed::BlockVector<double>>
-            solver(solver_control_cheap, mem,
-            SolverIDR<dealii::LinearAlgebra::distributed::BlockVector<double>>::
-            AdditionalData(sim.parameters.idr_s_parameter));
+            // hard-code the number of iterations here to always do cheap iterations
+            SolverControl solver_control_cheap (1000, solver_tolerance, true);
 
-            solver.solve (stokes_matrix,
-            tmp_dst,
-            tmp_src,
-            preconditioner_cheap);
-          },
-          [&] {tmp_dst = solution_copy;}
-                   );
+            dealii::LinearAlgebra::distributed::BlockVector<double> tmp_dst = solution_copy;
+            dealii::LinearAlgebra::distributed::BlockVector<double> tmp_src = rhs_copy;
+            time_this("Stokes_solve_cheap_idr", 1,
+                      [&]
+            {
+              SolverIDR<dealii::LinearAlgebra::distributed::BlockVector<double>>
+              solver(solver_control_cheap, mem,
+              SolverIDR<dealii::LinearAlgebra::distributed::BlockVector<double>>::
+              AdditionalData(sim.parameters.idr_s_parameter));
 
-          time_this("Stokes_solve_cheap_gmres", 1,
-                    [&]
-          {
-            SolverGMRES<dealii::LinearAlgebra::distributed::BlockVector<double>>
-            solver(solver_control_cheap, mem,
-            SolverGMRES<dealii::LinearAlgebra::distributed::BlockVector<double>>::
-            AdditionalData(sim.parameters.stokes_gmres_restart_length+2,
-            true));
+              solver.solve (stokes_matrix,
+              tmp_dst,
+              tmp_src,
+              preconditioner_cheap);
+            },
+            [&] {tmp_dst = solution_copy;}
+                     );
 
-            solver.solve (stokes_matrix,
-            tmp_dst,
-            tmp_src,
-            preconditioner_cheap);
-          },
-          [&] {tmp_dst = solution_copy;}
-                   );
-        }
+            time_this("Stokes_solve_cheap_gmres", 1,
+                      [&]
+            {
+              SolverGMRES<dealii::LinearAlgebra::distributed::BlockVector<double>>
+              solver(solver_control_cheap, mem,
+              SolverGMRES<dealii::LinearAlgebra::distributed::BlockVector<double>>::
+              AdditionalData(sim.parameters.stokes_gmres_restart_length+2,
+              true));
+
+              solver.solve (stokes_matrix,
+              tmp_dst,
+              tmp_src,
+              preconditioner_cheap);
+            },
+            [&] {tmp_dst = solution_copy;}
+                     );
+          }
       }
 
     // step 1a: try if the simple and fast solver

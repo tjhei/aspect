@@ -10,10 +10,12 @@ set Use years in output instead of seconds = false
 
 subsection Solver parameters
   subsection Matrix Free
+    set Execute solver timings = true
     set Output details = true
   end
   subsection Stokes solver parameters
     set Stokes solver type = block GMG
+    set Krylov method for cheap solver steps            = IDR(s)
     set Number of cheap Stokes solver steps             = 2000
     set Maximum number of expensive Stokes solver steps = 0
     set Linear solver tolerance                         = 1e-6
@@ -46,7 +48,7 @@ subsection Material model
   set Material averaging = harmonic average
 
   subsection NSinker
-    set Number of sinkers = 5
+    set Number of sinkers = 7
     set Dynamic viscosity ratio = 1e2
     set Sinker density = 10
     set Transition zone viscosity jump = 1
