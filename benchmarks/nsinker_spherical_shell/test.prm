@@ -8,6 +8,8 @@ set Pressure normalization                 = volume
 set Nonlinear solver scheme                = no Advection, single Stokes
 set Use years in output instead of seconds = false
 
+set Timing output frequency                    = 0
+
 subsection Solver parameters
   subsection Matrix Free
     set Execute solver timings = true
