@@ -85,7 +85,7 @@ end
 
 
 subsection Postprocess
-  set List of postprocessors = memory statistics, visualization
+  set List of postprocessors = memory statistics
   subsection Memory statistics
     set Output peak virtual memory (VmPeak) = true
   end
