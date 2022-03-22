@@ -2450,6 +2450,9 @@ namespace aspect
         }
       }
 
+    Timer timer(sim.mpi_communicator);
+
+    timer.start();
     // step 1a: try if the simple and fast solver
     // succeeds in n_cheap_stokes_solver_steps steps or less.
     try
@@ -2569,6 +2572,9 @@ namespace aspect
                                             sim.parameters.output_directory+"solver_history.txt");
           }
       }
+
+    timer.stop();
+    sim.pcout << "SOLVER completed in " << timer.wall_time() << " seconds." << std::endl;
 
     //signal successful solver
     sim.signals.post_stokes_solver(sim,
