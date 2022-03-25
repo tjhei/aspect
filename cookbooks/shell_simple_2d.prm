@@ -58,6 +58,12 @@ end
 
 subsection Gravity model
   set Model name = ascii data
+    subsection Ascii data model
+    set Data directory = $ASPECT_SOURCE_DIR/data/gravity-model/
+
+    # The file name of the model data.
+    set Data file name = big.txt
+  end
 end
 
 
