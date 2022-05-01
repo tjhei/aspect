@@ -950,7 +950,7 @@ namespace aspect
                   one_over_viscosity[c] = cell_data->pressure_scaling*cell_data->pressure_scaling/one_over_viscosity[c];
               }
 
-            pressure.submit_value(one_over_viscosity*
+            pressure.submit_value(one_over_viscosity *
                                   pressure.get_value(q),q);
           }
 
@@ -1061,7 +1061,7 @@ namespace aspect
                       one_over_viscosity[c] = cell_data->pressure_scaling*cell_data->pressure_scaling/one_over_viscosity[c];
                   }
 
-                pressure.submit_value(one_over_viscosity*
+                pressure.submit_value(one_over_viscosity *
                                       pressure.get_value(q),q);
               }
 
@@ -1481,9 +1481,9 @@ namespace aspect
               std::vector<double> &values) -> void
       {
         typename DoFHandler<dim>::active_cell_iterator FEQ_cell(&sim.triangulation,
-        cell->level(),
-        cell->index(),
-        &(sim.dof_handler));
+                                                                cell->level(),
+                                                                cell->index(),
+                                                                &(sim.dof_handler));
 
         fe_values.reinit (FEQ_cell);
         in.reinit(fe_values, FEQ_cell, sim.introspection, sim.current_linearization_point);
@@ -1497,10 +1497,10 @@ namespace aspect
         // to this averaged value.
         if (dof_handler_projection.get_fe().degree == 0)
           MaterialModel::MaterialAveraging::average (sim.parameters.material_averaging,
-          FEQ_cell,
-          quadrature_formula,
-          *sim.mapping,
-          out);
+                                                     FEQ_cell,
+                                                     quadrature_formula,
+                                                     *sim.mapping,
+                                                     out);
 
         for (unsigned int i=0; i<values.size(); ++i)
           {
@@ -2424,14 +2424,14 @@ namespace aspect
                     [&]
           {
             SolverIDR<dealii::LinearAlgebra::distributed::BlockVector<double>>
-            solver(solver_control_cheap, mem,
-            SolverIDR<dealii::LinearAlgebra::distributed::BlockVector<double>>::
-            AdditionalData(sim.parameters.idr_s_parameter));
+                                                                            solver(solver_control_cheap, mem,
+                                                                                   SolverIDR<dealii::LinearAlgebra::distributed::BlockVector<double>>::
+                                                                                   AdditionalData(sim.parameters.idr_s_parameter));
 
             solver.solve (stokes_matrix,
-            tmp_dst,
-            tmp_src,
-            preconditioner_cheap);
+                          tmp_dst,
+                          tmp_src,
+                          preconditioner_cheap);
           },
           [&] {tmp_dst = solution_copy;}
                    );
@@ -2440,15 +2440,15 @@ namespace aspect
                     [&]
           {
             SolverGMRES<dealii::LinearAlgebra::distributed::BlockVector<double>>
-            solver(solver_control_cheap, mem,
-            SolverGMRES<dealii::LinearAlgebra::distributed::BlockVector<double>>::
-            AdditionalData(sim.parameters.stokes_gmres_restart_length+2,
-            true));
+                                                                              solver(solver_control_cheap, mem,
+                                                                                     SolverGMRES<dealii::LinearAlgebra::distributed::BlockVector<double>>::
+                                                                                     AdditionalData(sim.parameters.stokes_gmres_restart_length+2,
+                                                                                         true));
 
             solver.solve (stokes_matrix,
-            tmp_dst,
-            tmp_src,
-            preconditioner_cheap);
+                          tmp_dst,
+                          tmp_src,
+                          preconditioner_cheap);
           },
           [&] {tmp_dst = solution_copy;}
                    );

@@ -133,7 +133,7 @@ namespace aspect
     template <>
     Tensor<1,2>
     BursteddeBoundary<2>::
-    boundary_velocity (const types::boundary_id ,
+    boundary_velocity (const types::boundary_id,
                        const Point<2> &p) const
     {
       Assert (false, ExcNotImplemented());
@@ -145,7 +145,7 @@ namespace aspect
     template <>
     Tensor<1,3>
     BursteddeBoundary<3>::
-    boundary_velocity (const types::boundary_id ,
+    boundary_velocity (const types::boundary_id,
                        const Point<3> &p) const
     {
       return AnalyticSolutions::burstedde_velocity (p, beta);

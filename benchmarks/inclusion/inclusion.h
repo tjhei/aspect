@@ -118,7 +118,7 @@ namespace aspect
          */
         virtual
         Tensor<1,dim>
-        boundary_velocity (const types::boundary_id ,
+        boundary_velocity (const types::boundary_id,
                            const Point<dim> &position) const
         {
           Assert (dim == 2, ExcNotImplemented());

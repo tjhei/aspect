@@ -67,7 +67,7 @@ void MPI_max_and_data(const double &local_max,
                       double &global_data)
 {
   MPI_Op myop;
-  MPI_Op_create(&myop_func, /* commutes? */ 1 ,&myop);
+  MPI_Op_create(&myop_func, /* commutes? */ 1,&myop);
 
   double local[] = {local_max, local_data};
   double global[2];
