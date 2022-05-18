@@ -101,6 +101,20 @@ namespace aspect
         load_file(const std::string &filename,
                   const MPI_Comm &communicator);
 
+
+        /**
+         *
+         * @param filename
+         */
+        void
+        save_file(const std::string &filename);
+
+        /**
+         */
+        void
+        convert_to_netcdf(const std::string &filename_in,
+                          const std::string &filename_out);
+
         /**
          * Returns the computed data (velocity, temperature, etc. - according
          * to the used plugin) in Cartesian coordinates.

@@ -40,7 +40,6 @@ TEST_CASE("Utilities::AsciiDataLookup")
 {
   using namespace dealii;
 
-  //TODO: add support for setting data directly instead of relying on a file to load:
   aspect::Utilities::StructuredDataLookup<1> lookup(2 /*n_components*/, 1.0 /*scaling*/);
   lookup.load_file(ASPECT_SOURCE_DIR "/data/boundary-velocity/ascii-data/test/box_2d_left.0.txt", MPI_COMM_WORLD);
 
@@ -53,6 +52,16 @@ TEST_CASE("Utilities::AsciiDataLookup")
   REQUIRE(lookup.get_data(Point<1>(330000./2.0),1) == Approx(0.0));
   REQUIRE(lookup.get_gradients(Point<1>(330000./2.0),0)[0] == Approx(-1.0/330000.));
   REQUIRE(lookup.get_gradients(Point<1>(330000./2.0),1)[0] == Approx(0.0));
+
+#ifdef ASPECT_WITH_NETCDF
+  lookup.convert_to_netcdf(ASPECT_SOURCE_DIR "/data/boundary-velocity/ascii-data/test/box_2d_left.0.txt", "test.nc");
+
+  aspect::Utilities::StructuredDataLookup<3> lookup3(1.0);
+  lookup3.convert_to_netcdf("/home/heister/big/FRES/vel_1deg_ITRF08.gmt_lkp.txt",
+                            "vel.nc");
+  lookup3.convert_to_netcdf("/home/heister/big/FRES/LLNL_velocity_model_wb.txt",
+                            "LLNL.nc");
+#endif
 }
 
 
@@ -146,4 +155,8 @@ TEST_CASE("Utilities::AsciiDataLookup manual dim=2 equid")
 
   REQUIRE(lookup.get_data(Point<2>(1.0,6.0),0) == Approx(5.0));
   REQUIRE(lookup.get_data(Point<2>(1.5,6.0),0) == Approx(5.5));
+
+#ifdef ASPECT_WITH_NETCDF
+  lookup.save_file("test.nc");
+#endif
 }

@@ -28,6 +28,7 @@
 #include <aspect/geometry_model/initial_topography_model/ascii_data.h>
 
 #include <boost/lexical_cast.hpp>
+#include <netcdf.h>
 
 namespace aspect
 {
@@ -52,6 +53,21 @@ namespace aspect
 
         return idx;
       }
+
+      template<int dim>
+      TableIndices<dim>
+      compute_table_indices_reverse_order(const TableIndices<dim> &sizes, const unsigned int i)
+      {
+        TableIndices<dim> idx;
+        unsigned int remain = i;
+        for (int d=dim-1; d>=0; --d)
+          {
+            idx[d] = remain % sizes[d];
+            remain = remain / sizes[d];
+          }
+        return idx;
+      }
+
 
       /**
        * Parse the contents of the ASCII file given in @p text.
@@ -133,8 +149,8 @@ namespace aspect
                                    + Utilities::to_string(n_components)
                                    + " columns."));
           }
-            else
-            n_components = data_column_names.size();
+        else
+          n_components = data_column_names.size();
 
         for (unsigned int i = 0; i < dim; i++)
           {
@@ -516,6 +532,235 @@ namespace aspect
       this->reinit(data_column_names, coordinate_values, data_tables);
     }
 
+
+
+
+    template <int dim>
+    void
+    StructuredDataLookup<dim>::
+    convert_to_netcdf(const std::string &filename_in,
+                      const std::string &filename_out)
+    {
+      // Read data from disk
+      std::string text;
+      {
+        std::ifstream filestream(filename_in);
+
+        if (!filestream)
+          AssertThrow (false,
+                       ExcMessage (std::string("Could not open file <") + filename_in + ">."));
+
+        // Read data from disk
+        std::stringstream datastream;
+        filestream >> datastream.rdbuf();
+        text = datastream.str();
+      }
+
+      // parse file:
+      TableIndices<dim> new_table_points;
+      std::vector<std::string> coordinate_column_names;
+      std::vector<std::string> data_column_names;
+      std::vector<Table<dim,double> > data_tables;
+      std::vector<std::vector<double>> coordinate_values;
+
+      internal::parse_ascii(filename_in,
+                            text,
+                            numbers::invalid_unsigned_int,
+                            scale_factor,
+                            new_table_points,
+                            coordinate_column_names,
+                            data_column_names,
+                            data_tables,
+                            coordinate_values);
+
+#ifdef ASPECT_WITH_NETCDF
+      int flags =
+        NC_CLOBBER // overwrite existing file
+        //| NC_NETCDF4 // use hdf5
+        //| NC_CLASSIC_MODEL // use classic mode (restricted functionality likely to work with older versions)
+        // | NC_64BIT_OFFSET // 64bit offset for files >2GB data (cost?)
+        ;
+
+      int ncid;
+      int status;
+
+      status = nc_create(filename_out.c_str(), flags, &ncid);
+      AssertThrow(status == NC_NOERR, ExcMessage("NetCDF Error occured!"));
+
+      // * Declare the dimensions
+      int dim_ids[dim];
+      int var_dim_ids[dim];
+      for (unsigned int d=0; d<dim; ++d)
+        {
+          const std::string name = coordinate_column_names[d];
+          const size_t n_entries = coordinate_values[d].size();
+          status = nc_def_dim(ncid, name.c_str(), n_entries, &dim_ids[d]);
+          AssertThrow(status == NC_NOERR, ExcMessage("NetCDF Error occured!"));
+
+          // Each dimension also gets a 1 dimensional variable (to contain the coordinate values)
+          status = nc_def_var(ncid, name.c_str(), NC_DOUBLE, 1, &dim_ids[d], &var_dim_ids[d]);
+          AssertThrow(status == NC_NOERR, ExcMessage("NetCDF Error occured!"));
+
+          std::string unit = "km";
+          if (d==2)
+            unit = "degrees_north";
+          else if (d==1)
+            unit = "degrees_east";
+          nc_put_att_text(ncid, var_dim_ids[d], "units", unit.size(), unit.data());
+
+
+          if (d==0)
+            {
+              unit = "up";
+              nc_put_att_text(ncid, var_dim_ids[d], "positive", unit.size(), unit.data());
+            }
+
+        }
+
+      // * Declare the data columns / variables:
+      const unsigned int n_columns = data_column_names.size();
+      std::vector<int> col_ids(n_columns);
+
+      for (unsigned int c=0; c<n_columns; ++c)
+        {
+          status = nc_def_var(ncid, data_column_names[c].c_str(), NC_FLOAT, dim, dim_ids, &col_ids[c]);
+          AssertThrow(status == NC_NOERR, ExcMessage("NetCDF Error occured!"));
+        }
+
+      // * Done with setup
+      status = nc_enddef(ncid);
+      AssertThrow(status == NC_NOERR, ExcMessage("NetCDF Error occured!"));
+
+      // * Fill in the coordinate data:
+      for (unsigned int d=0; d<dim; ++d)
+        {
+          std::vector<double> data = coordinate_values[d];
+
+          // hack
+          if (d==1 || d==2)
+            for (auto &x : data)
+              x *= 180.0 / numbers::PI;
+
+          status = nc_put_var_double(ncid, var_dim_ids[d], data.data());
+          AssertThrow(status == NC_NOERR, ExcMessage("NetCDF Error occured!"));
+        }
+
+
+      // * Fill in the data:
+      const unsigned int n_elements = data_tables[0].n_elements();
+      std::vector<double> structured_data(n_elements);
+      for (unsigned int c=0; c<n_columns; ++c)
+        {
+          double *data_ptr = structured_data.data();
+          for (unsigned int i=0; i<n_elements; ++i)
+            {
+              TableIndices<dim> idx =
+                internal::compute_table_indices_reverse_order(new_table_points, i);
+
+              *data_ptr = data_tables[c](idx);
+              ++data_ptr;
+            }
+
+          status = nc_put_var_double(ncid, col_ids[c], structured_data.data());
+          AssertThrow(status == NC_NOERR, ExcMessage("NetCDF Error occured!"));
+        }
+
+      status = nc_close(ncid);
+      AssertThrow(status == NC_NOERR, ExcMessage("NetCDF Error occured!"));
+
+#else
+      (void)filename_in;
+      (void)filename_out;
+      AssertThrow(false,
+                  ExcMessage("Error: you need to configure ASPECT with NETCDF support to do this."));
+#endif
+    }
+
+    template <int dim>
+    void
+    StructuredDataLookup<dim>::save_file(const std::string &filename)
+    {
+#ifdef ASPECT_WITH_NETCDF
+      int flags =
+        NC_CLOBBER // overwrite existing file
+        //| NC_NETCDF4 // use hdf5
+        //| NC_CLASSIC_MODEL // use classic mode (restricted functionality likely to work with older versions)
+        // | NC_64BIT_OFFSET // 64bit offset for files >2GB data (cost?)
+        ;
+
+      int ncid;
+      int status;
+
+      status = nc_create(filename.c_str(), flags, &ncid);
+      AssertThrow(status == NC_NOERR, ExcMessage("NetCDF Error occured!"));
+
+      // * Declare the dimensions
+      int dim_ids[dim];
+      int var_dim_ids[dim];
+      for (unsigned int d=0; d<dim; ++d)
+        {
+          std::string name = "x";
+          name[0]+=d; // generate the name x, y, or z
+
+          size_t n_entries = get_coordinates(d).size();
+          status = nc_def_dim(ncid, name.c_str(), n_entries, &dim_ids[d]);
+          AssertThrow(status == NC_NOERR, ExcMessage("NetCDF Error occured!"));
+
+          // Each dimension also gets a 1 dimensional variable (to contain the coordinate values)
+          status = nc_def_var(ncid, name.c_str(), NC_DOUBLE, 1, &dim_ids[d], &var_dim_ids[d]);
+          AssertThrow(status == NC_NOERR, ExcMessage("NetCDF Error occured!"));
+        }
+
+      // * Declare the data columns / variables:
+      const unsigned int n_columns = data_component_names.size();
+      std::vector<int> col_ids(n_columns);
+
+      for (unsigned int c=0; c<n_columns; ++c)
+        {
+          status = nc_def_var(ncid, data_component_names[c].c_str(), NC_DOUBLE, dim, dim_ids, &col_ids[c]);
+          AssertThrow(status == NC_NOERR, ExcMessage("NetCDF Error occured!"));
+        }
+
+      // * Done with setup
+      status = nc_enddef(ncid);
+      AssertThrow(status == NC_NOERR, ExcMessage("NetCDF Error occured!"));
+
+      // * Fill in the coordinate data:
+      for (unsigned int d=0; d<dim; ++d)
+        {
+          status = nc_put_var_double(ncid, var_dim_ids[d], coordinate_values[d].data());
+          AssertThrow(status == NC_NOERR, ExcMessage("NetCDF Error occured!"));
+        }
+
+
+      // * Fill in the data:
+
+
+//      if ((retval = nc_def_var(ncid, LAT_NAME, NC_FLOAT, 1, &lat_dimid,
+//        106                 &lat_varid)))
+
+//        if ((retval = nc_enddef(ncid)))
+//        147       ERR(retval);
+
+//      if ((retval = nc_put_var_float(ncid, lat_varid, &lats[0])))
+//       152       ERR(retval);
+//       153
+//      if ((retval = nc_put_var_float(ncid, pres_varid, &pres_out[0][0])))
+//       160       ERR(retval);
+
+
+      // * Done, now we close the file and clean up
+
+      status = nc_close(ncid);
+      AssertThrow(status == NC_NOERR, ExcMessage("NetCDF Error occured!"));
+
+#else
+      (void)filename;
+      AssertThrow(false, ExcMessage("Error: you need to configure ASPECT with NETCDF support to do this."));
+#endif
+
+
+    }
 
     template <int dim>
     double
