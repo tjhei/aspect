@@ -859,6 +859,11 @@ namespace aspect
           get_velocity_or_fluid_velocity_evaluator(const bool use_fluid_velocity) override;
 
         private:
+#if DEAL_II_VERSION_GTE(9,4,0)
+          // MappingInfo object for the FEPointEvaluation objects
+          NonMatching::MappingInfo<dim, dim> mapping_info;
+#endif
+
           // FEPointEvaluation objects for all common
           // components of ASPECT's finite element solution.
           // These objects are used inside of the member functions of this class.
@@ -896,6 +901,22 @@ namespace aspect
       SolutionEvaluatorsImplementation<dim, n_compositional_fields>::SolutionEvaluatorsImplementation(const SimulatorAccess<dim> &simulator,
           const UpdateFlags update_flags)
         :
+#if DEAL_II_VERSION_GTE(9,4,0)
+        mapping_info(simulator.get_mapping(),
+                     update_flags),
+        velocity(mapping_info,
+                 simulator.get_fe(),
+                 simulator.introspection().component_indices.velocities[0]),
+        pressure(mapping_info,
+                 simulator.get_fe(),
+                 simulator.introspection().component_indices.pressure),
+        temperature(mapping_info,
+                    simulator.get_fe(),
+                    simulator.introspection().component_indices.temperature),
+        compositions(mapping_info,
+                     simulator.get_fe(),
+                     simulator.n_compositional_fields() > 0 ? simulator.introspection().component_indices.compositional_fields[0] : simulator.introspection().component_indices.temperature),
+#else
         velocity(simulator.get_mapping(),
                  simulator.get_fe(),
                  update_flags,
@@ -912,6 +933,8 @@ namespace aspect
                      simulator.get_fe(),
                      update_flags,
                      simulator.n_compositional_fields() > 0 ? simulator.introspection().component_indices.compositional_fields[0] : simulator.introspection().component_indices.temperature),
+#endif
+
         melt_component_indices(),
         simulator_access(simulator)
       {
@@ -920,10 +943,16 @@ namespace aspect
         const unsigned int n_total_compositional_fields = simulator_access.n_compositional_fields();
         const auto &component_indices = simulator_access.introspection().component_indices.compositional_fields;
         for (unsigned int composition = n_compositional_fields; composition < n_total_compositional_fields; ++composition)
+#if DEAL_II_VERSION_GTE(9,4,0)
+          additional_compositions.emplace_back(FEPointEvaluation<1, dim>(mapping_info,
+                                                                         simulator_access.get_fe(),
+                                                                         component_indices[composition]));
+#else
           additional_compositions.emplace_back(FEPointEvaluation<1, dim>(simulator_access.get_mapping(),
                                                                          simulator_access.get_fe(),
                                                                          update_flags,
                                                                          component_indices[composition]));
+#endif
 
         // Create the melt evaluators, but only if we use melt transport in the model
         if (simulator_access.include_melt_transport())
@@ -933,6 +962,17 @@ namespace aspect
             melt_component_indices[1] = simulator_access.introspection().variable("fluid pressure").first_component_index;
             melt_component_indices[2] = simulator_access.introspection().variable("compaction pressure").first_component_index;
 
+#if DEAL_II_VERSION_GTE(9,4,0)
+            fluid_velocity = std::make_unique<FEPointEvaluation<dim, dim>>(mapping_info,
+                                                                            simulator_access.get_fe(),
+                                                                            melt_component_indices[0]);
+            fluid_pressure = std::make_unique<FEPointEvaluation<1, dim>>(mapping_info,
+                                                                          simulator_access.get_fe(),
+                                                                          melt_component_indices[1]);
+            compaction_pressure = std::make_unique<FEPointEvaluation<1, dim>>(mapping_info,
+                                                                               simulator_access.get_fe(),
+                                                                               melt_component_indices[2]);
+#else
             fluid_velocity = std::make_unique<FEPointEvaluation<dim, dim>>(simulator_access.get_mapping(),
                                                                            simulator_access.get_fe(),
                                                                            update_flags,
@@ -945,6 +985,7 @@ namespace aspect
                                                                               simulator_access.get_fe(),
                                                                               update_flags,
                                                                               melt_component_indices[2]);
+#endif
 
           }
       }
@@ -979,23 +1020,7 @@ namespace aspect
         velocity.reinit (cell, positions);
 
 #if DEAL_II_VERSION_GTE(9,4,0)
-        // Only compute the mapping data once for velocity,
-        // and reuse it for the other components.
-        const auto &mapping_data = velocity.get_mapping_data();
-
-        pressure.reinit (cell, positions, mapping_data);
-        temperature.reinit (cell, positions, mapping_data);
-        compositions.reinit (cell, positions, mapping_data);
-
-        for (auto &evaluator_composition: additional_compositions)
-          evaluator_composition.reinit (cell, positions, mapping_data);
-
-        if (simulator_access.include_melt_transport())
-          {
-            fluid_velocity->reinit (cell, positions, mapping_data);
-            fluid_pressure->reinit (cell, positions, mapping_data);
-            compaction_pressure->reinit (cell, positions, mapping_data);
-          }
+        mapping_info.reinit(cell,positions);
 #else
         pressure.reinit (cell, positions);
         temperature.reinit (cell, positions);
