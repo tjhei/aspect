@@ -1684,11 +1684,6 @@ namespace aspect
 
           active_cell_data.enable_newton_derivatives = true;
 
-          // TODO: these are not implemented yet
-          for (unsigned int level=0; level<n_levels; ++level)
-            level_cell_data[level].enable_newton_derivatives = false;
-
-
           FEValues<dim> fe_values (*sim.mapping,
                                    sim.finite_element,
                                    quadrature_formula,
@@ -1770,6 +1765,136 @@ namespace aspect
             (sim.newton_handler->parameters.velocity_block_stabilization & Newton::Parameters::Stabilization::symmetric)
             != Newton::Parameters::Stabilization::none;
           active_cell_data.symmetrize_newton_system = symmetrize_newton_system;
+
+
+          {
+            MGTransferMatrixFree<dim,double> transfer;
+            transfer.build(sim.dof_handler);
+
+            MGLevelObject<dealii::LinearAlgebra::distributed::Vector<double>>
+            level_linearization_point;
+            level_linearization_point.resize(0,n_levels-1);
+
+            // convert Trilinos BlockVector into Vector:
+            LinearAlgebra::Vector trilinos_linearization_point;
+            trilinos_linearization_point.reinit(sim.current_linearization_point, /* import_data = */ true);
+
+            dealii::LinearAlgebra::distributed::Vector<double> active_linearization_point;
+            internal::ChangeVectorTypes::copy(active_linearization_point, trilinos_linearization_point);
+
+            transfer.interpolate_to_mg(sim.dof_handler,
+                                       level_linearization_point,
+                                       active_linearization_point);
+
+            FEValues<dim> fe_values (*sim.mapping,
+                                     sim.finite_element,
+                                     quadrature_formula,
+                                     update_values   |
+                                     update_gradients |
+                                     update_quadrature_points |
+                                     update_JxW_values);
+
+            const unsigned int n_q_points = quadrature_formula.size();
+            MaterialModel::MaterialModelInputs<dim> in(fe_values.n_quadrature_points, sim.introspection.n_compositional_fields);
+            MaterialModel::MaterialModelOutputs<dim> out(fe_values.n_quadrature_points, sim.introspection.n_compositional_fields);
+            sim.newton_handler->create_material_model_outputs(out);
+
+            for (unsigned int level=0; level<n_levels; ++level)
+              {
+                level_cell_data[level].enable_newton_derivatives = true;
+                level_cell_data[level].symmetrize_newton_system = symmetrize_newton_system;
+
+                const unsigned int n_cells = mg_matrices_A_block[level].get_matrix_free()->n_cell_batches();
+
+
+                level_cell_data[level].strain_rate_table.reinit(TableIndices<2>(n_cells, n_q_points));
+                level_cell_data[level].newton_factor_wrt_pressure_table.reinit(TableIndices<2>(n_cells, n_q_points));
+                level_cell_data[level].newton_factor_wrt_strain_rate_table.reinit(TableIndices<2>(n_cells, n_q_points));
+
+                for (unsigned int cell=0; cell<n_cells; ++cell)
+                  {
+                    const unsigned int n_components_filled = mg_matrices_A_block[level].get_matrix_free()->n_active_entries_per_cell_batch(cell);
+
+                    for (unsigned int i=0; i<n_components_filled; ++i)
+                      {
+                        typename DoFHandler<dim>::cell_iterator matrix_free_cell =
+                          mg_matrices_A_block[level].get_matrix_free()->get_cell_iterator(cell,i);
+                        typename DoFHandler<dim>::cell_iterator simulator_cell(&(sim.triangulation),
+                                                                               matrix_free_cell->level(),
+                                                                               matrix_free_cell->index(),
+                                                                               &(sim.dof_handler));
+
+                        fe_values.reinit(simulator_cell);
+                        //in.reinit(fe_values, simulator_cell, sim.introspection, level_linearization_point);
+                        {
+                          fe_values[sim.introspection.extractors.temperature].get_function_values (level_linearization_point[level], in.temperature);
+                          fe_values[sim.introspection.extractors.velocities].get_function_values (level_linearization_point[level], in.velocity);
+                          fe_values[sim.introspection.extractors.pressure].get_function_values (level_linearization_point[level], in.pressure);
+                          fe_values[sim.introspection.extractors.pressure].get_function_gradients (level_linearization_point[level], in.pressure_gradient);
+                          //if (compute_strain_rate)
+                          fe_values[sim.introspection.extractors.velocities].get_function_symmetric_gradients (level_linearization_point[level], in.strain_rate);
+                          //else
+                          //  this->strain_rate.resize(0);
+                          /*
+                                                    // Vectors for evaluating the compositional field parts of the finite element solution
+                                                    std::vector<std::vector<double>> composition_values (introspection.n_compositional_fields, std::vector<double> (fe_values.n_quadrature_points));
+                                                    for (unsigned int c=0; c<introspection.n_compositional_fields; ++c)
+                                                    {
+                                                        fe_values[introspection.extractors.compositional_fields[c]].get_function_values(solution_vector,composition_values[c]);
+                                                    }
+
+                                                    for (unsigned int i=0; i<fe_values.n_quadrature_points; ++i)
+                                                    {
+                                                        this->position[i] = fe_values.quadrature_point(i);
+                                                        for (unsigned int c=0; c<introspection.n_compositional_fields; ++c)
+                                                            this->composition[i][c] = composition_values[c][i];
+                                                    }*/
+                        }
+
+                        sim.material_model->evaluate(in, out);
+                        //TODO sim.material_model->fill_additional_material_model_inputs(in, sim.current_linearization_point, fe_values, sim.introspection);
+
+                        const MaterialModel::MaterialModelDerivatives<dim> *derivatives
+                          = out.template get_additional_output<MaterialModel::MaterialModelDerivatives<dim>>();
+
+                        Assert(derivatives != nullptr,
+                               ExcMessage ("Error: The Newton method requires the material to "
+                                           "compute derivatives."));
+
+                        for (unsigned int q=0; q<n_q_points; ++q)
+                          {
+                            // use the spd factor when the stabilization is PD or SPD.
+                            const double alpha =  (sim.newton_handler->parameters.velocity_block_stabilization
+                                                   & Newton::Parameters::Stabilization::PD)
+                                                  != Newton::Parameters::Stabilization::none
+                                                  ?
+                                                  Utilities::compute_spd_factor<dim>(out.viscosities[q],
+                                                                                     in.strain_rate[q],
+                                                                                     derivatives->viscosity_derivative_wrt_strain_rate[q],
+                                                                                     sim.newton_handler->parameters.SPD_safety_factor)
+                                                  :
+                                                  1.0;
+
+                            level_cell_data[level].newton_factor_wrt_pressure_table(cell,q)[i]
+                              = derivatives->viscosity_derivative_wrt_pressure[q] * newton_derivative_scaling_factor;
+
+                            for (unsigned int m=0; m<dim; ++m)
+                              for (unsigned int n=0; n<dim; ++n)
+                                {
+                                  level_cell_data[level].strain_rate_table(cell, q)[m][n][i]
+                                    = in.strain_rate[q][m][n];
+
+                                  level_cell_data[level].newton_factor_wrt_strain_rate_table(cell, q)[m][n][i]
+                                    = derivatives->viscosity_derivative_wrt_strain_rate[q][m][n]
+                                      * newton_derivative_scaling_factor * alpha;
+                                }
+                          }
+                      }
+                  }
+
+              }
+          }
+
         }
       else
         {
@@ -2621,6 +2746,9 @@ namespace aspect
   {
     // This vector will be refilled with the new MatrixFree objects below:
     matrix_free_objects.clear();
+
+    // TODO: this is probably expensive and computes duplicate information (see below).
+    sim.dof_handler.distribute_mg_dofs();
 
     // Velocity DoFHandler
     {
