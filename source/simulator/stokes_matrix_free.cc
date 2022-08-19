@@ -2800,6 +2800,42 @@ namespace aspect
   }
 
 
+  template<int dim, int spacedim>
+  double horizontal_communication_efficiency( const std::vector<std::shared_ptr<const Triangulation<dim, spacedim>>>
+                                              &trias)
+  {
+    const unsigned int n_global_levels = trias.size();
+
+    std::vector<types::global_dof_index> cells_local(n_global_levels);
+    std::vector<types::global_dof_index> cells_remote(n_global_levels);
+
+    for (unsigned int lvl = 0; lvl < n_global_levels; ++lvl)
+      for (const auto &cell : trias[lvl]->active_cell_iterators())
+        if (cell->is_locally_owned())
+          ++cells_local[lvl];
+        else if (cell->is_ghost())
+          ++cells_remote[lvl];
+
+    const auto comm = trias.back()->get_communicator();
+
+    std::vector<types::global_dof_index> cells_local_sum(cells_local.size());
+    Utilities::MPI::sum(cells_local, comm, cells_local_sum);
+
+    std::vector<types::global_dof_index> cells_remote_sum(cells_local.size());
+    Utilities::MPI::sum(cells_remote, comm, cells_remote_sum);
+
+    const auto n_cells_local =
+      std::accumulate(cells_local_sum.begin(), cells_local_sum.end(), 0);
+    const auto n_cells_remote = std::accumulate(cells_remote_sum.begin(),
+                                                cells_remote_sum.end(),
+                                                0);
+
+    const double horizontal_eff =
+      static_cast<double>(n_cells_local + n_cells_remote / 2) /
+      (n_cells_local + n_cells_remote);
+
+    return horizontal_eff;
+  }
 
   template <int dim, int velocity_degree>
   void StokesMatrixFreeHandlerImplementation<dim, velocity_degree>::setup_dofs()
@@ -2814,7 +2850,14 @@ namespace aspect
     min_level = 0;
     max_level = trias.size() - 1;
 
+    double eff_work = 1.0/MGTools::workload_imbalance(trias);
+    double eff_vertical  = MGTools::vertical_communication_efficiency(trias);
+    double eff_horizontal  = horizontal_communication_efficiency(trias);
+
     sim.pcout << "GC GMG: levels " << min_level << " .. " << max_level
+              << " eff_work: " << eff_work
+              << " eff_vertical: " << eff_vertical
+              << " eff_horizontal: " << eff_horizontal
               << std::endl;
 
     constraints_v.resize(min_level, max_level);
