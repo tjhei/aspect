@@ -3079,6 +3079,11 @@ namespace aspect
         sim.pcout << "compute diagonal lvl = " << level << std::endl;
         mg_matrices_Schur_complement[level].compute_diagonal();
 
+        const auto v1 = mg_matrices_Schur_complement[level].get_matrix_diagonal()->get_vector();
+        const auto v2 = mg_matrices_Schur_complement[level].get_matrix_diagonal_inverse()->get_vector();
+        sim.pcout << "schur diag norm: " << v1.l2_norm() << " " << v2.l2_norm() << std::endl;
+
+
         const auto &dof_handler_v = dofhandlers_v[level];
         const auto &dof_handler_projection = dofhandlers_projection[level];
 
@@ -3088,6 +3093,9 @@ namespace aspect
         if (true)
           {
             mg_matrices_A_block[level].compute_diagonal();
+            //const auto v1 = mg_matrices_A_block[level].get_matrix_diagonal()->get_vector();
+            const auto v2 = mg_matrices_A_block[level].get_matrix_diagonal_inverse()->get_vector();
+            sim.pcout << "A diag norm: " << v2.l2_norm() << std::endl;
           }
         else if (false /*!(sim.boundary_velocity_manager.get_tangential_boundary_velocity_indicators().empty())
             &&
