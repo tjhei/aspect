@@ -2010,6 +2010,41 @@ namespace aspect
   }
 
 
+  template<int dim, int spacedim>
+  double horizontal_communication_efficiency( const Triangulation<dim, spacedim> &tria)
+  {
+    const unsigned int n_global_levels = tria.n_global_levels();
+
+    std::vector<types::global_dof_index> cells_local(n_global_levels);
+    std::vector<types::global_dof_index> cells_remote(n_global_levels);
+
+    for (unsigned int lvl = 0; lvl < n_global_levels; ++lvl)
+      for (const auto &cell : tria.cell_iterators_on_level(lvl))
+        if (cell->is_locally_owned_on_level())
+          ++cells_local[lvl];
+        else if (cell->is_ghost_on_level())
+          ++cells_remote[lvl];
+
+    const auto comm = tria.get_communicator();
+
+    std::vector<types::global_dof_index> cells_local_sum(cells_local.size());
+    Utilities::MPI::sum(cells_local, comm, cells_local_sum);
+
+    std::vector<types::global_dof_index> cells_remote_sum(cells_local.size());
+    Utilities::MPI::sum(cells_remote, comm, cells_remote_sum);
+
+    const auto n_cells_local =
+      std::accumulate(cells_local_sum.begin(), cells_local_sum.end(), 0);
+    const auto n_cells_remote = std::accumulate(cells_remote_sum.begin(),
+                                                cells_remote_sum.end(),
+                                                0);
+
+    const double horizontal_eff =
+      static_cast<double>(n_cells_local + n_cells_remote / 2) /
+      (n_cells_local + n_cells_remote);
+
+    return horizontal_eff;
+  }
 
   template <int dim, int velocity_degree>
   std::pair<double,double> StokesMatrixFreeHandlerImplementation<dim,velocity_degree>::solve()
@@ -2120,7 +2155,14 @@ namespace aspect
                   << "    Viscosity range: " << minimum_viscosity << " - " << maximum_viscosity << std::endl;
 
         const double imbalance = MGTools::workload_imbalance(sim.triangulation);
+	double eff_work = 1.0/imbalance;
+	const double eff_vertical = MGTools::vertical_communication_efficiency(sim.triangulation);
+	const double eff_horizontal = horizontal_communication_efficiency(sim.triangulation);
         sim.pcout << "    GMG workload imbalance: " << imbalance << std::endl
+		  << "    eff_work: " << eff_work
+		  << " eff_vertical: " << eff_vertical
+		  << " eff_horizontal: " << eff_horizontal
+		  << std::endl
                   << "    Stokes solver: " << std::flush;
       }
 
