@@ -1814,7 +1814,17 @@ namespace aspect
                 // support point of the element. For DGQ1, we must project
                 // back to quadrature point values.
                 if (dof_handler_projection.get_fe().degree == 0)
-                  level_cell_data[level].viscosity(cell, 0)[i] = level_viscosity_vector[level](local_dof_indices[0]);
+		  {
+		    // While the min/max operation should not be
+		    // necessary for the DG0 case, this works around a
+		    // bug in the transfer operator with global
+		    // coarsening that sometimes seems to produce
+		    // cells with 0 value:
+		    const double x = level_viscosity_vector[level](local_dof_indices[0]);
+		    level_cell_data[level].viscosity(cell, 0)[i]
+		      = std::min(std::max(x, static_cast<GMGNumberType>(minimum_viscosity)),
+                                   static_cast<GMGNumberType>(maximum_viscosity));
+		  }
                 else
                   {
                     fe_values_projection.reinit(DG_cell);
