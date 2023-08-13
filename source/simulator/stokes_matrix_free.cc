@@ -39,6 +39,7 @@
 #include <deal.II/fe/fe_values.h>
 
 #include <deal.II/lac/solver_gmres.h>
+#include <deal.II/lac/solver_minres.h>
 #include <deal.II/lac/read_write_vector.templates.h>
 #include <deal.II/lac/solver_idr.h>
 
@@ -2152,6 +2153,16 @@ namespace aspect
             solver(solver_control_cheap, mem,
                    SolverIDR<dealii::LinearAlgebra::distributed::BlockVector<double>>::
                    AdditionalData(sim.parameters.idr_s_parameter));
+
+            solver.solve (stokes_matrix,
+                          solution_copy,
+                          rhs_copy,
+                          preconditioner_cheap);
+          }
+        else if (sim.parameters.stokes_krylov_type == Parameters<dim>::StokesKrylovType::minres)
+          {
+            SolverMinRes<dealii::LinearAlgebra::distributed::BlockVector<double>>
+            solver(solver_control_cheap, mem);
 
             solver.solve (stokes_matrix,
                           solution_copy,

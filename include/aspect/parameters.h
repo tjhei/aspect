@@ -356,12 +356,13 @@ namespace aspect
       enum Kind
       {
         gmres,
-        idr_s
+        idr_s,
+        minres
       };
 
       static const std::string pattern()
       {
-        return "GMRES|IDR(s)";
+        return "GMRES|IDR(s)|MINRES";
       }
 
       static Kind
@@ -371,6 +372,8 @@ namespace aspect
           return gmres;
         else if (input == "IDR(s)")
           return idr_s;
+        else if (input == "MINRES")
+          return minres;
         else
           AssertThrow(false, ExcNotImplemented());
 
