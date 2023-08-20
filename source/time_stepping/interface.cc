@@ -180,13 +180,36 @@ namespace aspect
             return false;
           case Reaction::advance:
             return false;
+          case Reaction::restart:
+            return true;
 
           default:
             AssertThrow(false, ExcNotImplemented());
             return false;
         }
     }
+    template <int dim>
+    bool
+    Manager<dim>::should_restart() const
+    {
+      switch (current_reaction)
+        {
+          case Reaction::refine_and_repeat_step:
+            return false;
+          case Reaction::repeat_step:
+            return false;
+          case Reaction::refine_and_advance:
+            return false;
+          case Reaction::advance:
+            return false;
+          case Reaction::restart:
+            return true;
 
+          default:
+            AssertThrow(false, ExcNotImplemented());
+            return false;
+        }
+    }
 
 
     template <int dim>
@@ -202,6 +225,8 @@ namespace aspect
           case Reaction::refine_and_advance:
             return true;
           case Reaction::advance:
+            return false;
+          case Reaction::restart:
             return false;
 
           default:

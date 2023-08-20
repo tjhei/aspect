@@ -47,6 +47,11 @@ namespace aspect
     enum class Reaction
     {
       /**
+       * Restart the simulation from the beginning by first interpolating initial conditions
+       * and then starting at timestep 0.
+       */
+      restart,
+      /**
        * Initiate mesh refinement and go back in time to repeat the last timestep.
        */
       refine_and_repeat_step,
@@ -61,7 +66,7 @@ namespace aspect
       /**
        * Continue to the next timestep. The default action to take.
        */
-      advance
+      advance,
     };
 
     /**
@@ -197,10 +202,15 @@ namespace aspect
         double get_next_time_step_size() const;
 
         /**
+         * If true, a plugin requested to restart the simulation from the begging (initial conditions before the first time step.
+         */
+        bool should_repeat_time_step() const;
+
+        /**
          * If true, a plugin requested to redo the last computed time step. Updated
          * when calling update().
          */
-        bool should_repeat_time_step() const;
+        bool should_restart() const;
 
         /**
          * If true, execute a mesh refinement step now (potentially before repeating

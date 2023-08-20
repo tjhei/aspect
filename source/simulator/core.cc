@@ -2068,6 +2068,13 @@ namespace aspect
         else
           maybe_refine_mesh(new_time_step_size, max_refinement_level);
 
+        if (time_stepping_manager.should_restart())
+          {
+            pcout << "Restarting simulation initiated by the time stepping manager ..." << std::endl;
+            simulator_is_past_initialization = false;
+            goto start_time_iteration;
+          }
+
         if (time_stepping_manager.should_repeat_time_step())
           {
             pcout << "Repeating the current time step based on the time stepping manager ..." << std::endl;
