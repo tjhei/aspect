@@ -941,6 +941,7 @@ namespace aspect
        * This function is implemented in
        * <code>source/simulator/core.cc</code>.
        */
+    public:
       void postprocess ();
 
       /**
@@ -1934,7 +1935,9 @@ namespace aspect
        * after this point, it needs to keep its own shared pointer
        * to it.
        */
+    public:
       std::shared_ptr<WorldBuilder::World>                                   world_builder;
+    private:
 #endif
       BoundaryVelocity::Manager<dim>                                         boundary_velocity_manager;
       BoundaryTraction::Manager<dim>                                         boundary_traction_manager;

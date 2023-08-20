@@ -268,6 +268,7 @@ namespace aspect
         /**
          * Object for computing the equation of state.
          */
+      public:
         EquationOfState::MulticomponentIncompressible<dim> equation_of_state;
 
         /**

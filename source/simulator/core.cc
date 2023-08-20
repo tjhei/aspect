@@ -1995,6 +1995,7 @@ namespace aspect
             ||
             ! (pre_refinement_step < parameters.initial_adaptive_refinement))
           {
+            pcout << "Setup initial conditions!" << std::endl;
             // Add topography to box models after all initial refinement
             // is completed.
             if (pre_refinement_step == parameters.initial_adaptive_refinement)

@@ -112,6 +112,7 @@ namespace aspect
            * Vector of thermal expansivities with one entry per composition and phase plus one
            * for the background field.
            */
+        public:
           std::vector<double> thermal_expansivities;
 
           /**
