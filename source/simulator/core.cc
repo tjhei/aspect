@@ -2044,8 +2044,8 @@ namespace aspect
         // that we have created in the constructor of this class. If some of the
         // other plugins created there still need access to these initial
         // conditions, they will have created their own shared pointers.
-        initial_temperature_manager.reset();
-        initial_composition_manager.reset();
+        /*initial_temperature_manager.reset();
+        initial_composition_manager.reset();*/
 #ifdef ASPECT_WITH_WORLD_BUILDER
         // The same applies to the world builder object:
         world_builder.reset();
