@@ -251,7 +251,7 @@ void possibly_load_shared_libs (const std::string &parameters)
       validate_shared_lib_list (true);
 
       const std::vector<std::string>
-      shared_libs_list = Utilities::split_string_list (shared_libs);
+      shared_libs_list = aspect::Utilities::split_string_list (shared_libs);
 
       for (const auto &shared_lib : shared_libs_list)
         {
@@ -278,7 +278,7 @@ void possibly_load_shared_libs (const std::string &parameters)
           filename.append(".release.so");
 #endif
 
-          if (Utilities::MPI::this_mpi_process (MPI_COMM_WORLD) == 0)
+          if (dealii::Utilities::MPI::this_mpi_process (MPI_COMM_WORLD) == 0)
             std::cout << "Loading shared library <"
                       << filename
                       << '>' << std::endl;
@@ -309,10 +309,10 @@ void possibly_load_shared_libs (const std::string &parameters)
           deallog.depth_console(0);
         }
 
-      if (Utilities::MPI::this_mpi_process (MPI_COMM_WORLD) == 0)
+      if (dealii::Utilities::MPI::this_mpi_process (MPI_COMM_WORLD) == 0)
         std::cout << std::endl;
 #else
-      if (Utilities::MPI::this_mpi_process (MPI_COMM_WORLD) == 0)
+      if (dealii::Utilities::MPI::this_mpi_process (MPI_COMM_WORLD) == 0)
         {
           std::cerr << std::endl << std::endl
                     << "----------------------------------------------------"
@@ -362,7 +362,7 @@ read_parameter_file(const std::string &parameter_file_name,
   using namespace dealii;
 
   std::string input_as_string;
-  const bool i_am_proc_0 = (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0);
+  const bool i_am_proc_0 = (dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0);
 
   if (parameter_file_name != "--")
     {
@@ -547,7 +547,7 @@ run_simulator(const std::string &raw_input_as_string,
   using namespace dealii;
 
   ParameterHandler prm;
-  const bool i_am_proc_0 = (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0);
+  const bool i_am_proc_0 = (dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0);
   aspect::Simulator<dim>::declare_parameters(prm);
 
   if (validate_only)
@@ -695,7 +695,7 @@ int main (int argc, char *argv[])
       // before, so that the destructor of this instance can react if we are
       // currently unwinding the stack if an unhandled exception is being
       // thrown to avoid MPI deadlocks.
-      Utilities::MPI::MPI_InitFinalize mpi_initialization(n_remaining_arguments,
+      dealii::Utilities::MPI::MPI_InitFinalize mpi_initialization(n_remaining_arguments,
                                                           remaining_arguments,
                                                           (use_threads ?
                                                            numbers::invalid_unsigned_int :
@@ -721,7 +721,7 @@ int main (int argc, char *argv[])
 
       deallog.depth_console(0);
 
-      const bool i_am_proc_0 = (Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0);
+      const bool i_am_proc_0 = (dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD) == 0);
 
       if (i_am_proc_0)
         {
@@ -814,7 +814,7 @@ int main (int argc, char *argv[])
                 << "----------------------------------------------------"
                 << std::endl;
       std::cerr << "Exception '" << exc.get_exc_name() << "'"
-                << " on rank " << Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)
+                << " on rank " << dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)
                 << " on processing: " << std::endl
                 << exc.what() << std::endl
                 << "Aborting!" << std::endl
@@ -830,7 +830,7 @@ int main (int argc, char *argv[])
                 << "----------------------------------------------------"
                 << std::endl;
       std::cerr << "Exception"
-                << " on rank " << Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)
+                << " on rank " << dealii::Utilities::MPI::this_mpi_process(MPI_COMM_WORLD)
                 << " on processing: " << std::endl
                 << exc.what() << std::endl
                 << "Aborting!" << std::endl
