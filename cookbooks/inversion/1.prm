@@ -1,6 +1,6 @@
 
 set World builder file                     = simple.wb
-set Use years in output instead of seconds = false
+set Use years in output instead of seconds = true
 set Adiabatic surface temperature = 1613
 
 subsection Adiabatic conditions model
@@ -32,6 +32,12 @@ subsection Postprocess
     set Interpolate output = false
     set List of output variables = adiabat, named additional outputs, boundary velocity residual
   end
+  subsection Boundary velocity residual statistics
+    set Use ascii data = true
+    set Data directory = ./
+    set Data file name = observed_vel.txt
+  end
+
 
 end
 
