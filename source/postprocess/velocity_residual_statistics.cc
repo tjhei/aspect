@@ -41,9 +41,8 @@ namespace aspect
       // initialize this to a nonsensical value; set it to the actual time
       // the first time around we get to check it
       last_output_time (std::numeric_limits<double>::quiet_NaN()),
-      point_values (std::vector<std::pair<double, std::vector<Vector<double>>>>() ),
       output_file_number (numbers::invalid_unsigned_int),
-      use_natural_coordinates (false)
+      point_values (std::vector<std::pair<double, std::vector<Vector<double>>>>() )
     {}
 
     template <int dim>
@@ -69,21 +68,20 @@ namespace aspect
       point[0] = p;
 
       for (unsigned int d = 0; d < dim; ++d)
-      {
-        data_position[d] = data_lookup->get_data(point, d);
-        data_velocity[d] = data_lookup->get_data(point, d+3);
-      }
+        {
+          data_position[d] = data_lookup->get_data(point, d);
+          data_velocity[d] = data_lookup->get_data(point, d+3);
+        }
 
       // if (this->get_geometry_model().natural_coordinate_system() == Utilities::Coordinates::spherical)
       //   {
       //     const std::array<double,dim> cartesian_position = this->get_geometry_model().
       //                                                       natural_to_cartesian_coordinates(data_position);
       //   }
-            
+
       // Since the solution is evaluated in cartesian system, convert the spherical velocities into
       // cartesian
-      // if (use_spherical_unit_vectors == true)
-      //   data_velocity = Utilities::Coordinates::spherical_to_cartesian_vector(data_velocity, cartesian_position);
+      // 
 
       return std::make_pair (data_position, data_velocity);
     }
@@ -104,7 +102,7 @@ namespace aspect
       if (this->get_time() < last_output_time + output_interval)
         return {"", ""};
 
-       // TODO: Modify here for inversion.
+      // TODO: Modify here for inversion.
       const bool increase_file_number = (this->get_nonlinear_iteration() == 0) ||
                                         (!this->get_parameters().run_postprocessors_on_nonlinear_iterations);
       if (output_file_number == numbers::invalid_unsigned_int)
@@ -116,32 +114,17 @@ namespace aspect
       const std::string filename = (this->get_output_directory()
                                     + "output_velocity_residual/"
                                     + file_prefix);
-      
-      unsigned int n_cols;
-      if (Utilities::MPI::this_mpi_process(this->get_mpi_communicator()) == 0)
-        {
-          // We do not need to distribute the contents as we are using shared data
-          // to place it later. Therefore, just pass MPI_COMM_SELF (i.e.,
-          // a communicator with just a single MPI process) and no distribution
-          // will happen.
-          std::ifstream in(data_directory + data_file_name);
 
-          // Read header lines and table size
-          while (in.peek() == '#')
-            {
-              std::string line;
-              std::getline(in,line);
-              std::stringstream linestream(line);
-              std::string word;
-              while (linestream >> word)
-                if (word == "POINTS:")
-                  linestream >> n_cols;
-            }
-        }
+      const unsigned int n_cols = data_lookup->get_interpolation_point_coordinates(0).size();
 
       // evaluate the solution at all of our evaluation points
       std::vector<Vector<double>>
       current_point_values (n_cols, Vector<double> (this->introspection().n_components));
+
+      // velocity residual at the evaluation points
+      std::vector<Tensor<1,dim>> velocity_residual (n_cols);
+
+      double rms_velocity_residual = 0.;
 
       for (unsigned int p=0; p<n_cols; ++p)
         {
@@ -185,87 +168,85 @@ namespace aspect
           Utilities::MPI::sum (current_point_values[p], this->get_mpi_communicator(),
                                current_point_values[p]);
 
+          Tensor<1,dim> modeled_velocity_solution;
+
           // Normalize in cases where points are claimed by multiple processors
-          if (n_procs > 1)
-            current_point_values[p] /= n_procs;
+          for (unsigned int d=0; d<dim; ++d)
+            modeled_velocity_solution[d] = current_point_values[p][dim + d];
+
+          velocity_residual[p] = modeled_velocity_solution - get_observed_data(p).second;
+
+          rms_velocity_residual += velocity_residual[p].norm();
         }
+
+      const double global_rms_velocity_residual = rms_velocity_residual/n_cols;
 
       // finally push these point values all onto the list we keep
       point_values.emplace_back (this->get_time(), current_point_values);
-      
-      for (unsigned int c=0; c<this->n_compositional_fields(); ++c)
-      {
-        this->introspection().name_for_compositional_index(c);
-      }
 
-      // create a quadrature formula for the velocity.
-      const Quadrature<dim> &quadrature_formula = this->introspection().quadratures.velocities;
-      const unsigned int n_q_points = quadrature_formula.size();
+      if (Utilities::MPI::this_mpi_process(this->get_mpi_communicator()) == 0)
+        {
 
-      FEValues<dim> fe_values (this->get_mapping(),
-                               this->get_fe(),
-                               quadrature_formula,
-                               update_values   |
-                               update_quadrature_points |
-                               update_JxW_values);
+          std::ofstream f (filename);
+          f << ("# <inversion_step> "
+                "<evaluation_point_x> "
+                "<evaluation_point_y> ")
+            << (dim == 3 ? "<evaluation_point_z> " : "")
+            << ("<velocity_x> "
+                "<velocity_y> ")
+            << (dim == 3 ? "<velocity_z> " : "");
 
-      std::vector<Tensor<1,dim>> velocity_values(n_q_points);
+          for (unsigned int c=0; c<this->n_compositional_fields(); ++c)
+            f << " <" << this->introspection().name_for_compositional_index(c) << '>';
+          f << '\n';
 
-      // compute the maximum, minimum, and squared*area velocity residual
-      // magnitude and the face area.
-      double local_vel_residual_square_integral = 0;
-      double local_max_vel_residual             = std::numeric_limits<double>::lowest();
-      double local_min_vel_residual             = std::numeric_limits<double>::max();
-      double local_fe_volume                    = 0.0;
+          for (const auto &time_point : point_values)
+            {
+              Assert (time_point.second.size() == n_cols,
+                      ExcInternalError());
+              for (unsigned int i=0; i<n_cols; ++i)
+                {
+                  f << /* time = */ time_point.first / (this->convert_output_to_years() ? year_in_seconds : 1.)
+                    << ' '
+                    << /* evaluation point = */ get_observed_data(i).first << ' ';
 
-      for (const auto &cell : this->get_dof_handler().active_cell_iterators())
-        if (cell->is_locally_owned())
-          {
-            fe_values.reinit (cell);
+                  for (unsigned int c=0; c<dim; ++c)
+                    {
+                      // output a data element. internally, we store all point
+                      // values in the same format in which they were computed,
+                      // but we convert velocities to meters per year if so
+                      // requested
+                      if ((this->introspection().component_masks.velocities[c] == false)
+                          ||
+                          (this->convert_output_to_years() == false))
+                        f << time_point.second[i][c];
+                      else
+                        f << time_point.second[i][c] * year_in_seconds;
 
-            fe_values[this->introspection().extractors.velocities].get_function_values (this->get_solution(),
-                                                                                        velocity_values);
-            for (unsigned int q = 0; q < n_q_points; ++q)
-              {
-                const Point<dim> data_point = get_observed_data(q).first;
-                Tensor<1,dim> data_velocity = get_observed_data(q).second;
+                      f << (c != time_point.second[i].size()-1 ? ' ' : '\n');
+                    }
+                }
 
-                const double vel_residual_mag = (velocity_values[q] - data_velocity).norm();
+              // have an empty line between time steps
+              f << '\n';
+            }
 
-                local_max_vel_residual = std::max(vel_residual_mag, local_max_vel_residual);
-                local_min_vel_residual = std::min(vel_residual_mag, local_min_vel_residual);
+          AssertThrow (f, ExcMessage("Writing data to <" + filename +
+                                     "> did not succeed in the `point values' "
+                                     "postprocessor."));
+        }
 
-                local_vel_residual_square_integral += ((vel_residual_mag * vel_residual_mag) * fe_values.JxW(q));
-                local_fe_volume += fe_values.JxW(q);
-              }
-          }
+      // return what should be printed to the screen. note that we had
+      // just incremented the number, so use the previous value
 
-      const double global_vel_res_square_integral
-        = Utilities::MPI::sum (local_vel_residual_square_integral, this->get_mpi_communicator());
-      const double global_max_vel_residual
-        = Utilities::MPI::max (local_max_vel_residual, this->get_mpi_communicator());
-      const double global_min_vel_residual
-        = Utilities::MPI::min (local_min_vel_residual, this->get_mpi_communicator());
-
-      const double vrms_residual = std::sqrt(global_vel_res_square_integral) /
-                                   std::sqrt(this->get_volume());
-
-      // now add the computed max, min, and rms velocities to the statistics object
-      // and create a single string that can be output to the screen
+      // Add the rms residual in the statistics file.
       const std::string units = (this->convert_output_to_years() == true) ? "m/year" : "m/s";
       const double unit_scale_factor = (this->convert_output_to_years() == true) ? year_in_seconds : 1.0;
 
-      const std::vector<std::string> column_names = {"RMS velocity residual  (" + units + ")",
-                                                     "Max. velocity residual (" + units + ")",
-                                                     "Min. velocity residual (" + units + ")"
-                                                    };
+      const std::vector<std::string> column_names = {"RMS velocity residual  (" + units + ")"};
 
       statistics.add_value (column_names[0],
-                            vrms_residual * unit_scale_factor);
-      statistics.add_value (column_names[1],
-                            global_max_vel_residual * unit_scale_factor);
-      statistics.add_value (column_names[2],
-                            global_min_vel_residual * unit_scale_factor);
+                            global_rms_velocity_residual * unit_scale_factor);
 
       // also make sure that the other columns filled by this object
       // all show up with sufficient accuracy and in scientific notation
@@ -277,15 +258,11 @@ namespace aspect
 
       std::ostringstream screen_text;
       screen_text.precision(3);
-      screen_text << vrms_residual *unit_scale_factor
-                  << ' ' << units << ", "
-                  << global_max_vel_residual *unit_scale_factor
-                  << ' ' << units << ", "
-                  << global_min_vel_residual *unit_scale_factor
-                  << ' ' << units;
+      screen_text << global_rms_velocity_residual *unit_scale_factor
+                  << ' ' << units << ", ";
 
-      return std::pair<std::string, std::string> ("RMS, max, and min velocity residual velocity in the model:",
-                                                  screen_text.str());
+      return std::make_pair (std::string ("Velocity residual file and RMS:"),
+                             filename + " " + Utilities::to_string(global_rms_velocity_residual));
     }
 
 

@@ -109,16 +109,6 @@ namespace aspect
          */
         double scale_factor;
 
-         /**
-         * Set the time output was supposed to be written. In the simplest
-         * case, this is the previous last output time plus the interval, but
-         * in general we'd like to ensure that it is the largest supposed
-         * output time, which is smaller than the current time, to avoid
-         * falling behind with last_output_time and having to catch up once
-         * the time step becomes larger. This is done after every output.
-         */
-        void set_last_output_time (const double current_time);
-
         /**
          * Interval between the generation of output in seconds.
          */
@@ -129,22 +119,16 @@ namespace aspect
          */
         double last_output_time;
 
-       /**
-         * Consecutively counted number indicating the how-manyth time we will
-         * create output the next time we get to it.
-         */
+        /**
+          * Consecutively counted number indicating the how-manyth time we will
+          * create output the next time we get to it.
+          */
         unsigned int output_file_number;
 
         /**
          * The values of the solution at the evaluation points.
          */
         std::vector<std::pair<double, std::vector<Vector<double>>>> point_values;
-
-        /**
-         * Whether or not to interpret the evaluation points in the input file
-         * as natural coordinates or not.
-         */
-        bool use_natural_coordinates;
     };
   }
 }
