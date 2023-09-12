@@ -43,6 +43,11 @@ namespace aspect
     {
       public:
         /**
+         * Constructor
+         */
+        VelocityResidualStatistics ();
+
+        /**
          * This function reads the specified input velocity ascii data files.
          */
         void initialize () override;
@@ -51,8 +56,8 @@ namespace aspect
          * This function returns the input data velocity at a point.
          * This function is called from execute() function.
          */
-        Tensor<1,dim>
-        get_data_velocity (const Point<dim> &p) const;
+        std::pair <Point<dim>, Tensor<1,dim>>
+        get_observed_data (const unsigned int p) const;
 
         /**
          * Evaluate the solution for some velocity residual statistics.
@@ -84,7 +89,7 @@ namespace aspect
         /**
          * Pointer to the structured data
          */
-        std::unique_ptr<Utilities::StructuredDataLookup<dim>> data_lookup;
+        std::unique_ptr<Utilities::StructuredDataLookup<1>> data_lookup;
 
         /**
          * Directory in which the input data files are present.
@@ -103,6 +108,43 @@ namespace aspect
          * parameter).
          */
         double scale_factor;
+
+         /**
+         * Set the time output was supposed to be written. In the simplest
+         * case, this is the previous last output time plus the interval, but
+         * in general we'd like to ensure that it is the largest supposed
+         * output time, which is smaller than the current time, to avoid
+         * falling behind with last_output_time and having to catch up once
+         * the time step becomes larger. This is done after every output.
+         */
+        void set_last_output_time (const double current_time);
+
+        /**
+         * Interval between the generation of output in seconds.
+         */
+        double output_interval;
+
+        /**
+         * A time (in seconds) the last output has been produced.
+         */
+        double last_output_time;
+
+       /**
+         * Consecutively counted number indicating the how-manyth time we will
+         * create output the next time we get to it.
+         */
+        unsigned int output_file_number;
+
+        /**
+         * The values of the solution at the evaluation points.
+         */
+        std::vector<std::pair<double, std::vector<Vector<double>>>> point_values;
+
+        /**
+         * Whether or not to interpret the evaluation points in the input file
+         * as natural coordinates or not.
+         */
+        bool use_natural_coordinates;
     };
   }
 }
