@@ -52,7 +52,7 @@ namespace aspect
       // The input ascii table contains one column that just represents points id.
       // The scale factor is set to 1 because the columns contain the observed point
       // coordinates and velocities, which we do not want to scale.
-      data_lookup = std::make_unique<Utilities::StructuredDataLookup<1>>(1.0);
+      data_lookup = std::make_unique<Utilities::StructuredDataLookup<1>>(2*dim, 1.0);
       data_lookup->load_file(data_directory + data_file_name, this->get_mpi_communicator());
     }
 
@@ -70,7 +70,7 @@ namespace aspect
       for (unsigned int d = 0; d < dim; ++d)
         {
           data_position[d] = data_lookup->get_data(point, d);
-          data_velocity[d] = data_lookup->get_data(point, d+3);
+          data_velocity[d] = data_lookup->get_data(point, d+dim);
         }
 
       // if (this->get_geometry_model().natural_coordinate_system() == Utilities::Coordinates::spherical)
@@ -112,7 +112,6 @@ namespace aspect
 
       const std::string file_prefix = "velocity-residual-" + Utilities::int_to_string (output_file_number, 5);
       const std::string filename = (this->get_output_directory()
-                                    + "output_velocity_residual/"
                                     + file_prefix);
 
       const unsigned int n_cols = data_lookup->get_interpolation_point_coordinates(0).size();
@@ -225,10 +224,9 @@ namespace aspect
 
                       f << (c != time_point.second[i].size()-1 ? ' ' : '\n');
                     }
+                    // have an empty line between points
+                  f << '\n';
                 }
-
-              // have an empty line between time steps
-              f << '\n';
             }
 
           AssertThrow (f, ExcMessage("Writing data to <" + filename +
@@ -287,7 +285,7 @@ namespace aspect
                              "located when ASPECT was compiled. This interpretation allows, "
                              "for example, to reference files located in the `data/' subdirectory "
                              "of ASPECT.");
-          prm.declare_entry ("Data file name", "box_2d_velocity.txt",
+          prm.declare_entry ("Data file name", "point_values_velocity.txt",
                              Patterns::Anything (),
                              "The file name of the input ascii velocity data. "
                              "The file is provided in the same format as described in "
