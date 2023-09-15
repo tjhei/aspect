@@ -41,8 +41,7 @@ namespace aspect
       // initialize this to a nonsensical value; set it to the actual time
       // the first time around we get to check it
       last_output_time (std::numeric_limits<double>::quiet_NaN()),
-      output_file_number (numbers::invalid_unsigned_int),
-      point_values (std::vector<std::pair<double, std::vector<Vector<double>>>>() )
+      output_file_number (numbers::invalid_unsigned_int)
     {}
 
     template <int dim>
@@ -73,15 +72,20 @@ namespace aspect
           data_velocity[d] = data_lookup->get_data(point, d+dim);
         }
 
-      // if (this->get_geometry_model().natural_coordinate_system() == Utilities::Coordinates::spherical)
-      //   {
-      //     const std::array<double,dim> cartesian_position = this->get_geometry_model().
-      //                                                       natural_to_cartesian_coordinates(data_position);
-      //   }
+      if (this->get_geometry_model().natural_coordinate_system() == Utilities::Coordinates::spherical ||
+          use_spherical_unit_vectors == true)
+        {
+          std::array<double,dim> internal_position;
 
-      // Since the solution is evaluated in cartesian system, convert the spherical velocities into
-      // cartesian
-      // 
+          for (unsigned int d = 0; d < dim; ++d)
+            internal_position[d] = data_position[d];
+
+          Point<dim> cartesian_position = this->get_geometry_model().
+                                          natural_to_cartesian_coordinates(internal_position);
+
+          data_position = cartesian_position;
+          data_velocity = Utilities::Coordinates::spherical_to_cartesian_vector(data_velocity, cartesian_position);
+        }
 
       return std::make_pair (data_position, data_velocity);
     }
@@ -102,6 +106,10 @@ namespace aspect
       if (this->get_time() < last_output_time + output_interval)
         return {"", ""};
 
+      // Add the rms residual in the statistics file.
+      const std::string units = (this->convert_output_to_years() == true) ? "m/year" : "m/s";
+      const double unit_scale_factor = (this->convert_output_to_years() == true) ? year_in_seconds : 1.0;
+
       // TODO: Modify here for inversion.
       const bool increase_file_number = (this->get_nonlinear_iteration() == 0) ||
                                         (!this->get_parameters().run_postprocessors_on_nonlinear_iterations);
@@ -114,18 +122,18 @@ namespace aspect
       const std::string filename = (this->get_output_directory()
                                     + file_prefix);
 
-      const unsigned int n_cols = data_lookup->get_interpolation_point_coordinates(0).size();
+      const unsigned int n_rows = data_lookup->get_interpolation_point_coordinates(0).size();
 
       // evaluate the solution at all of our evaluation points
       std::vector<Vector<double>>
-      current_point_values (n_cols, Vector<double> (this->introspection().n_components));
+      current_point_values (n_rows, Vector<double> (this->introspection().n_components));
 
       // velocity residual at the evaluation points
-      std::vector<Tensor<1,dim>> velocity_residual (n_cols);
+      std::vector<Tensor<1,dim>> velocity_residual (n_rows);
 
       double rms_velocity_residual = 0.;
 
-      for (unsigned int p=0; p<n_cols; ++p)
+      for (unsigned int p=0; p<n_rows; ++p)
         {
           // try to evaluate the solution at this point. in parallel, the point
           // will be on only one processor's owned cells, so the others are
@@ -171,62 +179,58 @@ namespace aspect
 
           // Normalize in cases where points are claimed by multiple processors
           for (unsigned int d=0; d<dim; ++d)
-            modeled_velocity_solution[d] = current_point_values[p][dim + d];
+            modeled_velocity_solution[d] = current_point_values[p][d];
 
-          velocity_residual[p] = modeled_velocity_solution - get_observed_data(p).second;
+          Tensor<1,dim> observed_velocity;
+          if (this->convert_output_to_years() == true)
+            observed_velocity = get_observed_data(p).second/year_in_seconds;
+
+          velocity_residual[p] = modeled_velocity_solution - observed_velocity;
 
           rms_velocity_residual += velocity_residual[p].norm();
         }
 
-      const double global_rms_velocity_residual = rms_velocity_residual/n_cols;
-
-      // finally push these point values all onto the list we keep
-      point_values.emplace_back (this->get_time(), current_point_values);
+      const double global_rms_velocity_residual = rms_velocity_residual/n_rows;
 
       if (Utilities::MPI::this_mpi_process(this->get_mpi_communicator()) == 0)
         {
 
           std::ofstream f (filename);
-          f << ("# <inversion_step> "
+          f << ("# <point_id> "
                 "<evaluation_point_x> "
                 "<evaluation_point_y> ")
             << (dim == 3 ? "<evaluation_point_z> " : "")
-            << ("<velocity_x> "
-                "<velocity_y> ")
-            << (dim == 3 ? "<velocity_z> " : "");
+            << ("<velocity_residual_x> "
+                "<velocity_residual_y> ")
+            << (dim == 3 ? "<velocity_residual_z> " : "");
 
           for (unsigned int c=0; c<this->n_compositional_fields(); ++c)
             f << " <" << this->introspection().name_for_compositional_index(c) << '>';
           f << '\n';
 
-          for (const auto &time_point : point_values)
+          for (unsigned int i=0; i<n_rows; ++i)
             {
-              Assert (time_point.second.size() == n_cols,
-                      ExcInternalError());
-              for (unsigned int i=0; i<n_cols; ++i)
+              f << /* time = */ i
+                << ' '
+                << /* evaluation point = */ get_observed_data(i).first << ' ';
+
+              for (unsigned int c=0; c<dim; ++c)
                 {
-                  f << /* time = */ time_point.first / (this->convert_output_to_years() ? year_in_seconds : 1.)
-                    << ' '
-                    << /* evaluation point = */ get_observed_data(i).first << ' ';
+                  // output a data element. internally, we store all point
+                  // values in the same format in which they were computed,
+                  // but we convert velocities to meters per year if so
+                  // requested
+                  if ((this->introspection().component_masks.velocities[c] == false)
+                      ||
+                      (this->convert_output_to_years() == false))
+                    f << velocity_residual[i][c];
+                  else
+                    f << velocity_residual[i][c] * year_in_seconds;
 
-                  for (unsigned int c=0; c<dim; ++c)
-                    {
-                      // output a data element. internally, we store all point
-                      // values in the same format in which they were computed,
-                      // but we convert velocities to meters per year if so
-                      // requested
-                      if ((this->introspection().component_masks.velocities[c] == false)
-                          ||
-                          (this->convert_output_to_years() == false))
-                        f << time_point.second[i][c];
-                      else
-                        f << time_point.second[i][c] * year_in_seconds;
-
-                      f << (c != time_point.second[i].size()-1 ? ' ' : '\n');
-                    }
-                    // have an empty line between points
-                  f << '\n';
+                  f << ' ';
                 }
+              // have an empty line between points
+              f << '\n';
             }
 
           AssertThrow (f, ExcMessage("Writing data to <" + filename +
@@ -236,10 +240,6 @@ namespace aspect
 
       // return what should be printed to the screen. note that we had
       // just incremented the number, so use the previous value
-
-      // Add the rms residual in the statistics file.
-      const std::string units = (this->convert_output_to_years() == true) ? "m/year" : "m/s";
-      const double unit_scale_factor = (this->convert_output_to_years() == true) ? year_in_seconds : 1.0;
 
       const std::vector<std::string> column_names = {"RMS velocity residual  (" + units + ")"};
 
@@ -254,13 +254,8 @@ namespace aspect
           statistics.set_scientific (column, true);
         }
 
-      std::ostringstream screen_text;
-      screen_text.precision(3);
-      screen_text << global_rms_velocity_residual *unit_scale_factor
-                  << ' ' << units << ", ";
-
       return std::make_pair (std::string ("Velocity residual file and RMS:"),
-                             filename + " " + Utilities::to_string(global_rms_velocity_residual));
+                             filename + " " + Utilities::to_string(global_rms_velocity_residual * unit_scale_factor));
     }
 
 
@@ -290,13 +285,6 @@ namespace aspect
                              "The file name of the input ascii velocity data. "
                              "The file is provided in the same format as described in "
                              " 'ascii data' initial composition plugin." );
-          prm.declare_entry ("Scale factor", "1.",
-                             Patterns::Double (),
-                             "Scalar factor, which is applied to the model data. "
-                             "You might want to use this to scale the input to a "
-                             "reference model. Another way to use this factor is to "
-                             "convert units of the input files. For instance, if you "
-                             "provide velocities in cm/year set this factor to 0.01.");
           prm.declare_entry ("Use spherical unit vectors", "false",
                              Patterns::Bool (),
                              "Specify velocity as r, phi, and theta components "
@@ -324,7 +312,6 @@ namespace aspect
           // as a #define
           data_directory = Utilities::expand_ASPECT_SOURCE_DIR(prm.get ("Data directory"));
           data_file_name    = prm.get ("Data file name");
-          scale_factor      = 1.0; // prm.get_double ("Scale factor");
 
           use_spherical_unit_vectors = prm.get_bool("Use spherical unit vectors");
 

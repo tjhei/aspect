@@ -102,14 +102,6 @@ namespace aspect
         std::string data_file_name;
 
         /**
-         * Scale the input data by a scalar factor. Can be used to transform
-         * the unit of the data (if they are not specified in SI units (m/s or
-         * m/yr depending on the "Use years in output instead of seconds"
-         * parameter).
-         */
-        double scale_factor;
-
-        /**
          * Interval between the generation of output in seconds.
          */
         double output_interval;
@@ -124,11 +116,6 @@ namespace aspect
           * create output the next time we get to it.
           */
         unsigned int output_file_number;
-
-        /**
-         * The values of the solution at the evaluation points.
-         */
-        std::vector<std::pair<double, std::vector<Vector<double>>>> point_values;
     };
   }
 }
