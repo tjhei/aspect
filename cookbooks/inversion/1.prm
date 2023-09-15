@@ -26,14 +26,13 @@ subsection Mesh refinement
 end
 
 subsection Postprocess
-  set List of postprocessors = visualization, boundary velocity residual statistics
+  set List of postprocessors = visualization, velocity residual statistics
   subsection Visualization
     set Output format = vtu
     set Interpolate output = false
-    set List of output variables = adiabat, named additional outputs, boundary velocity residual
+    set List of output variables = adiabat, named additional outputs #, boundary velocity residual
   end
-  subsection Boundary velocity residual statistics
-    set Use ascii data = true
+  subsection Velocity residual statistics
     set Data directory = ./
     set Data file name = observed_vel.txt
   end
