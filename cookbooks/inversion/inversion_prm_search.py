@@ -12,20 +12,25 @@ def send(process, message):
     process.stdin.write((message+"\n").encode())
     process.stdin.flush()
     
-def receive(process, rms_residual):
+def receive(process):
     line = process.stdout.readline().decode()
     line = line[:-1] # strip endline
     print("|", line)
 
-    if line.startswith("     Velocity"):
-        word = line.split()
-        rms_residual.append(float(word[-1]))
-
     return line
 
-def wait_for_prompt(process, rms):
+def get_residual(process):
+    value = 0.
     while True:
-        line = receive(process, rms)
+        line = receive(process)
+        if line.startswith("     Velocity"):
+            word = line.split()
+            value = float(word[-1])
+            return value
+
+def wait_for_prompt(process):
+    while True:
+        line = receive(process)
         if line=="?":
             return
 
@@ -54,14 +59,17 @@ rms_residual = []
 def run_parameter_search ():
 
     for i in range (len(test_thickness_values)):
+        wait_for_prompt(process)
         create_temp_wb_file('simple.wb', test_thickness_values[i], "195e3")
     
         send(process, "wb temp.wb")
-        wait_for_prompt(process, rms_residual)
+        wait_for_prompt(process)
         
         send(process, "continue")
-        wait_for_prompt(process, rms_residual)
-        line = receive(process, rms_residual)
+        residual = get_residual(process)
+        rms_residual.append(residual)
+
+        
 
 run_parameter_search()
     
