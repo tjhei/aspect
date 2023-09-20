@@ -208,6 +208,8 @@ namespace aspect
             f << " <" << this->introspection().name_for_compositional_index(c) << '>';
           f << '\n';
 
+          f << "# POINTS: " << n_rows << '\n';
+
           for (unsigned int i=0; i<n_rows; ++i)
             {
               f << /* time = */ i
