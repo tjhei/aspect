@@ -41,6 +41,7 @@ namespace aspect
 
       double dof_handler_mem = this->get_dof_handler().memory_consumption();
       double constraints_mem = this->get_current_constraints().memory_consumption();
+#if false      
       if (this->is_stokes_matrix_free())
         {
           dof_handler_mem += this->get_stokes_matrix_free().get_dof_handler_v().memory_consumption()
@@ -51,11 +52,12 @@ namespace aspect
           constraints_mem += this->get_stokes_matrix_free().get_constraints_v().memory_consumption()
                              + this->get_stokes_matrix_free().get_constraints_p().memory_consumption();
         }
+#endif        
       statistics.add_value ("DoFHandler memory consumption (MB) ", dof_handler_mem/mb);
       statistics.add_value ("AffineConstraints<double> memory consumption (MB) ", constraints_mem/mb);
 
       statistics.add_value ("Solution vector memory consumption (MB) ", this->get_solution().memory_consumption()/mb);
-
+#if false
       if (this->is_stokes_matrix_free())
         {
           const double mg_transfer_mem = this->get_stokes_matrix_free().get_mg_transfer_A().memory_consumption()
@@ -65,7 +67,7 @@ namespace aspect
           const double cell_data_mem = this->get_stokes_matrix_free().get_cell_data_memory_consumption();
           statistics.add_value ("Matrix-free cell data memory consumption (MB) ", cell_data_mem/mb);
         }
-
+#endif
       if (output_vmpeak)
         {
           // allow disabling of the output because this is not stable in automated tests:

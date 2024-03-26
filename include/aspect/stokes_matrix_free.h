@@ -265,6 +265,12 @@ namespace aspect
          */
         MassMatrixOperator ();
 
+        void
+        reinit(const Mapping<dim>              &mapping,
+               const DoFHandler<dim>           &dof_handler,
+               const DoFHandler<dim>           &dof_handler_other,
+               const AffineConstraints<number> &constraints);        
+
         /**
          * Reset the object.
          */
@@ -281,6 +287,12 @@ namespace aspect
          * recover the diagonal.
          */
         void compute_diagonal () override;
+
+        void cell_operation(FEEvaluation<dim,
+                            degree_p,
+                            degree_p+2,
+                            1,
+                            number> &pressure) const;        
 
       private:
 
@@ -328,6 +340,13 @@ namespace aspect
          * Constructor
          */
         ABlockOperator ();
+
+        void
+        reinit(const Mapping<dim>              &mapping,
+               const DoFHandler<dim>           &dof_handler,
+               const DoFHandler<dim>           &dof_handler_other,
+               const AffineConstraints<number> &constraints);
+
 
         /**
          * Reset the operator.
@@ -656,6 +675,11 @@ namespace aspect
       DoFHandler<dim> dof_handler_p;
       DoFHandler<dim> dof_handler_projection;
 
+      std::vector<std::shared_ptr<const Triangulation<dim, dim>>> trias;
+      MGLevelObject<DoFHandler<dim>> dofhandlers_v;
+      MGLevelObject<DoFHandler<dim>> dofhandlers_p;
+      MGLevelObject<DoFHandler<dim>> dofhandlers_projection;
+
       FESystem<dim> fe_v;
       FESystem<dim> fe_p;
       FESystem<dim> fe_projection;
@@ -681,8 +705,8 @@ namespace aspect
       ABlockMatrixType A_block_matrix;
       SchurComplementMatrixType Schur_complement_block_matrix;
 
-      AffineConstraints<double> constraints_v;
-      AffineConstraints<double> constraints_p;
+      MGLevelObject<AffineConstraints<double>> constraints_v;
+      MGLevelObject<AffineConstraints<double>> constraints_p;
 
       MGLevelObject<GMGABlockMatrixType> mg_matrices_A_block;
       MGLevelObject<GMGSchurComplementMatrixType> mg_matrices_Schur_complement;
@@ -691,8 +715,14 @@ namespace aspect
       MGConstrainedDoFs mg_constrained_dofs_Schur_complement;
       MGConstrainedDoFs mg_constrained_dofs_projection;
 
-      MGTransferMF<dim,GMGNumberType> mg_transfer_A_block;
-      MGTransferMF<dim,GMGNumberType> mg_transfer_Schur_complement;
+      // MGTransferMF<dim,GMGNumberType> mg_transfer_A_block;
+      // MGTransferMF<dim,GMGNumberType> mg_transfer_Schur_complement;
+
+      std::unique_ptr<MGTransferGlobalCoarsening<dim,dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>> mg_transfer_A_block;
+      std::unique_ptr<MGTransferGlobalCoarsening<dim,dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>> mg_transfer_Schur_complement;
+
+      unsigned int min_level;
+      unsigned int max_level;      
 
       std::vector<std::shared_ptr<MatrixFree<dim,double>>> matrix_free_objects;
   };
