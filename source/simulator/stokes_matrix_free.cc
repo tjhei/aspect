@@ -2660,11 +2660,9 @@ template <int dim, int degree_p, typename number>
 
     // Build MG transfer
     using transfer_t = MGTransferGlobalCoarsening<dim, dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>;
+    MGLevelObject<MGTwoLevelTransfer<dim, dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>>
+    transfers(min_level, max_level);
     {
-      MGLevelObject<
-      MGTwoLevelTransfer<dim, dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>>
-      transfers(min_level, max_level);
-
       for (unsigned int l = min_level; l < max_level; ++l)
         transfers[l + 1].reinit(dofhandlers_v[l + 1],
                                 dofhandlers_v[l],
