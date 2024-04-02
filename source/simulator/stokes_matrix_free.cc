@@ -660,7 +660,7 @@ namespace aspect
 
 
 
-template <int dim, int degree_p, typename number>
+  template <int dim, int degree_p, typename number>
   void
   MatrixFreeStokesOperators::MassMatrixOperator<dim,degree_p,number>
   ::cell_operation(FEEvaluation<dim,
@@ -1367,7 +1367,7 @@ template <int dim, int degree_p, typename number>
     // Project the active level viscosity vector to multilevel vector representations
     // using MG transfer objects. This transfer is based on the same linear operator used to
     // transfer data inside a v-cycle.
-#if false    
+#if false
     MGTransferMF<dim,GMGNumberType> transfer;
 
     transfer.build(dof_handler_projection);
@@ -1980,7 +1980,7 @@ template <int dim, int degree_p, typename number>
                                *mg_transfer_A_block,
                                mg_smoother_A,
                                mg_smoother_A);
-#if false                               
+#if false
     mg_A.set_edge_matrices(mg_interface_A, mg_interface_A);
 #endif
     // Schur complement matrix GMG
@@ -1989,7 +1989,7 @@ template <int dim, int degree_p, typename number>
                                    *mg_transfer_Schur_complement,
                                    mg_smoother_Schur,
                                    mg_smoother_Schur);
-#if false                                   
+#if false
     mg_Schur.set_edge_matrices(mg_interface_Schur, mg_interface_Schur);
 #endif
     // GMG Preconditioner for ABlock and Schur complement
@@ -2204,21 +2204,21 @@ template <int dim, int degree_p, typename number>
         };
 
         // stokes vmult
-        if(false)
-        {
-          dealii::LinearAlgebra::distributed::BlockVector<double> tmp_dst = solution_copy;
-          dealii::LinearAlgebra::distributed::BlockVector<double> tmp_src = rhs_copy;
-          time_this("stokes_vmult", 10,
-                    [&] ()
+        if (false)
           {
-            stokes_matrix.vmult(tmp_dst, tmp_src);
-          },
-          [&] ()
-          {
-            tmp_src = tmp_dst;
+            dealii::LinearAlgebra::distributed::BlockVector<double> tmp_dst = solution_copy;
+            dealii::LinearAlgebra::distributed::BlockVector<double> tmp_src = rhs_copy;
+            time_this("stokes_vmult", 10,
+                      [&] ()
+            {
+              stokes_matrix.vmult(tmp_dst, tmp_src);
+            },
+            [&] ()
+            {
+              tmp_src = tmp_dst;
+            }
+                     );
           }
-                   );
-        }
 
         // stokes preconditioner
         {
@@ -2266,52 +2266,52 @@ template <int dim, int degree_p, typename number>
                    );
         }
         // Solve
-        if(false)
-        {
-          // hard-code the number of iterations here to always do cheap iterations
-          SolverControl solver_control_cheap (1000, solver_tolerance, true);
-
-          dealii::LinearAlgebra::distributed::BlockVector<double> tmp_dst = solution_copy;
-          dealii::LinearAlgebra::distributed::BlockVector<double> tmp_src = rhs_copy;
-          time_this("Stokes_solve_cheap_idr", 1,
-                    [&]
+        if (false)
           {
-            SolverIDR<dealii::LinearAlgebra::distributed::BlockVector<double>>
-            solver(solver_control_cheap, mem,
-            SolverIDR<dealii::LinearAlgebra::distributed::BlockVector<double>>::
-            AdditionalData(sim.parameters.idr_s_parameter));
+            // hard-code the number of iterations here to always do cheap iterations
+            SolverControl solver_control_cheap (1000, solver_tolerance, true);
 
-            solver.solve (stokes_matrix,
-            tmp_dst,
-            tmp_src,
-            preconditioner_cheap);
-          },
-          [&] ()
-          {
-            tmp_dst = solution_copy;
+            dealii::LinearAlgebra::distributed::BlockVector<double> tmp_dst = solution_copy;
+            dealii::LinearAlgebra::distributed::BlockVector<double> tmp_src = rhs_copy;
+            time_this("Stokes_solve_cheap_idr", 1,
+                      [&]
+            {
+              SolverIDR<dealii::LinearAlgebra::distributed::BlockVector<double>>
+              solver(solver_control_cheap, mem,
+              SolverIDR<dealii::LinearAlgebra::distributed::BlockVector<double>>::
+              AdditionalData(sim.parameters.idr_s_parameter));
+
+              solver.solve (stokes_matrix,
+              tmp_dst,
+              tmp_src,
+              preconditioner_cheap);
+            },
+            [&] ()
+            {
+              tmp_dst = solution_copy;
+            }
+                     );
+
+            time_this("Stokes_solve_cheap_gmres", 1,
+                      [&]
+            {
+              SolverGMRES<dealii::LinearAlgebra::distributed::BlockVector<double>>
+              solver(solver_control_cheap, mem,
+              SolverGMRES<dealii::LinearAlgebra::distributed::BlockVector<double>>::
+              AdditionalData(sim.parameters.stokes_gmres_restart_length+2,
+              true));
+
+              solver.solve (stokes_matrix,
+              tmp_dst,
+              tmp_src,
+              preconditioner_cheap);
+            },
+            [&] ()
+            {
+              tmp_dst = solution_copy;
+            }
+                     );
           }
-                   );
-
-          time_this("Stokes_solve_cheap_gmres", 1,
-                    [&]
-          {
-            SolverGMRES<dealii::LinearAlgebra::distributed::BlockVector<double>>
-            solver(solver_control_cheap, mem,
-            SolverGMRES<dealii::LinearAlgebra::distributed::BlockVector<double>>::
-            AdditionalData(sim.parameters.stokes_gmres_restart_length+2,
-            true));
-
-            solver.solve (stokes_matrix,
-            tmp_dst,
-            tmp_src,
-            preconditioner_cheap);
-          },
-          [&] ()
-          {
-            tmp_dst = solution_copy;
-          }
-                   );
-        }
       }
 
     Timer timer(sim.mpi_communicator);

@@ -269,7 +269,7 @@ namespace aspect
         reinit(const Mapping<dim>              &mapping,
                const DoFHandler<dim>           &dof_handler,
                const DoFHandler<dim>           &dof_handler_other,
-               const AffineConstraints<number> &constraints);        
+               const AffineConstraints<number> &constraints);
 
         /**
          * Reset the object.
@@ -292,7 +292,7 @@ namespace aspect
                             degree_p,
                             degree_p+2,
                             1,
-                            number> &pressure) const;        
+                            number> &pressure) const;
 
       private:
 
@@ -722,7 +722,7 @@ namespace aspect
       std::unique_ptr<MGTransferGlobalCoarsening<dim,dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>> mg_transfer_Schur_complement;
 
       unsigned int min_level;
-      unsigned int max_level;      
+      unsigned int max_level;
 
       std::vector<std::shared_ptr<MatrixFree<dim,double>>> matrix_free_objects;
   };
