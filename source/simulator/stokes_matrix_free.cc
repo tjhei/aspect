@@ -2659,37 +2659,39 @@ template <int dim, int degree_p, typename number>
     }
 
     // Build MG transfer
-    using transfer_t = MGTransferGlobalCoarsening<dim, dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>;
+using transfer_t = MGTransferGlobalCoarsening<dim, dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>;
     {
-      MGLevelObject<
-      MGTwoLevelTransfer<dim, dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>>
-      transfers(min_level, max_level);
+      // MGLevelObject<
+      // MGTwoLevelTransfer<dim, dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>>
+      // transfers(min_level, max_level);
 
+      transfers_v.resize(min_level, max_level);
       for (unsigned int l = min_level; l < max_level; ++l)
-        transfers[l + 1].reinit(dofhandlers_v[l + 1],
+        transfers_v[l + 1].reinit(dofhandlers_v[l + 1],
                                 dofhandlers_v[l],
                                 constraints_v[l + 1],
                                 constraints_v[l]);
 
 
-      mg_transfer_A_block = std::make_unique<transfer_t>(transfers, [&](const auto l, auto &vec)
+      mg_transfer_A_block = std::make_unique<transfer_t>(transfers_v, [&](const auto l, auto &vec)
       {
         mg_matrices_A_block[l].initialize_dof_vector(vec);
       });
 
     }
     {
-      MGLevelObject<
-      MGTwoLevelTransfer<dim, dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>>
-      transfers(min_level, max_level);
+      // MGLevelObject<
+      // MGTwoLevelTransfer<dim, dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>>
+      // transfers(min_level, max_level);
+      transfers_p.resize(min_level, max_level);
 
       for (unsigned int l = min_level; l < max_level; ++l)
-        transfers[l + 1].reinit(dofhandlers_p[l + 1],
+        transfers_p[l + 1].reinit(dofhandlers_p[l + 1],
                                 dofhandlers_p[l],
                                 constraints_p[l + 1],
                                 constraints_p[l]);
 
-      mg_transfer_Schur_complement  = std::make_unique<transfer_t>(transfers, [&](const auto l, auto &vec)
+      mg_transfer_Schur_complement  = std::make_unique<transfer_t>(transfers_p, [&](const auto l, auto &vec)
       {
         mg_matrices_Schur_complement[l].initialize_dof_vector(vec);
       });

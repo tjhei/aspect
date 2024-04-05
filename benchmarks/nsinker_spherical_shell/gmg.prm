@@ -47,7 +47,7 @@ subsection Material model
     set Number of sinkers = 5
     set Dynamic viscosity ratio = 1e2
     set Sinker density = 10
-    set Transition zone viscosity jump = 100
+    set Transition zone viscosity jump = 1
   end
 end
 

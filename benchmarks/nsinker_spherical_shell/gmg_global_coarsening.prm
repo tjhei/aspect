@@ -1,12 +1,12 @@
 # This is the "Spherical Shell NSinker" benchmark
 
 set Additional shared libraries            = ./libnsinker_spherical_shell.so
-
 set Dimension                              = 3
 set End time                               = 0
 set Pressure normalization                 = volume
 set Nonlinear solver scheme                = no Advection, single Stokes
 set Use years in output instead of seconds = false
+set Output directory = output-gmg-global-Coarsening
 
 set Timing output frequency                    = 0
 
@@ -25,38 +25,34 @@ subsection Solver parameters
   end
 end
 
-
 subsection Discretization
   set Use locally conservative discretization = false
 end
 
-
 subsection Geometry model
   set Model name = spherical shell
+  
   subsection Spherical shell
     set Inner radius  = 0.54
     set Outer radius  = 1.0
   end
 end
 
-
 subsection Boundary velocity model
   set Zero velocity boundary indicators = top,bottom
 end
-
 
 subsection Material model
   set Model name = nsinker
   set Material averaging = harmonic average
 
   subsection NSinker
-    set Number of sinkers = 7
+    set Number of sinkers = 5
     set Dynamic viscosity ratio = 1e2
     set Sinker density = 10
     set Transition zone viscosity jump = 1
   end
 end
-
 
 subsection Gravity model
   set Model name = radial constant
@@ -66,11 +62,9 @@ subsection Gravity model
   end
 end
 
-
 subsection Initial temperature model
   set Model name = function
 end
-
 
 subsection Mesh refinement
   set Initial global refinement = 2
@@ -82,10 +76,9 @@ subsection Mesh refinement
   set Refinement fraction       = 0.147
 end
 
-
-
 subsection Postprocess
-  set List of postprocessors = memory statistics
+  set List of postprocessors = memory statistics, visualization
+
   subsection Memory statistics
     set Output peak virtual memory (VmPeak) = true
   end
@@ -94,6 +87,3 @@ subsection Postprocess
     set List of output variables = viscosity
   end
 end
-
-
-set Output directory = output-gmg-global-Coarsening
