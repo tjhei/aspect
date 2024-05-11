@@ -675,10 +675,10 @@ namespace aspect
       DoFHandler<dim> dof_handler_p;
       DoFHandler<dim> dof_handler_projection;
 
-      std::vector<std::shared_ptr<const Triangulation<dim, dim>>> trias;
-      MGLevelObject<DoFHandler<dim>> dofhandlers_v;
-      MGLevelObject<DoFHandler<dim>> dofhandlers_p;
-      MGLevelObject<DoFHandler<dim>> dofhandlers_projection;
+      // std::vector<std::shared_ptr<const Triangulation<dim, dim>>> trias;
+      // MGLevelObject<DoFHandler<dim>> dofhandlers_v;
+      // MGLevelObject<DoFHandler<dim>> dofhandlers_p;
+      // MGLevelObject<DoFHandler<dim>> dofhandlers_projection;
 
       FESystem<dim> fe_v;
       FESystem<dim> fe_p;
@@ -718,17 +718,55 @@ namespace aspect
       // MGTransferMF<dim,GMGNumberType> mg_transfer_A_block;
       // MGTransferMF<dim,GMGNumberType> mg_transfer_Schur_complement;
 
-      std::unique_ptr<MGTransferGlobalCoarsening<dim,dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>> mg_transfer_A_block;
-      std::unique_ptr<MGTransferGlobalCoarsening<dim,dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>> mg_transfer_Schur_complement;
+      // std::unique_ptr<MGTransferGlobalCoarsening<dim,dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>> mg_transfer_A_block;
+      // std::unique_ptr<MGTransferGlobalCoarsening<dim,dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>> mg_transfer_Schur_complement;
 
       unsigned int min_level;
       unsigned int max_level;
 
-      MGLevelObject<MGTwoLevelTransfer<dim, dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>> transfers_v;
-      MGLevelObject<MGTwoLevelTransfer<dim, dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>> transfers_p;
+      // MGLevelObject<MGTwoLevelTransfer<dim, dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>> transfers_v;
+      // MGLevelObject<MGTwoLevelTransfer<dim, dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>> transfers_p;
 
 
       std::vector<std::shared_ptr<MatrixFree<dim,double>>> matrix_free_objects;
+
+      struct MGLevelContainer
+      {
+        std::vector<std::shared_ptr<const Triangulation<dim, dim>>> trias;
+        MGLevelObject<DoFHandler<dim>> dofhandlers_v;
+        MGLevelObject<DoFHandler<dim>> dofhandlers_p;
+        MGLevelObject<DoFHandler<dim>> dofhandlers_projection;
+        MGLevelObject<AffineConstraints<double>> constraints_v;
+        MGLevelObject<AffineConstraints<double>> constraints_p;
+        std::unique_ptr<MGTransferGlobalCoarsening<dim, dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>> mg_transfer_A_block;
+        std::unique_ptr<MGTransferGlobalCoarsening<dim, dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>> mg_transfer_Schur_complement;
+
+
+
+        MGLevelObject<MGTwoLevelTransfer<dim, dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>> transfers_v;
+        MGLevelObject<MGTwoLevelTransfer<dim, dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>> transfers_p;
+
+        void resize(const unsigned int min_level, const unsigned int max_level)
+        {
+          constraints_v.resize(min_level, max_level);
+          constraints_p.resize(min_level, max_level);
+          dofhandlers_v.resize(min_level, max_level);
+          dofhandlers_p.resize(min_level, max_level);
+          dofhandlers_projection.resize(min_level, max_level);
+
+          transfers_p.resize(min_level, max_level);
+          transfers_v.resize(min_level, max_level);
+        }
+
+        // void reinit_mg_matrices(const Mapping<dim> &mapping,
+        //                         const unsigned int l)
+        // {
+        // mg_matrices_A_block[l].reinit(mapping, dofhandlers_v[l], dofhandlers_p[l], constraints_v[l]);
+        // mg_matrices_Schur_complement[l].reinit(mapping, dofhandlers_p[l], dofhandlers_v[l], constraints_p[l]);          
+        // }
+      } mg_coarsening_struct;
+
+      std::unique_ptr<struct MGLevelContainer> mg_coarsening_struct_ptr;
   };
 }
 

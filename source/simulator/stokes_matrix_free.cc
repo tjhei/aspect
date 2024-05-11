@@ -1192,7 +1192,7 @@ template <int dim, int degree_p, typename number>
   void StokesMatrixFreeHandlerImplementation<dim, velocity_degree>::evaluate_material_model ()
   {
     sim.pcout << "evaluate_material_model()" << std::endl;
-    const auto &dof_handler_projection = dofhandlers_projection[dofhandlers_projection.max_level()];
+    const auto &dof_handler_projection = mg_coarsening_struct.dofhandlers_projection[mg_coarsening_struct.dofhandlers_projection.max_level()];
 
     dealii::LinearAlgebra::distributed::Vector<double> active_viscosity_vector(dof_handler_projection.locally_owned_dofs(),
                                                                                sim.triangulation.get_communicator());
@@ -1384,7 +1384,7 @@ template <int dim, int degree_p, typename number>
     transfers(min_level, max_level);
 
     for (unsigned int l = min_level; l < max_level; ++l)
-      transfers[l + 1].reinit(dofhandlers_projection[l + 1], dofhandlers_projection[l]);
+      transfers[l + 1].reinit(mg_coarsening_struct.dofhandlers_projection[l + 1], mg_coarsening_struct.dofhandlers_projection[l]);
 
     Assert(dof_handler_projection.get_fe().degree == 0,
            ExcNotImplemented());
@@ -1398,7 +1398,7 @@ template <int dim, int degree_p, typename number>
         AffineConstraints<double> cs;
         std::shared_ptr<MatrixFree<dim,double>>
         mf(new MatrixFree<dim,double>());
-        mf->reinit(*sim.mapping, dofhandlers_projection[l], cs, QGauss<1>(degree+1));
+        mf->reinit(*sim.mapping, mg_coarsening_struct.dofhandlers_projection[l], cs, QGauss<1>(degree+1));
         temp_ops[l].initialize(mf);
       }
 
@@ -1446,10 +1446,10 @@ template <int dim, int degree_p, typename number>
               {
                 typename DoFHandler<dim>::active_cell_iterator FEQ_cell =
                   mg_matrices_A_block[level].get_matrix_free()->get_cell_iterator(cell,i);
-                typename DoFHandler<dim>::active_cell_iterator DG_cell(&(dofhandlers_projection[level].get_triangulation()),
+                typename DoFHandler<dim>::active_cell_iterator DG_cell(&(mg_coarsening_struct.dofhandlers_projection[level].get_triangulation()),
                                                                        FEQ_cell->level(),
                                                                        FEQ_cell->index(),
-                                                                       &dofhandlers_projection[level]);
+                                                                       &mg_coarsening_struct.dofhandlers_projection[level]);
                 DG_cell->get_active_or_mg_dof_indices(local_dof_indices);
 
                 // For DGQ0, we simply use the viscosity at the single
@@ -1869,7 +1869,7 @@ template <int dim, int degree_p, typename number>
               smoother_data_A[0].eig_cg_n_iterations = 100;
             }
           smoother_data_A[level].preconditioner = mg_matrices_A_block[level].get_matrix_diagonal_inverse();
-          smoother_data_A[level].constraints.copy_from(constraints_v[level]);
+          smoother_data_A[level].constraints.copy_from(mg_coarsening_struct.constraints_v[level]);
         }
       mg_smoother_A.initialize(mg_matrices_A_block, smoother_data_A);
     }
@@ -1898,7 +1898,7 @@ template <int dim, int degree_p, typename number>
               smoother_data_Schur[0].eig_cg_n_iterations = 100;
             }
           smoother_data_Schur[level].preconditioner = mg_matrices_Schur_complement[level].get_matrix_diagonal_inverse();
-          smoother_data_Schur[level].constraints.copy_from(constraints_p[level]);
+          smoother_data_Schur[level].constraints.copy_from(mg_coarsening_struct.constraints_p[level]);
         }
       mg_smoother_Schur.initialize(mg_matrices_Schur_complement, smoother_data_Schur);
     }
@@ -1977,7 +1977,7 @@ template <int dim, int degree_p, typename number>
     // ABlock GMG
     Multigrid<VectorType> mg_A(mg_matrix_A,
                                mg_coarse_A,
-                               *mg_transfer_A_block,
+                               *mg_coarsening_struct.mg_transfer_A_block,
                                mg_smoother_A,
                                mg_smoother_A);
 #if false                               
@@ -1986,16 +1986,16 @@ template <int dim, int degree_p, typename number>
     // Schur complement matrix GMG
     Multigrid<VectorType> mg_Schur(mg_matrix_Schur,
                                    mg_coarse_Schur,
-                                   *mg_transfer_Schur_complement,
+                                   *mg_coarsening_struct.mg_transfer_Schur_complement,
                                    mg_smoother_Schur,
                                    mg_smoother_Schur);
 #if false                                   
     mg_Schur.set_edge_matrices(mg_interface_Schur, mg_interface_Schur);
 #endif
     // GMG Preconditioner for ABlock and Schur complement
-    using GMGPreconditioner = PreconditionMG<dim, VectorType,typename std::remove_reference<decltype(*mg_transfer_A_block)>::type>;
-    GMGPreconditioner prec_A(dofhandlers_v[dofhandlers_v.max_level()], mg_A, *mg_transfer_A_block);
-    GMGPreconditioner prec_Schur(dofhandlers_p[dofhandlers_p.max_level()], mg_Schur, *mg_transfer_Schur_complement);
+    using GMGPreconditioner = PreconditionMG<dim, VectorType,typename std::remove_reference<decltype(*mg_coarsening_struct.mg_transfer_A_block)>::type>;
+    GMGPreconditioner prec_A(mg_coarsening_struct.dofhandlers_v[mg_coarsening_struct.dofhandlers_v.max_level()], mg_A, *mg_coarsening_struct.mg_transfer_A_block);
+    GMGPreconditioner prec_Schur(mg_coarsening_struct.dofhandlers_p[mg_coarsening_struct.dofhandlers_p.max_level()], mg_Schur, *mg_coarsening_struct.mg_transfer_Schur_complement);
 
 
     // Many parts of the solver depend on the block layout (velocity = 0,
@@ -2510,31 +2510,34 @@ template <int dim, int degree_p, typename number>
 
     const Mapping<dim> &mapping = *sim.mapping;
 
-    trias = dealii::MGTransferGlobalCoarseningTools::create_geometric_coarsening_sequence (sim.triangulation);
+    // trias = dealii::MGTransferGlobalCoarseningTools::create_geometric_coarsening_sequence (sim.triangulation);
+    mg_coarsening_struct.trias = dealii::MGTransferGlobalCoarseningTools::create_geometric_coarsening_sequence (sim.triangulation);
 
     min_level = 0;
-    max_level = trias.size() - 1;
+    max_level = mg_coarsening_struct.trias.size() - 1;
 
     sim.pcout << "GC GMG: levels " << min_level << " .. " << max_level
               << std::endl;
 
-    constraints_v.resize(min_level, max_level);
-    constraints_p.resize(min_level, max_level);
-    dofhandlers_v.resize(min_level, max_level);
-    dofhandlers_p.resize(min_level, max_level);
-    dofhandlers_projection.resize(min_level, max_level);
+    // constraints_v.resize(min_level, max_level);
+    // constraints_p.resize(min_level, max_level);
+    // dofhandlers_v.resize(min_level, max_level);
+    // dofhandlers_p.resize(min_level, max_level);
+    // dofhandlers_projection.resize(min_level, max_level);
 
     mg_matrices_A_block.resize(min_level, max_level);
     mg_matrices_Schur_complement.resize(min_level, max_level);
 
+    mg_coarsening_struct.resize(min_level, max_level);
+
     for (auto l = min_level; l <= max_level; ++l)
       {
-        const auto &tria = *trias[l];
+        const auto &tria = *mg_coarsening_struct.trias[l];
 
         // velocity:
         {
-          auto &dof_handler = dofhandlers_v[l];
-          auto &constraint  = constraints_v[l];
+          auto &dof_handler = mg_coarsening_struct.dofhandlers_v[l];
+          auto &constraint  = mg_coarsening_struct.constraints_v[l];
 
           dof_handler.reinit(tria);
           dof_handler.distribute_dofs(fe_v);
@@ -2582,8 +2585,8 @@ template <int dim, int degree_p, typename number>
 
         // pressure:
         {
-          auto &dof_handler = dofhandlers_p[l];
-          auto &constraint  = constraints_p[l];
+          auto &dof_handler = mg_coarsening_struct.dofhandlers_p[l];
+          auto &constraint  = mg_coarsening_struct.constraints_p[l];
           dof_handler.reinit(tria);
           dof_handler.distribute_dofs(fe_p);
 
@@ -2597,12 +2600,13 @@ template <int dim, int degree_p, typename number>
 
         }
 
-        mg_matrices_A_block[l].reinit(mapping, dofhandlers_v[l], dofhandlers_p[l], constraints_v[l]);
-        mg_matrices_Schur_complement[l].reinit(mapping, dofhandlers_p[l], dofhandlers_v[l], constraints_p[l]);
+        mg_matrices_A_block[l].reinit(mapping, mg_coarsening_struct.dofhandlers_v[l], mg_coarsening_struct.dofhandlers_p[l], mg_coarsening_struct.constraints_v[l]);
+        mg_matrices_Schur_complement[l].reinit(mapping, mg_coarsening_struct.dofhandlers_p[l], mg_coarsening_struct.dofhandlers_v[l], mg_coarsening_struct.constraints_p[l]);
+        // mg_coarsening_struct.reinit_mg_matrices(mapping, l);
 
         // Coefficient transfer objects:
         {
-          auto &dof_handler_projection = dofhandlers_projection[l];
+          auto &dof_handler_projection = mg_coarsening_struct.dofhandlers_projection[l];
 
           dof_handler_projection.reinit(tria);
           dof_handler_projection.distribute_dofs(fe_projection);
@@ -2631,8 +2635,10 @@ template <int dim, int degree_p, typename number>
            update_normal_vectors |
            update_JxW_values);
 
-      std::vector<const DoFHandler<dim>*> stokes_dofs {&dofhandlers_v[max_level], &dofhandlers_p[max_level]};
-      std::vector<const AffineConstraints<double> *> stokes_constraints {&constraints_v[max_level], &constraints_p[max_level]};
+      std::vector<const DoFHandler<dim>*> stokes_dofs {&(mg_coarsening_struct.dofhandlers_v[max_level]), 
+      &(mg_coarsening_struct.dofhandlers_p[max_level])};
+      std::vector<const AffineConstraints<double> *> stokes_constraints {&mg_coarsening_struct.constraints_v[max_level], 
+      &mg_coarsening_struct.constraints_p[max_level]};
 
       matrix_free->reinit(*sim.mapping, stokes_dofs, stokes_constraints,
                           QGauss<1>(sim.parameters.stokes_velocity_degree+1), additional_data);
@@ -2665,15 +2671,15 @@ using transfer_t = MGTransferGlobalCoarsening<dim, dealii::LinearAlgebra::distri
       // MGTwoLevelTransfer<dim, dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>>
       // transfers(min_level, max_level);
 
-      transfers_v.resize(min_level, max_level);
+      // mg_coarsening_struct.transfers_v.resize(min_level, max_level);
       for (unsigned int l = min_level; l < max_level; ++l)
-        transfers_v[l + 1].reinit(dofhandlers_v[l + 1],
-                                dofhandlers_v[l],
-                                constraints_v[l + 1],
-                                constraints_v[l]);
+        mg_coarsening_struct.transfers_v[l + 1].reinit(mg_coarsening_struct.dofhandlers_v[l + 1],
+                                mg_coarsening_struct.dofhandlers_v[l],
+                                mg_coarsening_struct.constraints_v[l + 1],
+                                mg_coarsening_struct.constraints_v[l]);
 
 
-      mg_transfer_A_block = std::make_unique<transfer_t>(transfers_v, [&](const auto l, auto &vec)
+      mg_coarsening_struct.mg_transfer_A_block = std::make_unique<transfer_t>(mg_coarsening_struct.transfers_v, [&](const auto l, auto &vec)
       {
         mg_matrices_A_block[l].initialize_dof_vector(vec);
       });
@@ -2683,15 +2689,15 @@ using transfer_t = MGTransferGlobalCoarsening<dim, dealii::LinearAlgebra::distri
       // MGLevelObject<
       // MGTwoLevelTransfer<dim, dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>>
       // transfers(min_level, max_level);
-      transfers_p.resize(min_level, max_level);
+      // mg_coarsening_struct.transfers_p.resize(min_level, max_level);
 
       for (unsigned int l = min_level; l < max_level; ++l)
-        transfers_p[l + 1].reinit(dofhandlers_p[l + 1],
-                                dofhandlers_p[l],
-                                constraints_p[l + 1],
-                                constraints_p[l]);
+        mg_coarsening_struct.transfers_p[l + 1].reinit(mg_coarsening_struct.dofhandlers_p[l + 1],
+                                mg_coarsening_struct.dofhandlers_p[l],
+                                mg_coarsening_struct.constraints_p[l + 1],
+                                mg_coarsening_struct.constraints_p[l]);
 
-      mg_transfer_Schur_complement  = std::make_unique<transfer_t>(transfers_p, [&](const auto l, auto &vec)
+      mg_coarsening_struct.mg_transfer_Schur_complement  = std::make_unique<transfer_t>(mg_coarsening_struct.transfers_p, [&](const auto l, auto &vec)
       {
         mg_matrices_Schur_complement[l].initialize_dof_vector(vec);
       });
@@ -2718,7 +2724,7 @@ using transfer_t = MGTransferGlobalCoarsening<dim, dealii::LinearAlgebra::distri
   const DoFHandler<dim> &
   StokesMatrixFreeHandlerImplementation<dim, velocity_degree>::get_dof_handler_v () const
   {
-    return dofhandlers_v[dofhandlers_v.max_level()];
+    return mg_coarsening_struct.dofhandlers_v[mg_coarsening_struct.dofhandlers_v.max_level()];
   }
 
 
@@ -2727,7 +2733,7 @@ using transfer_t = MGTransferGlobalCoarsening<dim, dealii::LinearAlgebra::distri
   const DoFHandler<dim> &
   StokesMatrixFreeHandlerImplementation<dim, velocity_degree>::get_dof_handler_p () const
   {
-    return dofhandlers_p[dofhandlers_p.max_level()];
+    return mg_coarsening_struct.dofhandlers_p[mg_coarsening_struct.dofhandlers_p.max_level()];
   }
 
 
@@ -2747,7 +2753,7 @@ using transfer_t = MGTransferGlobalCoarsening<dim, dealii::LinearAlgebra::distri
   const AffineConstraints<double> &
   StokesMatrixFreeHandlerImplementation<dim, velocity_degree>::get_constraints_v() const
   {
-    return constraints_v[constraints_v.max_level()];
+    return mg_coarsening_struct.constraints_v[mg_coarsening_struct.constraints_v.max_level()];
   }
 
 
@@ -2756,7 +2762,7 @@ using transfer_t = MGTransferGlobalCoarsening<dim, dealii::LinearAlgebra::distri
   const AffineConstraints<double> &
   StokesMatrixFreeHandlerImplementation<dim, velocity_degree>::get_constraints_p() const
   {
-    return constraints_p[constraints_p.max_level()];
+    return mg_coarsening_struct.constraints_p[mg_coarsening_struct.constraints_p.max_level()];
   }
 
 
@@ -2765,6 +2771,7 @@ using transfer_t = MGTransferGlobalCoarsening<dim, dealii::LinearAlgebra::distri
   const MGTransferMF<dim,GMGNumberType> &
   StokesMatrixFreeHandlerImplementation<dim, velocity_degree>::get_mg_transfer_A() const
   {
+    AssertThrow(false, ExcNotImplemented());
     static MGTransferMatrixFree<dim,GMGNumberType> mg_transfer_A_block;
     return mg_transfer_A_block;
   }
