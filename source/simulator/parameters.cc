@@ -391,6 +391,13 @@ namespace aspect
                            "complement solver is used. The direct solver is only efficient "
                            "for small problems.");
 
+        prm.declare_entry ("Use weighted BFBT for Schur complement", "false",
+                           Patterns::Bool(),
+                           "If set to true, the Schur complement approximation in the Block preconditioner "
+                           "uses the weighted BFBT preconditioner, otherwise a weighted mass matrix will "
+                           "be used. The BFBT preconditioner is more expensive, but works better for large "
+                           "viscosity variations.");
+
         prm.declare_entry ("Krylov method for cheap solver steps", "GMRES",
                            Patterns::Selection(StokesKrylovType::pattern()),
                            "This is the Krylov method used to solve the Stokes system. Both options, GMRES "
