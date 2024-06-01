@@ -1276,6 +1276,7 @@ namespace aspect
       }
 
     system_preconditioner_matrix.reinit (sp);
+    lumped_mass_matrix.reinit(introspection.index_sets.stokes_partitioning);
   }
 
 

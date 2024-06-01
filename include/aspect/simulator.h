@@ -2079,6 +2079,7 @@ namespace aspect
        * solving.
        */
       LinearAlgebra::BlockSparseMatrix                          system_matrix;
+      LinearAlgebra::BlockVector                                lumped_mass_matrix;
 
       /**
        * An object that contains the entries of preconditioner

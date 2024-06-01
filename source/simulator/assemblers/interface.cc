@@ -53,11 +53,13 @@ namespace aspect
           grads_phi_u (stokes_dofs_per_cell, numbers::signaling_nan<SymmetricTensor<2,dim>>()),
           div_phi_u (stokes_dofs_per_cell, numbers::signaling_nan<double>()),
           phi_p (stokes_dofs_per_cell, numbers::signaling_nan<double>()),
+          phi_u(stokes_dofs_per_cell),
           phi_p_c (add_compaction_pressure ? stokes_dofs_per_cell : 0, numbers::signaling_nan<double>()),
           grad_phi_p (add_compaction_pressure ? stokes_dofs_per_cell : 0, numbers::signaling_nan<Tensor<1,dim>>()),
           material_model_inputs(quadrature.size(), n_compositional_fields),
           material_model_outputs(quadrature.size(), n_compositional_fields),
-          rebuild_stokes_matrix(rebuild_matrix)
+          rebuild_stokes_matrix(rebuild_matrix),
+          local_lumped_mass_matrix(stokes_dofs_per_cell)
         {}
 
 
@@ -78,11 +80,13 @@ namespace aspect
           grads_phi_u (scratch.grads_phi_u),
           div_phi_u (scratch.div_phi_u),
           phi_p (scratch.phi_p),
+          phi_u(scratch.phi_u),
           phi_p_c (scratch.phi_p_c),
           grad_phi_p(scratch.grad_phi_p),
           material_model_inputs(scratch.material_model_inputs),
           material_model_outputs(scratch.material_model_outputs),
-          rebuild_stokes_matrix(scratch.rebuild_stokes_matrix)
+          rebuild_stokes_matrix(scratch.rebuild_stokes_matrix),
+          local_lumped_mass_matrix(scratch.local_lumped_mass_matrix)
         {}
 
 
