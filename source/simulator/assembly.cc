@@ -332,6 +332,7 @@ namespace aspect
     current_constraints.distribute_local_to_global (data.local_matrix,
                                                     data.local_dof_indices,
                                                     system_preconditioner_matrix);
+    current_constraints.distribute_local_to_global(data.local_lumped_mass_matrix,data.local_dof_indices,lumped_mass_matrix);
   }
 
 

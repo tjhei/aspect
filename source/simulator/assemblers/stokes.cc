@@ -156,8 +156,8 @@ namespace aspect
                                                                 * scratch.grads_phi_u[j]))
                                                   + one_over_eta * pressure_scaling
                                                   * pressure_scaling
-                                                  * (scratch.phi_p[i]
-                                                     * scratch.phi_p[j]))
+                                                  * (scratch.grad_phi_p[i]
+                                                     * scratch.grad_phi_p[j]))
                                                  * JxW;
                     }
                 }
@@ -165,6 +165,26 @@ namespace aspect
 
             }
           else if(this->get_parameters().use_full_A_block_preconditioner && this->get_parameters().use_bfbt){
+            double sqrt_eta=sqrt(eta);
+
+            const unsigned int pressure_component_index = this->introspection().component_indices.pressure;
+              for (unsigned int i = 0; i < stokes_dofs_per_cell; ++i){
+
+                if (scratch.dof_component_indices[i] == pressure_component_index)
+                  for (unsigned int j = 0; j < stokes_dofs_per_cell; ++j){
+
+                    if (scratch.dof_component_indices[j] == pressure_component_index)
+                      {
+                        data.local_lumped_mass_matrix(i)+=sqrt_eta*scalar_product(scratch.phi_u[i],scratch.phi_u[j])*scratch.finite_element_values.JxW(q);
+
+                        data.local_matrix(i, j) += (one_over_eta * pressure_scaling
+                                                    * pressure_scaling
+                                                    * (scratch.phi_p[i]
+                                                       * scratch.phi_p[j]))
+                                                   * JxW;
+                      }
+                  }
+              }
             
           }
           else

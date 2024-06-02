@@ -13,14 +13,16 @@ set Nonlinear solver scheme                = no Advection, iterated Stokes
 set Max nonlinear iterations               = 1
 set Use years in output instead of seconds = false
 
+
 # Follow as closely as possible the parameters from Rudi et al. (2017)
 subsection Solver parameters
   subsection Stokes solver parameters
-    set Use full A block as preconditioner              = true
+    set Use full A block as preconditioner              = false
     set Number of cheap Stokes solver steps             = 0
     set Maximum number of expensive Stokes solver steps = 1000
     set Linear solver tolerance                         = 1e-6
     set GMRES solver restart length                     = 100
+    set Use weighted BFBT for Schur complement	        = true
   end
 end
 
@@ -65,7 +67,7 @@ subsection Initial temperature model
 end
 
 subsection Mesh refinement
-  set Initial global refinement                = 4
+  set Initial global refinement                = 2
   set Initial adaptive refinement              = 0
 end
 

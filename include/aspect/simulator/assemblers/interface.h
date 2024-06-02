@@ -117,7 +117,6 @@ namespace aspect
           std::vector<Tensor<1,dim>>           phi_u;
           std::vector<double>                  phi_p_c;
           std::vector<Tensor<1,dim>>          grad_phi_p;
-          std::vector<double>                 local_lumped_mass_matrix;
 
           /**
            * Material model inputs and outputs computed at the current
@@ -371,7 +370,7 @@ namespace aspect
           StokesPreconditioner<dim> &operator= (const StokesPreconditioner<dim> &data) = default;
 
           FullMatrix<double> local_matrix;
-          LinearAlgebra::Vector local_lumped_mass_matrix;
+          Vector<double> local_lumped_mass_matrix;
           std::vector<types::global_dof_index> local_dof_indices;
 
           /**

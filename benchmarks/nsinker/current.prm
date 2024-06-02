@@ -1,0 +1,11 @@
+subsection Material model
+  set Material averaging = none
+  subsection NSinker
+    set Number of sinkers = 1
+    set Dynamic viscosity ratio = 1e10
+  end
+end
+subsection Mesh refinement
+  set Initial global refinement = 3
+end
+set Output directory = output-averagingnone_nsinkers1_viscosity1e10_refinement3
