@@ -396,6 +396,19 @@ namespace aspect
          StokesPreconditioner<dim> (stokes_dofs_per_cell));
 
     system_preconditioner_matrix.compress(VectorOperation::add);
+    lumped_mass_matrix.compress(VectorOperation::add);
+    IndexSet local_indices=lumped_mass_matrix.block(0).locally_owned_elements();
+    for(auto i: local_indices){
+      if(current_constraints.is_constrained(i)){
+        lumped_mass_matrix[i]=1;
+      }
+      else{
+        std::cout<<lumped_mass_matrix[i]<<" ";
+        lumped_mass_matrix[i]=1.0/lumped_mass_matrix[i];
+      }
+    }
+    lumped_mass_matrix.compress(VectorOperation::insert);
+
   }
 
 

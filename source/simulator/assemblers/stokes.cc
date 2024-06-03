@@ -126,7 +126,7 @@ namespace aspect
 
           const double JxW = scratch.finite_element_values.JxW(q);
 //assembles stokes preconditioner ? qxh
-          if (this->get_parameters().use_full_A_block_preconditioner == false && !this->get_parameters().use_bfbt)
+          if (this->get_parameters().use_full_A_block_preconditioner == false && !this->get_parameters().use_bfbt) //not full a and not bfbt
             {
               for (unsigned int i = 0; i < stokes_dofs_per_cell; ++i)
                 for (unsigned int j = 0; j < stokes_dofs_per_cell; ++j)
@@ -143,7 +143,7 @@ namespace aspect
                     }
 
             }
-          else if (this->get_parameters().use_full_A_block_preconditioner==false && this->get_parameters().use_bfbt)
+          else if (this->get_parameters().use_full_A_block_preconditioner==false && this->get_parameters().use_bfbt) //not full a and bfbt
             {
               double sqrt_eta=sqrt(eta);
               for (unsigned int i = 0; i < stokes_dofs_per_cell; ++i){
@@ -164,18 +164,21 @@ namespace aspect
               }
 
             }
-          else if(this->get_parameters().use_full_A_block_preconditioner && this->get_parameters().use_bfbt){
+          else if(this->get_parameters().use_full_A_block_preconditioner && this->get_parameters().use_bfbt){ //full a and bfbt
             double sqrt_eta=sqrt(eta);
 
             const unsigned int pressure_component_index = this->introspection().component_indices.pressure;
               for (unsigned int i = 0; i < stokes_dofs_per_cell; ++i){
+                  for (unsigned int j = 0; j < stokes_dofs_per_cell; ++j)
+// if (scratch.dof_component_indices[i] ==
+//                       scratch.dof_component_indices[j])
+                  data.local_lumped_mass_matrix(i)+=sqrt_eta*scalar_product(scratch.phi_u[i],scratch.phi_u[j])*scratch.finite_element_values.JxW(q);
 
                 if (scratch.dof_component_indices[i] == pressure_component_index)
                   for (unsigned int j = 0; j < stokes_dofs_per_cell; ++j){
 
                     if (scratch.dof_component_indices[j] == pressure_component_index)
                       {
-                        data.local_lumped_mass_matrix(i)+=sqrt_eta*scalar_product(scratch.phi_u[i],scratch.phi_u[j])*scratch.finite_element_values.JxW(q);
 
                         data.local_matrix(i, j) += (one_over_eta * pressure_scaling
                                                     * pressure_scaling
@@ -184,12 +187,13 @@ namespace aspect
                                                    * JxW;
                       }
                   }
+                  
               }
             
           }
           else
             {
-              const unsigned int pressure_component_index = this->introspection().component_indices.pressure;
+              const unsigned int pressure_component_index = this->introspection().component_indices.pressure; //full a and not bfbt
               for (unsigned int i = 0; i < stokes_dofs_per_cell; ++i)
                 if (scratch.dof_component_indices[i] == pressure_component_index)
                   for (unsigned int j = 0; j < stokes_dofs_per_cell; ++j)

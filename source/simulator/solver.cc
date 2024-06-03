@@ -1175,11 +1175,20 @@ namespace aspect
                 solver(solver_control_expensive, mem,
                        SolverFGMRES<LinearAlgebra::BlockVector>::
                        AdditionalData(number_of_temporary_vectors));
+  if(!parameters.use_bfbt){
+              solver.solve (stokes_block,
+                            distributed_stokes_solution,
+                            distributed_stokes_rhs,
+                            preconditioner_expensive);
+            }
+            else{
+              solver.solve (stokes_block,
+                            distributed_stokes_solution,
+                            distributed_stokes_rhs,
+                            weighted_bfbt_preconditioner_expensive);
+            }
 
-                solver.solve(stokes_block,
-                             distributed_stokes_solution,
-                             distributed_stokes_rhs,
-                             preconditioner_expensive);
+             
 
                 // Success. Print expensive iterations to screen.
                 pcout << solver_control_expensive.last_step()
