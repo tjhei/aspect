@@ -301,6 +301,7 @@ namespace aspect
     // Prepare the data structures for assembly
     scratch.reinit(cell);
     data.local_matrix = 0;
+    data.local_lumped_mass_matrix = 0;
 
     scratch.material_model_inputs.reinit  (scratch.finite_element_values,
                                            cell,
@@ -398,16 +399,24 @@ namespace aspect
     system_preconditioner_matrix.compress(VectorOperation::add);
     lumped_mass_matrix.compress(VectorOperation::add);
     IndexSet local_indices=lumped_mass_matrix.block(0).locally_owned_elements();
-    for(auto i: local_indices){
-      if(current_constraints.is_constrained(i)){
-        lumped_mass_matrix[i]=1;
+    for (auto i: local_indices)
+      {
+        if (current_constraints.is_constrained(i))
+          {
+            lumped_mass_matrix.block(0)[i]=1;
+          }
+        else
+          {
+
+            if (lumped_mass_matrix.block(0)[i] == 0.0)
+              {
+                std::cout<<i<<" ";
+                lumped_mass_matrix.block(0)[i] = 1.0;
+              }
+            lumped_mass_matrix.block(0)[i]=1.0/lumped_mass_matrix.block(0)[i];
+          }
       }
-      else{
-        std::cout<<lumped_mass_matrix[i]<<" ";
-        lumped_mass_matrix[i]=1.0/lumped_mass_matrix[i];
-      }
-    }
-    lumped_mass_matrix.compress(VectorOperation::insert);
+    lumped_mass_matrix.block(0).compress(VectorOperation::insert);
 
   }
 

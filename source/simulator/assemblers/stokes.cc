@@ -115,6 +115,7 @@ namespace aspect
                                                     .velocities].symmetric_gradient(i, q);
                   scratch.phi_p[i_stokes] = scratch.finite_element_values[introspection
                                                                           .extractors.pressure].value(i, q);
+                  scratch.grad_phi_p[i_stokes]=scratch.finite_element_values[introspection.extractors.pressure].gradient(i,q);
                   scratch.phi_u[i_stokes]=scratch.finite_element_values[introspection.extractors.velocities].value(i,q);
                   ++i_stokes;
                 }
@@ -146,51 +147,56 @@ namespace aspect
           else if (this->get_parameters().use_full_A_block_preconditioner==false && this->get_parameters().use_bfbt) //not full a and bfbt
             {
               double sqrt_eta=sqrt(eta);
-              for (unsigned int i = 0; i < stokes_dofs_per_cell; ++i){
-                for (unsigned int j = 0; j < stokes_dofs_per_cell; ++j){
-                  data.local_lumped_mass_matrix(i)+=sqrt_eta*scalar_product(scratch.phi_u[i],scratch.phi_u[j])*scratch.finite_element_values.JxW(q);
-                  if (scratch.dof_component_indices[i] ==
-                      scratch.dof_component_indices[j])
+              for (unsigned int i = 0; i < stokes_dofs_per_cell; ++i)
+                {
+                  for (unsigned int j = 0; j < stokes_dofs_per_cell; ++j)
                     {
-                      data.local_matrix(i, j) += ((2.0 * eta * (scratch.grads_phi_u[i]
-                                                                * scratch.grads_phi_u[j]))
-                                                  + one_over_eta * pressure_scaling
-                                                  * pressure_scaling
-                                                  * (scratch.grad_phi_p[i]
-                                                     * scratch.grad_phi_p[j]))
-                                                 * JxW;
+                      if (scratch.dof_component_indices[i] ==
+                          scratch.dof_component_indices[j])
+                        {
+                          data.local_lumped_mass_matrix(i)+=sqrt_eta*scalar_product(scratch.phi_u[i],scratch.phi_u[j])*JxW;
+
+                          data.local_matrix(i, j) += ((2.0 * eta * (scratch.grads_phi_u[i]
+                                                                    * scratch.grads_phi_u[j]))
+                                                      + 1.0/sqrt_eta * pressure_scaling
+                                                      * pressure_scaling
+                                                      * (scratch.grad_phi_p[i]
+                                                         * scratch.grad_phi_p[j] + 1e-6*scratch.phi_p[i]*scratch.phi_p[j] ))
+                                                     * JxW;
+                        }
                     }
                 }
-              }
 
             }
-          else if(this->get_parameters().use_full_A_block_preconditioner && this->get_parameters().use_bfbt){ //full a and bfbt
-            double sqrt_eta=sqrt(eta);
+          else if (this->get_parameters().use_full_A_block_preconditioner && this->get_parameters().use_bfbt) //full a and bfbt
+            {
+              double sqrt_eta=sqrt(eta);
 
-            const unsigned int pressure_component_index = this->introspection().component_indices.pressure;
-              for (unsigned int i = 0; i < stokes_dofs_per_cell; ++i){
+              const unsigned int pressure_component_index = this->introspection().component_indices.pressure;
+              for (unsigned int i = 0; i < stokes_dofs_per_cell; ++i)
+                {
                   for (unsigned int j = 0; j < stokes_dofs_per_cell; ++j)
-// if (scratch.dof_component_indices[i] ==
-//                       scratch.dof_component_indices[j])
-                  data.local_lumped_mass_matrix(i)+=sqrt_eta*scalar_product(scratch.phi_u[i],scratch.phi_u[j])*scratch.finite_element_values.JxW(q);
+                    if (scratch.dof_component_indices[i] == scratch.dof_component_indices[j])
+                      data.local_lumped_mass_matrix(i)+=sqrt_eta*scalar_product(scratch.phi_u[i],scratch.phi_u[j])*JxW;
 
-                if (scratch.dof_component_indices[i] == pressure_component_index)
-                  for (unsigned int j = 0; j < stokes_dofs_per_cell; ++j){
-
-                    if (scratch.dof_component_indices[j] == pressure_component_index)
+                  if (scratch.dof_component_indices[i] == pressure_component_index)
+                    for (unsigned int j = 0; j < stokes_dofs_per_cell; ++j)
                       {
 
-                        data.local_matrix(i, j) += (one_over_eta * pressure_scaling
-                                                    * pressure_scaling
-                                                    * (scratch.phi_p[i]
-                                                       * scratch.phi_p[j]))
-                                                   * JxW;
+                        if (scratch.dof_component_indices[j] == pressure_component_index)
+                          {
+
+                            data.local_matrix(i, j) += (1.0/sqrt_eta * pressure_scaling
+                                                        * pressure_scaling
+                                                        * (scratch.grad_phi_p[i]
+                                                           * scratch.grad_phi_p[j]))
+                                                       * JxW;
+                          }
                       }
-                  }
-                  
-              }
-            
-          }
+
+                }
+
+            }
           else
             {
               const unsigned int pressure_component_index = this->introspection().component_indices.pressure; //full a and not bfbt

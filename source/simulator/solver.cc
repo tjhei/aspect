@@ -380,10 +380,10 @@ namespace aspect
          * @param lumped_mass_matrix Lumped mass matrix associated with the velocity block
          */
         WeightedBFBT(const TrilinosWrappers::SparseMatrix &mp_matrix,
-                    const PreconditionerMp &mp_preconditioner,
-                    const double solver_tolerance,
-                    const TrilinosWrappers::MPI::Vector &lumped_mass_matrix,
-                    const TrilinosWrappers::BlockSparseMatrix &system_matrix);
+                     const PreconditionerMp &mp_preconditioner,
+                     const double solver_tolerance,
+                     const TrilinosWrappers::MPI::Vector &lumped_mass_matrix,
+                     const TrilinosWrappers::BlockSparseMatrix &system_matrix);
 
         void vmult(TrilinosWrappers::MPI::Vector &dst,
                    const TrilinosWrappers::MPI::Vector &src) const;
@@ -399,8 +399,8 @@ namespace aspect
         const TrilinosWrappers::BlockSparseMatrix &system_matrix;
     };
 
-     template <class PreconditionerMp>
-      WeightedBFBT<PreconditionerMp>::WeightedBFBT(
+    template <class PreconditionerMp>
+    WeightedBFBT<PreconditionerMp>::WeightedBFBT(
       const TrilinosWrappers::SparseMatrix &mp_matrix,
       const PreconditionerMp &mp_preconditioner,
       const double solver_tolerance,
@@ -417,7 +417,7 @@ namespace aspect
 
     template <class PreconditionerMp>
     void WeightedBFBT<PreconditionerMp>::vmult(TrilinosWrappers::MPI::Vector &dst,
-                                                            const TrilinosWrappers::MPI::Vector &src) const
+                                               const TrilinosWrappers::MPI::Vector &src) const
     {
       // Trilinos reports a breakdown in case src=dst=0, even though it should return
       // convergence without iterating. We simply skip solving in this case.
@@ -428,36 +428,38 @@ namespace aspect
           SolverCG<LinearAlgebra::Vector> solver(solver_control, mem);
           try
             {
-                TrilinosWrappers::MPI::Vector utmp(lumped_mass_matrix); 
-                TrilinosWrappers::MPI::Vector ptmp(src); 
-                TrilinosWrappers::MPI::Vector wtmp(lumped_mass_matrix); 
+              TrilinosWrappers::MPI::Vector utmp(lumped_mass_matrix);
+              TrilinosWrappers::MPI::Vector ptmp(src);
+              TrilinosWrappers::MPI::Vector wtmp(lumped_mass_matrix);
 
 
-            {
-            SolverControl solver_control(5000, 1e-6 * src.l2_norm(), false, true);
-            SolverCG<TrilinosWrappers::MPI::Vector> solver(solver_control);
+              {
+                SolverControl solver_control(5000, 1e-6 * src.l2_norm(), false, true);
+                SolverCG<TrilinosWrappers::MPI::Vector> solver(solver_control);
 
-              solver.solve(mp_matrix,
-                          ptmp,
-                          src,
-                          mp_preconditioner); //(BD^{-1}B^T}^{-1})y2 store in ptmp
-              system_matrix.block(0,1).vmult(utmp,ptmp); //B^T   (BD^{-1}B^T}^{-1})y2 store in utemp
-            
+                solver.solve(mp_matrix,
+                             ptmp,
+                             src,
+                             mp_preconditioner); //(BD^{-1}B^T}^{-1})y2 store in ptmp
+                n_iterations_ += solver_control.last_step();
 
-              utmp.scale(lumped_mass_matrix); // D^{-1}   B^T(BD^{-1}B^T}^{-1})y2  stored in utmp
-              
-              system_matrix.block(0,0).vmult(wtmp,utmp); //A   D^{-1}B^T(BD^{-1}B^T}^{-1})y2 stored in wtmp
-              wtmp.scale(lumped_mass_matrix); //C^{-1}  AD^{-1}B^T(BD^{-1}B^T}^{-1})y2 stored in wtmp
-            
-              system_matrix.block(1,0).vmult(ptmp,wtmp); //B  C^{-1}AD^{-1}B^T(BD^{-1}B^T}^{-1})y2 stored in ptmp
-              
-            
-            
-                
-              solver.solve(mp_matrix,
-                          dst,
-                          ptmp,
-                          mp_preconditioner);  //(BD^{-1}B^T)^{-1}  BC^{-1}AD^{-1}B^T(BD^{-1}B^T}^{-1})y2 stored in dst.block(1)
+                system_matrix.block(0,1).vmult(utmp,ptmp); //B^T   (BD^{-1}B^T}^{-1})y2 store in utemp
+
+
+                utmp.scale(lumped_mass_matrix); // D^{-1}   B^T(BD^{-1}B^T}^{-1})y2  stored in utmp
+
+                system_matrix.block(0,0).vmult(wtmp,utmp); //A   D^{-1}B^T(BD^{-1}B^T}^{-1})y2 stored in wtmp
+                wtmp.scale(lumped_mass_matrix); //C^{-1}  AD^{-1}B^T(BD^{-1}B^T}^{-1})y2 stored in wtmp
+
+                system_matrix.block(1,0).vmult(ptmp,wtmp); //B  C^{-1}AD^{-1}B^T(BD^{-1}B^T}^{-1})y2 stored in ptmp
+
+
+
+
+                solver.solve(mp_matrix,
+                             dst,
+                             ptmp,
+                             mp_preconditioner);  //(BD^{-1}B^T)^{-1}  BC^{-1}AD^{-1}B^T(BD^{-1}B^T}^{-1})y2 stored in dst.block(1)
                 n_iterations_ += solver_control.last_step();
               }
             }
@@ -1044,23 +1046,23 @@ namespace aspect
 
         solver_control_cheap.enable_history_data();
         solver_control_expensive.enable_history_data();
-          internal::InverseWeightedMassMatrix<TrilinosWrappers::PreconditionBase> inverse_weighted_mass_matrix(
-            system_preconditioner_matrix.block(1,1),
-            *Mp_preconditioner,
-            parameters.linear_solver_S_block_tolerance);
-             // create a cheap preconditioner that consists of only a single V-cycle
-          internal::InverseVelocityBlock<LinearAlgebra::PreconditionAMG> inverse_velocity_block_cheap(
-            system_matrix.block(0,0),
-            *Amg_preconditioner,
-            /* do_solve_A = */ false,
-            stokes_A_block_is_symmetric(),
-            parameters.linear_solver_A_block_tolerance);
-          const internal::BlockSchurPreconditioner<internal::InverseVelocityBlock<LinearAlgebra::PreconditionAMG>,
-                internal::InverseWeightedMassMatrix<TrilinosWrappers::PreconditionBase>>
-                preconditioner_cheap (system_matrix,
-                                      system_preconditioner_matrix,
-                                      inverse_weighted_mass_matrix,
-                                      inverse_velocity_block_cheap);
+        internal::InverseWeightedMassMatrix<TrilinosWrappers::PreconditionBase> inverse_weighted_mass_matrix(
+          system_preconditioner_matrix.block(1,1),
+          *Mp_preconditioner,
+          parameters.linear_solver_S_block_tolerance);
+        // create a cheap preconditioner that consists of only a single V-cycle
+        internal::InverseVelocityBlock<LinearAlgebra::PreconditionAMG> inverse_velocity_block_cheap(
+          system_matrix.block(0,0),
+          *Amg_preconditioner,
+          /* do_solve_A = */ false,
+          stokes_A_block_is_symmetric(),
+          parameters.linear_solver_A_block_tolerance);
+        const internal::BlockSchurPreconditioner<internal::InverseVelocityBlock<LinearAlgebra::PreconditionAMG>,
+              internal::InverseWeightedMassMatrix<TrilinosWrappers::PreconditionBase>>
+              preconditioner_cheap (system_matrix,
+                                    system_preconditioner_matrix,
+                                    inverse_weighted_mass_matrix,
+                                    inverse_velocity_block_cheap);
 
         // create an expensive preconditioner that solves for the A block with CG
         internal::InverseVelocityBlock<LinearAlgebra::PreconditionAMG> inverse_velocity_block_expensive(
@@ -1075,34 +1077,34 @@ namespace aspect
                                         system_preconditioner_matrix,
                                         inverse_weighted_mass_matrix,
                                         inverse_velocity_block_expensive);
-        
-          internal::WeightedBFBT<TrilinosWrappers::PreconditionBase> weighted_bfbt(
-            system_preconditioner_matrix.block(1,1),
-            *Mp_preconditioner,
-            parameters.linear_solver_S_block_tolerance,
-            lumped_mass_matrix.block(0),
-            system_matrix
-          );
-          
-          const internal::BlockSchurPreconditioner<internal::InverseVelocityBlock<LinearAlgebra::PreconditionAMG>,
-                internal::WeightedBFBT<TrilinosWrappers::PreconditionBase>>
-                weighted_bfbt_preconditioner_cheap (system_matrix,
-                                      system_preconditioner_matrix,
-                                      weighted_bfbt,
-                                      inverse_velocity_block_cheap);
+
+        internal::WeightedBFBT<TrilinosWrappers::PreconditionBase> weighted_bfbt(
+          system_preconditioner_matrix.block(1,1),
+          *Mp_preconditioner,
+          parameters.linear_solver_S_block_tolerance,
+          lumped_mass_matrix.block(0),
+          system_matrix
+        );
+
+        const internal::BlockSchurPreconditioner<internal::InverseVelocityBlock<LinearAlgebra::PreconditionAMG>,
+              internal::WeightedBFBT<TrilinosWrappers::PreconditionBase>>
+              weighted_bfbt_preconditioner_cheap (system_matrix,
+                                                  system_preconditioner_matrix,
+                                                  weighted_bfbt,
+                                                  inverse_velocity_block_cheap);
 
         // create an expensive preconditioner that solves for the A block with CG
-          
-          const internal::BlockSchurPreconditioner<internal::InverseVelocityBlock<LinearAlgebra::PreconditionAMG>,
-                internal::WeightedBFBT<TrilinosWrappers::PreconditionBase>>
-                weighted_bfbt_preconditioner_expensive (system_matrix,
-                                          system_preconditioner_matrix,
-                                          weighted_bfbt,
-                                          inverse_velocity_block_expensive
-                                        );
-        
 
-       
+        const internal::BlockSchurPreconditioner<internal::InverseVelocityBlock<LinearAlgebra::PreconditionAMG>,
+              internal::WeightedBFBT<TrilinosWrappers::PreconditionBase>>
+              weighted_bfbt_preconditioner_expensive (system_matrix,
+                                                      system_preconditioner_matrix,
+                                                      weighted_bfbt,
+                                                      inverse_velocity_block_expensive
+                                                     );
+
+
+
 
         // step 1a: try if the simple and fast solver
         // succeeds in n_cheap_stokes_solver_steps steps or less.
@@ -1120,18 +1122,20 @@ namespace aspect
             solver(solver_control_cheap, mem,
                    SolverFGMRES<LinearAlgebra::BlockVector>::
                    AdditionalData(parameters.stokes_gmres_restart_length));
-            if(!parameters.use_bfbt){
-              solver.solve (stokes_block,
-                            distributed_stokes_solution,
-                            distributed_stokes_rhs,
-                            preconditioner_cheap);
-            }
-            else{
-              solver.solve (stokes_block,
-                            distributed_stokes_solution,
-                            distributed_stokes_rhs,
-                            weighted_bfbt_preconditioner_cheap);
-            }
+            if (!parameters.use_bfbt)
+              {
+                solver.solve (stokes_block,
+                              distributed_stokes_solution,
+                              distributed_stokes_rhs,
+                              preconditioner_cheap);
+              }
+            else
+              {
+                solver.solve (stokes_block,
+                              distributed_stokes_solution,
+                              distributed_stokes_rhs,
+                              weighted_bfbt_preconditioner_cheap);
+              }
 
             // Success. Print all iterations to screen (0 expensive iterations).
             pcout << (solver_control_cheap.last_step() != numbers::invalid_unsigned_int ?
@@ -1175,20 +1179,22 @@ namespace aspect
                 solver(solver_control_expensive, mem,
                        SolverFGMRES<LinearAlgebra::BlockVector>::
                        AdditionalData(number_of_temporary_vectors));
-  if(!parameters.use_bfbt){
-              solver.solve (stokes_block,
-                            distributed_stokes_solution,
-                            distributed_stokes_rhs,
-                            preconditioner_expensive);
-            }
-            else{
-              solver.solve (stokes_block,
-                            distributed_stokes_solution,
-                            distributed_stokes_rhs,
-                            weighted_bfbt_preconditioner_expensive);
-            }
+                if (!parameters.use_bfbt)
+                  {
+                    solver.solve (stokes_block,
+                                  distributed_stokes_solution,
+                                  distributed_stokes_rhs,
+                                  preconditioner_expensive);
+                  }
+                else
+                  {
+                    solver.solve (stokes_block,
+                                  distributed_stokes_solution,
+                                  distributed_stokes_rhs,
+                                  weighted_bfbt_preconditioner_expensive);
+                  }
 
-             
+
 
                 // Success. Print expensive iterations to screen.
                 pcout << solver_control_expensive.last_step()
@@ -1201,20 +1207,22 @@ namespace aspect
             // processors
             catch (const std::exception &exc)
               {
-                if(!parameters.use_bfbt){
-                  signals.post_stokes_solver(*this,
-                                            inverse_weighted_mass_matrix.n_iterations(),
-                                            inverse_velocity_block_cheap.n_iterations()+inverse_velocity_block_expensive.n_iterations(),
-                                            solver_control_cheap,
-                                            solver_control_expensive);
-                }
-                else{
-                     signals.post_stokes_solver(*this,
-                                            weighted_bfbt.n_iterations(),
-                                            inverse_velocity_block_cheap.n_iterations()+inverse_velocity_block_expensive.n_iterations(),
-                                            solver_control_cheap,
-                                            solver_control_expensive);
-                }
+                if (!parameters.use_bfbt)
+                  {
+                    signals.post_stokes_solver(*this,
+                                               inverse_weighted_mass_matrix.n_iterations(),
+                                               inverse_velocity_block_cheap.n_iterations()+inverse_velocity_block_expensive.n_iterations(),
+                                               solver_control_cheap,
+                                               solver_control_expensive);
+                  }
+                else
+                  {
+                    signals.post_stokes_solver(*this,
+                                               weighted_bfbt.n_iterations(),
+                                               inverse_velocity_block_cheap.n_iterations()+inverse_velocity_block_expensive.n_iterations(),
+                                               solver_control_cheap,
+                                               solver_control_expensive);
+                  }
 
                 std::vector<SolverControl> solver_controls;
                 if (parameters.n_cheap_stokes_solver_steps > 0)

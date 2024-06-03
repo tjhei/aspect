@@ -1456,6 +1456,7 @@ namespace aspect
         stokes_solver_type = StokesSolverType::parse(prm.get("Stokes solver type"));
         if (prm.get_bool("Use direct solver for Stokes system"))
           stokes_solver_type = StokesSolverType::direct_solver;
+        use_bfbt = prm.get_bool("Use weighted BFBT for Schur complement");
         use_direct_stokes_solver        = stokes_solver_type==StokesSolverType::direct_solver;
         stokes_krylov_type = StokesKrylovType::parse(prm.get("Krylov method for cheap solver steps"));
         idr_s_parameter    = prm.get_integer("IDR(s) parameter");
