@@ -2,6 +2,7 @@ name: build-dealii-master-clang
 
 on:
   workflow_dispatch:
+  push:
   schedule:
     # * is a special character in YAML so you have to quote this string
     # trigger at 1:30 am every day
