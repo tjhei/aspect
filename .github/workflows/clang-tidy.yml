@@ -1,8 +1,8 @@
-name: tidy
+name: clang
 
 on:
   push:
-    branches:
+  branches:
       - 'main'
       - 'aspect-*'
   pull_request:
@@ -38,12 +38,20 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - name: compile
+    - name: clang-tidy
       run: |
         mkdir build
         cd build
 	../contrib/utilities/run_clang_tidy.sh
 	mv output.txt ${{ matrix.result-file }}
+    - name: compile
+      run: |
+        cd build
+	make -j 3
+    - name: test
+      run: |
+        cd build
+	./aspect --test
     - name: archive test results
       uses: actions/upload-artifact@v4
       with:
