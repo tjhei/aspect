@@ -21,7 +21,7 @@ env:
 
 jobs:
   tidy:
-    #run clang-tidy
+    # run clang-tidy
     name: tidy
     runs-on: [ubuntu-latest]
     strategy:
