@@ -2,7 +2,7 @@ name: clang
 
 on:
   push:
-  branches:
+    branches:
       - 'main'
       - 'aspect-*'
   pull_request:
@@ -42,7 +42,7 @@ jobs:
       run: |
         mkdir build
         cd build
-	../contrib/utilities/run_clang_tidy.sh
+        ../contrib/utilities/run_clang_tidy.sh
 	mv output.txt ${{ matrix.result-file }}
     - name: compile
       run: |
