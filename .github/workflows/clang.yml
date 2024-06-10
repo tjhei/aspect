@@ -43,15 +43,16 @@ jobs:
         mkdir build
         cd build
         ../contrib/utilities/run_clang_tidy.sh
-	mv output.txt ${{ matrix.result-file }}
+        mv output.txt ${{ matrix.result-file }}
     - name: compile
       run: |
         cd build
-	make -j 3
+        cmake -D CMAKE_CXX_FLAGS='-Werror' .
+        make -j 2
     - name: test
       run: |
         cd build
-	./aspect --test
+        ./aspect --test
     - name: archive test results
       uses: actions/upload-artifact@v4
       with:
