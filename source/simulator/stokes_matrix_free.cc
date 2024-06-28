@@ -1097,7 +1097,7 @@ template <int dim, int degree_p, typename number>
   StokesMatrixFreeHandlerImplementation<dim, velocity_degree>::StokesMatrixFreeHandlerImplementation (Simulator<dim> &simulator,
       ParameterHandler &prm)
     : sim(simulator),
-
+      use_global_coarsening(sim.parameters.stokes_gmg_type == Parameters<dim>::StokesGMGType::global_coarsening),
       // dof_handler_v(simulator.triangulation),
       // dof_handler_p(simulator.triangulation),
       // dof_handler_projection(simulator.triangulation),
@@ -2504,6 +2504,30 @@ template <int dim, int degree_p, typename number>
   template <int dim, int velocity_degree>
   void StokesMatrixFreeHandlerImplementation<dim, velocity_degree>::setup_dofs()
   {
+    // Periodic boundary conditions with hanging nodes on the boundary currently
+    // cause the GMG not to converge. We catch this case early to provide the
+    // user with a reasonable error message:
+    if(sim.parameters.stokes_gmg_type == Parameters<dim>::StokesGMGType::local_smoothing)
+    {
+      bool have_periodic_hanging_nodes = false;
+      for (const auto &cell : sim.triangulation.active_cell_iterators())
+        if (cell->is_locally_owned())
+          for (const auto f : cell->face_indices())
+            {
+              if (cell->has_periodic_neighbor(f))
+                {
+                  const auto &neighbor = cell->periodic_neighbor(f);
+                  // This way, we can only detect the case where the neighbor is coarser,
+                  // but this is fine as the other owner covers that situation:
+                  if (neighbor->level()<cell->level())
+                    have_periodic_hanging_nodes = true;
+                }
+            }
+
+      have_periodic_hanging_nodes = (dealii::Utilities::MPI::max(have_periodic_hanging_nodes ? 1 : 0, sim.triangulation.get_communicator())) == 1;
+      AssertThrow(have_periodic_hanging_nodes==false, ExcNotImplemented());
+    }
+
     // This vector will be refilled with the new MatrixFree objects below:
     matrix_free_objects.clear();
 
@@ -2513,8 +2537,9 @@ template <int dim, int degree_p, typename number>
     // trias = dealii::MGTransferGlobalCoarseningTools::create_geometric_coarsening_sequence (sim.triangulation);
     mg_coarsening_struct.trias = dealii::MGTransferGlobalCoarseningTools::create_geometric_coarsening_sequence (sim.triangulation);
 
-    min_level = 0;
     max_level = mg_coarsening_struct.trias.size() - 1;
+
+    // if()
 
     sim.pcout << "GC GMG: levels " << min_level << " .. " << max_level
               << std::endl;

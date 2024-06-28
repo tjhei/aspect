@@ -666,6 +666,11 @@ namespace aspect
       bool do_timings;
 
       /**
+       * If true, the solver will use global coarsening instead of local smoothing
+       */
+      const bool use_global_coarsening;
+
+      /**
        * The max/min of the evaluated viscosities.
        */
       double minimum_viscosity;

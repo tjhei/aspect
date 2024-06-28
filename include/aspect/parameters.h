@@ -348,6 +348,37 @@ namespace aspect
     };
 
     /**
+     * This enum represents the different choices for the linear solver
+     * for the Stoke system. See @p stokes_solver_type.
+     */
+    struct StokesGMGType
+    {
+      enum Kind
+      {
+        local_smoothing,
+        global_coarsening
+      };
+
+      static const std::string pattern()
+      {
+        return "local_smoothing|global_coarsening";
+      }
+
+      static Kind
+      parse(const std::string &input)
+      {
+        if (input == "local smoothing")
+          return local_smoothing;
+        else if (input == "global coarsening")
+          return global_coarsening;
+        else
+          AssertThrow(false, ExcNotImplemented());
+
+        return Kind();
+      }
+    };
+
+    /**
      * This enum represents the different choices for the Krylov method
      * used in the cheap GMG Stokes solve.
      */
@@ -489,6 +520,7 @@ namespace aspect
     // subsection: Stokes solver parameters
     bool                           use_direct_stokes_solver;
     typename StokesSolverType::Kind stokes_solver_type;
+    typename StokesGMGType::Kind stokes_gmg_type;
     typename StokesKrylovType::Kind stokes_krylov_type;
     unsigned int                    idr_s_parameter;
 
