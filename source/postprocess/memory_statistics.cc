@@ -41,7 +41,7 @@ namespace aspect
 
       double dof_handler_mem = this->get_dof_handler().memory_consumption();
       double constraints_mem = this->get_current_constraints().memory_consumption();
-#if false      
+#if false
       if (this->is_stokes_matrix_free())
         {
           dof_handler_mem += this->get_stokes_matrix_free().get_dof_handler_v().memory_consumption()
@@ -52,7 +52,7 @@ namespace aspect
           constraints_mem += this->get_stokes_matrix_free().get_constraints_v().memory_consumption()
                              + this->get_stokes_matrix_free().get_constraints_p().memory_consumption();
         }
-#endif        
+#endif
       statistics.add_value ("DoFHandler memory consumption (MB) ", dof_handler_mem/mb);
       statistics.add_value ("AffineConstraints<double> memory consumption (MB) ", constraints_mem/mb);
 

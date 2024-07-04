@@ -269,7 +269,7 @@ namespace aspect
         reinit(const Mapping<dim>              &mapping,
                const DoFHandler<dim>           &dof_handler,
                const DoFHandler<dim>           &dof_handler_other,
-               const AffineConstraints<number> &constraints);        
+               const AffineConstraints<number> &constraints);
 
         /**
          * Reset the object.
@@ -292,7 +292,7 @@ namespace aspect
                             degree_p,
                             degree_p+2,
                             1,
-                            number> &pressure) const;        
+                            number> &pressure) const;
 
       private:
 
@@ -767,7 +767,7 @@ namespace aspect
         //                         const unsigned int l)
         // {
         // mg_matrices_A_block[l].reinit(mapping, dofhandlers_v[l], dofhandlers_p[l], constraints_v[l]);
-        // mg_matrices_Schur_complement[l].reinit(mapping, dofhandlers_p[l], dofhandlers_v[l], constraints_p[l]);          
+        // mg_matrices_Schur_complement[l].reinit(mapping, dofhandlers_p[l], dofhandlers_v[l], constraints_p[l]);
         // }
       } mg_coarsening_struct;
 

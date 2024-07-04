@@ -660,7 +660,7 @@ namespace aspect
 
 
 
-template <int dim, int degree_p, typename number>
+  template <int dim, int degree_p, typename number>
   void
   MatrixFreeStokesOperators::MassMatrixOperator<dim,degree_p,number>
   ::cell_operation(FEEvaluation<dim,
@@ -1367,7 +1367,7 @@ template <int dim, int degree_p, typename number>
     // Project the active level viscosity vector to multilevel vector representations
     // using MG transfer objects. This transfer is based on the same linear operator used to
     // transfer data inside a v-cycle.
-#if false    
+#if false
     MGTransferMF<dim,GMGNumberType> transfer;
 
     transfer.build(dof_handler_projection);
@@ -1980,7 +1980,7 @@ template <int dim, int degree_p, typename number>
                                *mg_coarsening_struct.mg_transfer_A_block,
                                mg_smoother_A,
                                mg_smoother_A);
-#if false                               
+#if false
     mg_A.set_edge_matrices(mg_interface_A, mg_interface_A);
 #endif
     // Schur complement matrix GMG
@@ -1989,7 +1989,7 @@ template <int dim, int degree_p, typename number>
                                    *mg_coarsening_struct.mg_transfer_Schur_complement,
                                    mg_smoother_Schur,
                                    mg_smoother_Schur);
-#if false                                   
+#if false
     mg_Schur.set_edge_matrices(mg_interface_Schur, mg_interface_Schur);
 #endif
     // GMG Preconditioner for ABlock and Schur complement
@@ -2204,21 +2204,21 @@ template <int dim, int degree_p, typename number>
         };
 
         // stokes vmult
-        if(false)
-        {
-          dealii::LinearAlgebra::distributed::BlockVector<double> tmp_dst = solution_copy;
-          dealii::LinearAlgebra::distributed::BlockVector<double> tmp_src = rhs_copy;
-          time_this("stokes_vmult", 10,
-                    [&] ()
+        if (false)
           {
-            stokes_matrix.vmult(tmp_dst, tmp_src);
-          },
-          [&] ()
-          {
-            tmp_src = tmp_dst;
+            dealii::LinearAlgebra::distributed::BlockVector<double> tmp_dst = solution_copy;
+            dealii::LinearAlgebra::distributed::BlockVector<double> tmp_src = rhs_copy;
+            time_this("stokes_vmult", 10,
+                      [&] ()
+            {
+              stokes_matrix.vmult(tmp_dst, tmp_src);
+            },
+            [&] ()
+            {
+              tmp_src = tmp_dst;
+            }
+                     );
           }
-                   );
-        }
 
         // stokes preconditioner
         {
@@ -2266,52 +2266,52 @@ template <int dim, int degree_p, typename number>
                    );
         }
         // Solve
-        if(false)
-        {
-          // hard-code the number of iterations here to always do cheap iterations
-          SolverControl solver_control_cheap (1000, solver_tolerance, true);
-
-          dealii::LinearAlgebra::distributed::BlockVector<double> tmp_dst = solution_copy;
-          dealii::LinearAlgebra::distributed::BlockVector<double> tmp_src = rhs_copy;
-          time_this("Stokes_solve_cheap_idr", 1,
-                    [&]
+        if (false)
           {
-            SolverIDR<dealii::LinearAlgebra::distributed::BlockVector<double>>
-            solver(solver_control_cheap, mem,
-            SolverIDR<dealii::LinearAlgebra::distributed::BlockVector<double>>::
-            AdditionalData(sim.parameters.idr_s_parameter));
+            // hard-code the number of iterations here to always do cheap iterations
+            SolverControl solver_control_cheap (1000, solver_tolerance, true);
 
-            solver.solve (stokes_matrix,
-            tmp_dst,
-            tmp_src,
-            preconditioner_cheap);
-          },
-          [&] ()
-          {
-            tmp_dst = solution_copy;
+            dealii::LinearAlgebra::distributed::BlockVector<double> tmp_dst = solution_copy;
+            dealii::LinearAlgebra::distributed::BlockVector<double> tmp_src = rhs_copy;
+            time_this("Stokes_solve_cheap_idr", 1,
+                      [&]
+            {
+              SolverIDR<dealii::LinearAlgebra::distributed::BlockVector<double>>
+              solver(solver_control_cheap, mem,
+              SolverIDR<dealii::LinearAlgebra::distributed::BlockVector<double>>::
+              AdditionalData(sim.parameters.idr_s_parameter));
+
+              solver.solve (stokes_matrix,
+              tmp_dst,
+              tmp_src,
+              preconditioner_cheap);
+            },
+            [&] ()
+            {
+              tmp_dst = solution_copy;
+            }
+                     );
+
+            time_this("Stokes_solve_cheap_gmres", 1,
+                      [&]
+            {
+              SolverGMRES<dealii::LinearAlgebra::distributed::BlockVector<double>>
+              solver(solver_control_cheap, mem,
+              SolverGMRES<dealii::LinearAlgebra::distributed::BlockVector<double>>::
+              AdditionalData(sim.parameters.stokes_gmres_restart_length+2,
+              true));
+
+              solver.solve (stokes_matrix,
+              tmp_dst,
+              tmp_src,
+              preconditioner_cheap);
+            },
+            [&] ()
+            {
+              tmp_dst = solution_copy;
+            }
+                     );
           }
-                   );
-
-          time_this("Stokes_solve_cheap_gmres", 1,
-                    [&]
-          {
-            SolverGMRES<dealii::LinearAlgebra::distributed::BlockVector<double>>
-            solver(solver_control_cheap, mem,
-            SolverGMRES<dealii::LinearAlgebra::distributed::BlockVector<double>>::
-            AdditionalData(sim.parameters.stokes_gmres_restart_length+2,
-            true));
-
-            solver.solve (stokes_matrix,
-            tmp_dst,
-            tmp_src,
-            preconditioner_cheap);
-          },
-          [&] ()
-          {
-            tmp_dst = solution_copy;
-          }
-                   );
-        }
       }
 
     Timer timer(sim.mpi_communicator);
@@ -2507,26 +2507,26 @@ template <int dim, int degree_p, typename number>
     // Periodic boundary conditions with hanging nodes on the boundary currently
     // cause the GMG not to converge. We catch this case early to provide the
     // user with a reasonable error message:
-    if(sim.parameters.stokes_gmg_type == Parameters<dim>::StokesGMGType::local_smoothing)
-    {
-      bool have_periodic_hanging_nodes = false;
-      for (const auto &cell : sim.triangulation.active_cell_iterators())
-        if (cell->is_locally_owned())
-          for (const auto f : cell->face_indices())
-            {
-              if (cell->has_periodic_neighbor(f))
-                {
-                  const auto &neighbor = cell->periodic_neighbor(f);
-                  // This way, we can only detect the case where the neighbor is coarser,
-                  // but this is fine as the other owner covers that situation:
-                  if (neighbor->level()<cell->level())
-                    have_periodic_hanging_nodes = true;
-                }
-            }
+    if (sim.parameters.stokes_gmg_type == Parameters<dim>::StokesGMGType::local_smoothing)
+      {
+        bool have_periodic_hanging_nodes = false;
+        for (const auto &cell : sim.triangulation.active_cell_iterators())
+          if (cell->is_locally_owned())
+            for (const auto f : cell->face_indices())
+              {
+                if (cell->has_periodic_neighbor(f))
+                  {
+                    const auto &neighbor = cell->periodic_neighbor(f);
+                    // This way, we can only detect the case where the neighbor is coarser,
+                    // but this is fine as the other owner covers that situation:
+                    if (neighbor->level()<cell->level())
+                      have_periodic_hanging_nodes = true;
+                  }
+              }
 
-      have_periodic_hanging_nodes = (dealii::Utilities::MPI::max(have_periodic_hanging_nodes ? 1 : 0, sim.triangulation.get_communicator())) == 1;
-      AssertThrow(have_periodic_hanging_nodes==false, ExcNotImplemented());
-    }
+        have_periodic_hanging_nodes = (dealii::Utilities::MPI::max(have_periodic_hanging_nodes ? 1 : 0, sim.triangulation.get_communicator())) == 1;
+        AssertThrow(have_periodic_hanging_nodes==false, ExcNotImplemented());
+      }
 
     // This vector will be refilled with the new MatrixFree objects below:
     matrix_free_objects.clear();
@@ -2660,10 +2660,12 @@ template <int dim, int degree_p, typename number>
            update_normal_vectors |
            update_JxW_values);
 
-      std::vector<const DoFHandler<dim>*> stokes_dofs {&(mg_coarsening_struct.dofhandlers_v[max_level]), 
-      &(mg_coarsening_struct.dofhandlers_p[max_level])};
-      std::vector<const AffineConstraints<double> *> stokes_constraints {&mg_coarsening_struct.constraints_v[max_level], 
-      &mg_coarsening_struct.constraints_p[max_level]};
+      std::vector<const DoFHandler<dim>*> stokes_dofs {&(mg_coarsening_struct.dofhandlers_v[max_level]),
+            &(mg_coarsening_struct.dofhandlers_p[max_level])
+      };
+      std::vector<const AffineConstraints<double> *> stokes_constraints {&mg_coarsening_struct.constraints_v[max_level],
+            &mg_coarsening_struct.constraints_p[max_level]
+      };
 
       matrix_free->reinit(*sim.mapping, stokes_dofs, stokes_constraints,
                           QGauss<1>(sim.parameters.stokes_velocity_degree+1), additional_data);
@@ -2690,7 +2692,7 @@ template <int dim, int degree_p, typename number>
     }
 
     // Build MG transfer
-using transfer_t = MGTransferGlobalCoarsening<dim, dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>;
+    using transfer_t = MGTransferGlobalCoarsening<dim, dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>;
     {
       // MGLevelObject<
       // MGTwoLevelTransfer<dim, dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>>
@@ -2699,9 +2701,9 @@ using transfer_t = MGTransferGlobalCoarsening<dim, dealii::LinearAlgebra::distri
       // mg_coarsening_struct.transfers_v.resize(min_level, max_level);
       for (unsigned int l = min_level; l < max_level; ++l)
         mg_coarsening_struct.transfers_v[l + 1].reinit(mg_coarsening_struct.dofhandlers_v[l + 1],
-                                mg_coarsening_struct.dofhandlers_v[l],
-                                mg_coarsening_struct.constraints_v[l + 1],
-                                mg_coarsening_struct.constraints_v[l]);
+                                                       mg_coarsening_struct.dofhandlers_v[l],
+                                                       mg_coarsening_struct.constraints_v[l + 1],
+                                                       mg_coarsening_struct.constraints_v[l]);
 
 
       mg_coarsening_struct.mg_transfer_A_block = std::make_unique<transfer_t>(mg_coarsening_struct.transfers_v, [&](const auto l, auto &vec)
@@ -2718,9 +2720,9 @@ using transfer_t = MGTransferGlobalCoarsening<dim, dealii::LinearAlgebra::distri
 
       for (unsigned int l = min_level; l < max_level; ++l)
         mg_coarsening_struct.transfers_p[l + 1].reinit(mg_coarsening_struct.dofhandlers_p[l + 1],
-                                mg_coarsening_struct.dofhandlers_p[l],
-                                mg_coarsening_struct.constraints_p[l + 1],
-                                mg_coarsening_struct.constraints_p[l]);
+                                                       mg_coarsening_struct.dofhandlers_p[l],
+                                                       mg_coarsening_struct.constraints_p[l + 1],
+                                                       mg_coarsening_struct.constraints_p[l]);
 
       mg_coarsening_struct.mg_transfer_Schur_complement  = std::make_unique<transfer_t>(mg_coarsening_struct.transfers_p, [&](const auto l, auto &vec)
       {

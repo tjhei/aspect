@@ -361,7 +361,7 @@ namespace aspect
 
       static const std::string pattern()
       {
-        return "local_smoothing|global_coarsening";
+        return "local smoothing|global coarsening";
       }
 
       static Kind
