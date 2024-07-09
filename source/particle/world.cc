@@ -79,9 +79,6 @@ namespace aspect
                                          property_manager->get_n_property_components());
 
       connect_to_signals(this->get_signals());
-
-      AssertThrow(this->introspection().get_composition_base_element_indices().size()<=1,
-                  ExcNotImplemented("Particles are not supported in computations with compositional fields with different finite element types."));
     }
 
 
@@ -617,6 +614,150 @@ namespace aspect
 
     namespace internal
     {
+
+      /**
+       * Wrapper around dealii::FEPointEvaluation to choose number of components dynamically.
+       */
+      template <int dim>
+      class DynamicFEPointEvaluation
+      {
+        public:
+          DynamicFEPointEvaluation(const unsigned int first_component, const unsigned int n_components)
+            : first_component (first_component),
+              n_components(n_components)
+          {}
+
+          virtual ~DynamicFEPointEvaluation() = default;
+
+          int first_component;
+          int n_components;
+
+          virtual void reinit() = 0;
+
+
+          virtual void evaluate(const ArrayView<double> &solution_values,
+                                const EvaluationFlags::EvaluationFlags flags) = 0;
+
+          virtual
+          std::vector<Tensor<1,dim>>
+          get_gradient(const unsigned int evaluation_point) const = 0;
+
+          virtual
+          std::vector<double>
+          get_value(const unsigned int evaluation_point) const = 0;
+
+      };
+
+
+
+      template <int dim>
+      Tensor<1,dim> to_tensor(const Tensor<1,dim> &in)
+      {
+        return in;
+      }
+
+
+
+      template <int dim>
+      Tensor<1,1> to_tensor(const double in)
+      {
+        Tensor<1,1> result;
+        result[0] = in;
+        return result;
+      }
+
+
+
+      template <int dim, int n_components>
+      Tensor<1,n_components,Tensor<1,dim>> to_tensor2(const Tensor<1,n_components,Tensor<1,dim>> &in)
+      {
+        return in;
+      }
+
+
+
+      template <int dim, int n_components>
+      Tensor<1,1,Tensor<1,dim>> to_tensor2(const Tensor<1,dim> &in)
+      {
+        Tensor<1,1,Tensor<1,dim>> result;
+        result[0] = in;
+        return result;
+      }
+
+
+
+      template <int dim, int n_components>
+      class DynamicFEPointEvaluationImpl: public DynamicFEPointEvaluation<dim>
+      {
+        public:
+          DynamicFEPointEvaluationImpl(NonMatching::MappingInfo<dim> &mapping,
+                                       const FiniteElement<dim> &fe,
+                                       const unsigned int        first_selected_component)
+            : DynamicFEPointEvaluation<dim>(first_selected_component, n_components),
+              evaluation(mapping, fe, first_selected_component)
+          {}
+
+          void reinit() override
+          {
+
+          }
+
+          void evaluate(const ArrayView<double> &solution_values,
+                        const EvaluationFlags::EvaluationFlags flags) override
+          {
+            evaluation.evaluate(solution_values, flags);
+          }
+
+          virtual
+          std::vector<Tensor<1,dim>>
+          get_gradient(const unsigned int evaluation_point) const override
+          {
+            const Tensor<1,n_components,Tensor<1,dim>> x = to_tensor2<dim,n_components>(evaluation.get_gradient(evaluation_point));
+            std::vector<Tensor<1,dim>> result (n_components);
+            for (int c=0; c<n_components; ++c)
+              result[c] = x[c];
+            return result;
+          }
+
+          virtual
+          std::vector<double>
+          get_value(const unsigned int evaluation_point) const override
+          {
+            const Tensor<1,n_components> x = to_tensor<n_components>(evaluation.get_value(evaluation_point));
+            std::vector<double> result (n_components);
+            for (int c=0; c<n_components; ++c)
+              result[c] = x[c];
+            return result;
+          }
+
+          FEPointEvaluation<n_components, dim, dim, double> evaluation;
+      };
+
+
+
+
+      template <int dim>
+      static std::unique_ptr<DynamicFEPointEvaluation<dim>> make(NonMatching::MappingInfo<dim> &mapping,
+                                                                  const FiniteElement<dim> &fe,
+                                                                  const unsigned int        first_selected_component,
+                                                                  int n_fields)
+      {
+        switch (n_fields)
+          {
+            case 1:
+              return std::make_unique<DynamicFEPointEvaluationImpl<dim,1>>(mapping, fe, first_selected_component);
+            case 2:
+              return std::make_unique<DynamicFEPointEvaluationImpl<dim,2>>(mapping, fe, first_selected_component);
+
+            default:
+              Assert(false, ExcNotImplemented());
+              return std::unique_ptr<DynamicFEPointEvaluation<dim>>();
+          }
+
+      }
+
+
+
       // This class evaluates the solution vector at arbitrary positions inside a cell.
       // It uses the deal.II class FEPointEvaluation to do this efficiently. Because
       // FEPointEvaluation only supports a single finite element, but ASPECT uses a FESystem with
@@ -627,7 +768,7 @@ namespace aspect
       // we create this derived class with an additional template. This makes it possible
       // to access the functionality through the base class, but create an object of this
       // derived class with the correct number of components at runtime.
-      template <int dim, int n_compositional_fields>
+      template <int dim>
       class SolutionEvaluatorsImplementation: public SolutionEvaluators<dim>
       {
         public:
@@ -680,10 +821,9 @@ namespace aspect
           std::unique_ptr<FEPointEvaluation<1, dim>> pressure;
           FEPointEvaluation<1, dim> temperature;
 
-          // If instantiated evaluate multiple compositions at once, if
-          // not fall back to evaluating them individually.
-          FEPointEvaluation<n_compositional_fields, dim> compositions;
-          std::vector<FEPointEvaluation<1, dim>> additional_compositions;
+          // We group compositions by type (FiniteElement) and evaluate
+          // them together.
+          std::vector<std::unique_ptr<DynamicFEPointEvaluation<dim>>> compositions;
 
           // Pointers to FEPointEvaluation objects for all melt
           // components of ASPECT's finite element solution, which only
@@ -706,9 +846,9 @@ namespace aspect
 
 
 
-      template <int dim, int n_compositional_fields>
-      SolutionEvaluatorsImplementation<dim, n_compositional_fields>::SolutionEvaluatorsImplementation(const SimulatorAccess<dim> &simulator,
-          const UpdateFlags update_flags)
+      template <int dim>
+      SolutionEvaluatorsImplementation<dim>::SolutionEvaluatorsImplementation(const SimulatorAccess<dim> &simulator,
+                                                                              const UpdateFlags update_flags)
         :
         mapping_info(simulator.get_mapping(),
                      update_flags),
@@ -721,21 +861,21 @@ namespace aspect
         temperature(mapping_info,
                     simulator.get_fe(),
                     simulator.introspection().component_indices.temperature),
-        compositions(mapping_info,
-                     simulator.get_fe(),
-                     simulator.n_compositional_fields() > 0 ? simulator.introspection().component_indices.compositional_fields[0] : simulator.introspection().component_indices.temperature),
 
         melt_component_indices(),
         simulator_access(simulator)
       {
-        // Create the evaluators for all compositional fields beyond the ones this class was
-        // instantiated for
+        // Create the evaluators for all compositional fields
         const unsigned int n_total_compositional_fields = simulator_access.n_compositional_fields();
+
         const auto &component_indices = simulator_access.introspection().component_indices.compositional_fields;
-        for (unsigned int composition = n_compositional_fields; composition < n_total_compositional_fields; ++composition)
-          additional_compositions.emplace_back(FEPointEvaluation<1, dim>(mapping_info,
-                                                                         simulator_access.get_fe(),
-                                                                         component_indices[composition]));
+
+        for (unsigned int composition = 0; composition < n_total_compositional_fields; ++composition)
+          compositions.emplace_back(make<dim>(mapping_info,
+                                              simulator_access.get_fe(),
+                                              component_indices[composition],
+                                              1
+                                             ));
 
         // The FE_DGP pressure element used in locally conservative discretization is not
         // supported by the fast path of FEPointEvaluation. Replace with slow path.
@@ -784,12 +924,12 @@ namespace aspect
 
 
 
-      template <int dim, int n_compositional_fields>
+      template <int dim>
       void
-      SolutionEvaluatorsImplementation<dim, n_compositional_fields>::reinit(const typename DoFHandler<dim>::active_cell_iterator &cell,
-                                                                            const ArrayView<Point<dim>> &positions,
-                                                                            const ArrayView<double> &solution_values,
-                                                                            const UpdateFlags update_flags)
+      SolutionEvaluatorsImplementation<dim>::reinit(const typename DoFHandler<dim>::active_cell_iterator &cell,
+                                                    const ArrayView<Point<dim>> &positions,
+                                                    const ArrayView<double> &solution_values,
+                                                    const UpdateFlags update_flags)
       {
         // FEPointEvaluation uses different evaluation flags than the common UpdateFlags.
         // Translate between the two.
@@ -831,10 +971,9 @@ namespace aspect
         velocity.evaluate (solution_values, evaluation_flags);
         pressure->evaluate (solution_values, evaluation_flags);
         temperature.evaluate (solution_values, evaluation_flags);
-        compositions.evaluate (solution_values, evaluation_flags);
 
-        for (auto &evaluator_composition: additional_compositions)
-          evaluator_composition.evaluate (solution_values, evaluation_flags);
+        for (auto &eval: compositions)
+          eval->evaluate (solution_values, evaluation_flags);
 
         if (simulator_access.include_melt_transport())
           {
@@ -887,10 +1026,10 @@ namespace aspect
       }
 
 
-      template <int dim, int n_compositional_fields>
+      template <int dim>
       void
-      SolutionEvaluatorsImplementation<dim, n_compositional_fields>::get_solution(const unsigned int evaluation_point,
-                                                                                  Vector<double> &solution)
+      SolutionEvaluatorsImplementation<dim>::get_solution(const unsigned int evaluation_point,
+                                                          Vector<double> &solution)
       {
         Assert(solution.size() == simulator_access.introspection().n_components,
                ExcDimensionMismatch(solution.size(), simulator_access.introspection().n_components));
@@ -904,15 +1043,14 @@ namespace aspect
         solution[component_indices.pressure] = pressure->get_value(evaluation_point);
         solution[component_indices.temperature] = temperature.get_value(evaluation_point);
 
-        if (n_compositional_fields > 0)
-          for (unsigned int j=0; j<n_compositional_fields; ++j)
-            solution[component_indices.compositional_fields[j]] = get_value<n_compositional_fields>(
-                                                                    compositions.get_value(evaluation_point),
-                                                                    j);
+        for (const auto &eval : compositions)
+          {
+            const std::vector<double> values = eval->get_value(evaluation_point);
+            const int s = eval->first_component;
 
-        const unsigned int n_additional_compositions = additional_compositions.size();
-        for (unsigned int j=0; j<n_additional_compositions; ++j)
-          solution[component_indices.compositional_fields[n_compositional_fields+j]] = additional_compositions[j].get_value(evaluation_point);
+            for (int j=0; j<eval->n_components; ++j)
+              solution[j+s] = values[j];
+          }
 
         if (simulator_access.include_melt_transport())
           {
@@ -927,10 +1065,10 @@ namespace aspect
 
 
 
-      template <int dim, int n_compositional_fields>
+      template <int dim>
       void
-      SolutionEvaluatorsImplementation<dim, n_compositional_fields>::get_gradients(const unsigned int evaluation_point,
-                                                                                   std::vector<Tensor<1,dim>> &gradients)
+      SolutionEvaluatorsImplementation<dim>::get_gradients(const unsigned int evaluation_point,
+                                                           std::vector<Tensor<1,dim>> &gradients)
       {
         Assert(gradients.size() == simulator_access.introspection().n_components,
                ExcDimensionMismatch(gradients.size(), simulator_access.introspection().n_components));
@@ -944,15 +1082,14 @@ namespace aspect
         gradients[component_indices.pressure] = pressure->get_gradient(evaluation_point);
         gradients[component_indices.temperature] = temperature.get_gradient(evaluation_point);
 
-        if (n_compositional_fields > 0)
-          for (unsigned int j=0; j<n_compositional_fields; ++j)
-            gradients[component_indices.compositional_fields[j]] = get_gradient<dim,n_compositional_fields>(
-                                                                     compositions.get_gradient(evaluation_point),
-                                                                     j);
+        for (const auto &eval : compositions)
+          {
+            const std::vector<Tensor<1,dim>> values = eval->get_gradient(evaluation_point);
+            const int s = eval->first_component;
 
-        const unsigned int n_additional_compositions = additional_compositions.size();
-        for (unsigned int j=0; j<n_additional_compositions; ++j)
-          gradients[component_indices.compositional_fields[n_compositional_fields+j]] = additional_compositions[j].get_gradient(evaluation_point);
+            for (int j=0; j<eval->n_components; ++j)
+              gradients[j+s] = values[j];
+          }
 
         if (simulator_access.include_melt_transport())
           {
@@ -966,9 +1103,9 @@ namespace aspect
       }
 
 
-      template <int dim, int n_compositional_fields>
+      template <int dim>
       FEPointEvaluation<dim, dim> &
-      SolutionEvaluatorsImplementation<dim, n_compositional_fields>::get_velocity_or_fluid_velocity_evaluator(const bool use_fluid_velocity)
+      SolutionEvaluatorsImplementation<dim>::get_velocity_or_fluid_velocity_evaluator(const bool use_fluid_velocity)
       {
         if (use_fluid_velocity)
           return *fluid_velocity;
@@ -977,9 +1114,12 @@ namespace aspect
 
         return velocity;
       }
-      template <int dim, int n_compositional_fields>
+
+
+
+      template <int dim>
       NonMatching::MappingInfo<dim> &
-      SolutionEvaluatorsImplementation<dim, n_compositional_fields>::get_mapping_info()
+      SolutionEvaluatorsImplementation<dim>::get_mapping_info()
       {
         return mapping_info;
       }
@@ -992,53 +1132,7 @@ namespace aspect
       construct_solution_evaluators (const SimulatorAccess<dim> &simulator_access,
                                      const UpdateFlags update_flags)
       {
-        switch (simulator_access.n_compositional_fields())
-          {
-            case 0:
-              return std::make_unique<SolutionEvaluatorsImplementation<dim,0>>(simulator_access, update_flags);
-            case 1:
-              return std::make_unique<SolutionEvaluatorsImplementation<dim,1>>(simulator_access, update_flags);
-            case 2:
-              return std::make_unique<SolutionEvaluatorsImplementation<dim,2>>(simulator_access, update_flags);
-            case 3:
-              return std::make_unique<SolutionEvaluatorsImplementation<dim,3>>(simulator_access, update_flags);
-            case 4:
-              return std::make_unique<SolutionEvaluatorsImplementation<dim,4>>(simulator_access, update_flags);
-            case 5:
-              return std::make_unique<SolutionEvaluatorsImplementation<dim,5>>(simulator_access, update_flags);
-            case 6:
-              return std::make_unique<SolutionEvaluatorsImplementation<dim,6>>(simulator_access, update_flags);
-            case 7:
-              return std::make_unique<SolutionEvaluatorsImplementation<dim,7>>(simulator_access, update_flags);
-            case 8:
-              return std::make_unique<SolutionEvaluatorsImplementation<dim,8>>(simulator_access, update_flags);
-            case 9:
-              return std::make_unique<SolutionEvaluatorsImplementation<dim,9>>(simulator_access, update_flags);
-            case 10:
-              return std::make_unique<SolutionEvaluatorsImplementation<dim,10>>(simulator_access, update_flags);
-            case 11:
-              return std::make_unique<SolutionEvaluatorsImplementation<dim,11>>(simulator_access, update_flags);
-            case 12:
-              return std::make_unique<SolutionEvaluatorsImplementation<dim,12>>(simulator_access, update_flags);
-            case 13:
-              return std::make_unique<SolutionEvaluatorsImplementation<dim,13>>(simulator_access, update_flags);
-            case 14:
-              return std::make_unique<SolutionEvaluatorsImplementation<dim,14>>(simulator_access, update_flags);
-            case 15:
-              return std::make_unique<SolutionEvaluatorsImplementation<dim,15>>(simulator_access, update_flags);
-            case 16:
-              return std::make_unique<SolutionEvaluatorsImplementation<dim,16>>(simulator_access, update_flags);
-            case 17:
-              return std::make_unique<SolutionEvaluatorsImplementation<dim,17>>(simulator_access, update_flags);
-            case 18:
-              return std::make_unique<SolutionEvaluatorsImplementation<dim,18>>(simulator_access, update_flags);
-            case 19:
-              return std::make_unique<SolutionEvaluatorsImplementation<dim,19>>(simulator_access, update_flags);
-            // Return the maximally instantiated object. The class will handle additional compositional fields
-            // by dynamically allocating additional scalar evaluators.
-            default:
-              return std::make_unique<SolutionEvaluatorsImplementation<dim,20>>(simulator_access, update_flags);
-          }
+        return std::make_unique<SolutionEvaluatorsImplementation<dim>>(simulator_access, update_flags);
       }
     }
 
@@ -1095,8 +1189,8 @@ namespace aspect
                           "It is safe to uncomment this assertion, but you can expect a performance penalty."));
 
         std::unique_ptr<internal::SolutionEvaluators<dim>> evaluators =
-          std::make_unique<internal::SolutionEvaluatorsImplementation<dim, 0>>(*this,
-                                                                                update_values);
+          std::make_unique<internal::SolutionEvaluatorsImplementation<dim>>(*this,
+                                                                             update_values);
 
         // Loop over all cells and advect the particles cell-wise
         for (const auto &cell : this->get_dof_handler().active_cell_iterators())
