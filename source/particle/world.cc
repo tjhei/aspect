@@ -632,9 +632,6 @@ namespace aspect
           int first_component;
           int n_components;
 
-          virtual void reinit() = 0;
-
-
           virtual void evaluate(const ArrayView<double> &solution_values,
                                 const EvaluationFlags::EvaluationFlags flags) = 0;
 
@@ -696,11 +693,6 @@ namespace aspect
             : DynamicFEPointEvaluation<dim>(first_selected_component, n_components),
               evaluation(mapping, fe, first_selected_component)
           {}
-
-          void reinit() override
-          {
-
-          }
 
           void evaluate(const ArrayView<double> &solution_values,
                         const EvaluationFlags::EvaluationFlags flags) override
