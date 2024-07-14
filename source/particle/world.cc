@@ -624,13 +624,13 @@ namespace aspect
         public:
           DynamicFEPointEvaluation(const unsigned int first_component, const unsigned int n_components)
             : first_component (first_component),
-              n_components(n_components)
+              n_components (n_components)
           {}
 
           virtual ~DynamicFEPointEvaluation() = default;
 
-          int first_component;
-          int n_components;
+          unsigned int first_component;
+          unsigned int n_components;
 
           virtual void evaluate(const ArrayView<double> &solution_values,
                                 const EvaluationFlags::EvaluationFlags flags) = 0;
@@ -647,42 +647,54 @@ namespace aspect
 
 
 
-      template <int dim>
-      Tensor<1,dim> to_tensor(const Tensor<1,dim> &in)
+      /**
+       * The functions in this namespace allow us to use scalar and vector-valued FEEvaluation objects in the same
+       * way, as the return type of FEEvaluation is double for one component, but a Tensor for more than one
+       * component. These function converts scalar to Tensor return values.
+       */
+      namespace convert
       {
-        return in;
+        template <int dim>
+        Tensor<1,dim> to_tensor(const Tensor<1,dim> &in)
+        {
+          return in;
+        }
+
+
+
+        template <int dim>
+        Tensor<1,1> to_tensor(const double in)
+        {
+          Tensor<1,1> result;
+          result[0] = in;
+          return result;
+        }
+
+
+
+        template <int dim, int n_components>
+        Tensor<1,n_components,Tensor<1,dim>> to_tensor2(const Tensor<1,n_components,Tensor<1,dim>> &in)
+        {
+          return in;
+        }
+
+
+
+        template <int dim, int n_components>
+        Tensor<1,1,Tensor<1,dim>> to_tensor2(const Tensor<1,dim> &in)
+        {
+          Tensor<1,1,Tensor<1,dim>> result;
+          result[0] = in;
+          return result;
+        }
       }
 
 
 
-      template <int dim>
-      Tensor<1,1> to_tensor(const double in)
-      {
-        Tensor<1,1> result;
-        result[0] = in;
-        return result;
-      }
-
-
-
-      template <int dim, int n_components>
-      Tensor<1,n_components,Tensor<1,dim>> to_tensor2(const Tensor<1,n_components,Tensor<1,dim>> &in)
-      {
-        return in;
-      }
-
-
-
-      template <int dim, int n_components>
-      Tensor<1,1,Tensor<1,dim>> to_tensor2(const Tensor<1,dim> &in)
-      {
-        Tensor<1,1,Tensor<1,dim>> result;
-        result[0] = in;
-        return result;
-      }
-
-
-
+      /**
+       * Implementation of the base class DynamicFEPointEvaluation that wraps
+       * an FEEvaluation object.
+       */
       template <int dim, int n_components>
       class DynamicFEPointEvaluationImpl: public DynamicFEPointEvaluation<dim>
       {
@@ -700,23 +712,21 @@ namespace aspect
             evaluation.evaluate(solution_values, flags);
           }
 
-          virtual
-          std::vector<Tensor<1,dim>>
-          get_gradient(const unsigned int evaluation_point) const override
+          std::vector<double>
+          get_value(const unsigned int evaluation_point) const override
           {
-            const Tensor<1,n_components,Tensor<1,dim>> x = to_tensor2<dim,n_components>(evaluation.get_gradient(evaluation_point));
-            std::vector<Tensor<1,dim>> result (n_components);
+            const Tensor<1,n_components> x = convert::to_tensor<n_components>(evaluation.get_value(evaluation_point));
+            std::vector<double> result (n_components);
             for (int c=0; c<n_components; ++c)
               result[c] = x[c];
             return result;
           }
 
-          virtual
-          std::vector<double>
-          get_value(const unsigned int evaluation_point) const override
+          std::vector<Tensor<1,dim>>
+          get_gradient(const unsigned int evaluation_point) const override
           {
-            const Tensor<1,n_components> x = to_tensor<n_components>(evaluation.get_value(evaluation_point));
-            std::vector<double> result (n_components);
+            const Tensor<1,n_components,Tensor<1,dim>> x = convert::to_tensor2<dim,n_components>(evaluation.get_gradient(evaluation_point));
+            std::vector<Tensor<1,dim>> result (n_components);
             for (int c=0; c<n_components; ++c)
               result[c] = x[c];
             return result;
@@ -890,12 +900,14 @@ namespace aspect
           }
         else
           {
-            // Grouping of fields of the same type:
+            // We consider each group of consecutive compositions of the same type together. This is because it is more efficient
+            // than evaluating each one individually.
             for (const unsigned int base_element_index : simulator.introspection().get_composition_base_element_indices())
               {
                 std::vector<unsigned int> indices = simulator.introspection().get_compositional_field_indices_with_base_element(base_element_index);
 
-                // We can evaluate at most 10 at a time:
+                // We can evaluate at most N at a time, if we have more than that of the same type, we tackle
+                // them in groups of N:
                 const unsigned int N = 10;
                 while (indices.size()>N)
                   {
@@ -1086,10 +1098,10 @@ namespace aspect
         for (const auto &eval : compositions)
           {
             const std::vector<double> values = eval->get_value(evaluation_point);
-            const int s = eval->first_component;
+            const unsigned int start_index = eval->first_component;
 
-            for (int j=0; j<eval->n_components; ++j)
-              solution[j+s] = values[j];
+            for (unsigned int j=0; j<eval->n_components; ++j)
+              solution[j+start_index] = values[j];
           }
 
         if (simulator_access.include_melt_transport())
@@ -1125,10 +1137,10 @@ namespace aspect
         for (const auto &eval : compositions)
           {
             const std::vector<Tensor<1,dim>> values = eval->get_gradient(evaluation_point);
-            const int s = eval->first_component;
+            const unsigned int start_index = eval->first_component;
 
-            for (int j=0; j<eval->n_components; ++j)
-              gradients[j+s] = values[j];
+            for (unsigned int j=0; j<eval->n_components; ++j)
+              gradients[j+start_index] = values[j];
           }
 
         if (simulator_access.include_melt_transport())
@@ -1151,8 +1163,6 @@ namespace aspect
           return *fluid_velocity;
         else
           return velocity;
-
-        return velocity;
       }
 
 
