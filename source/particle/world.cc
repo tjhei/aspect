@@ -474,15 +474,20 @@ namespace aspect
       if (update_flags & update_gradients)
         gradients.resize(n_particles_in_cell,std::vector<Tensor<1,dim>>(this->introspection().n_components));
 
+      // Evaluate the solution, but only if it is requested in the update_flags
+      if (update_flags & update_values)
+        evaluators.get_solutions(solution);
+      if (update_flags & update_gradients)
+        evaluators.get_gradients(gradients);
+
       for (unsigned int i = 0; i<n_particles_in_cell; ++i)
         {
-          // Evaluate the solution, but only if it is requested in the update_flags
-          if (update_flags & update_values)
-            evaluators.get_solution(i, solution[i]);
+          // if (update_flags & update_values)
+          //     evaluators.get_solution(i, solution[i]);
 
           // Evaluate the gradients, but only if they are requested in the update_flags
-          if (update_flags & update_gradients)
-            evaluators.get_gradients(i, gradients[i]);
+          // if (update_flags & update_gradients)
+          //   evaluators.get_gradients(i, gradients[i]);
         }
 
       property_manager->update_particles(particles,
@@ -640,9 +645,14 @@ namespace aspect
           get_gradient(const unsigned int evaluation_point) const = 0;
 
           virtual
+          void get_gradient_fast(ArrayView<Tensor<1,dim>> &destination, const unsigned int evaluation_point) const = 0;
+
+          virtual
           std::vector<double>
           get_value(const unsigned int evaluation_point) const = 0;
 
+          virtual
+          void get_value_fast(ArrayView<double> &destination, const unsigned int evaluation_point) const = 0;
       };
 
 
@@ -722,6 +732,14 @@ namespace aspect
             return result;
           }
 
+
+          void get_value_fast(ArrayView<double> &destination, const unsigned int evaluation_point) const override
+          {
+            const Tensor<1,n_components> x = convert::to_tensor<n_components>(evaluation.get_value(evaluation_point));
+            for (int c=0; c<n_components; ++c)
+              destination[c] = x[c];
+          }
+
           std::vector<Tensor<1,dim>>
           get_gradient(const unsigned int evaluation_point) const override
           {
@@ -730,6 +748,15 @@ namespace aspect
             for (int c=0; c<n_components; ++c)
               result[c] = x[c];
             return result;
+          }
+
+
+          void
+          get_gradient_fast(ArrayView<Tensor<1,dim>> &destination, const unsigned int evaluation_point) const override
+          {
+            const Tensor<1,n_components,Tensor<1,dim>> x = convert::to_tensor2<dim,n_components>(evaluation.get_gradient(evaluation_point));
+            for (int c=0; c<n_components; ++c)
+              destination[c] = x[c];
           }
 
           FEPointEvaluation<n_components, dim, dim, double> evaluation;
@@ -812,6 +839,7 @@ namespace aspect
           // happened in reinit().
           void get_solution(const unsigned int evaluation_point,
                             Vector<double> &solution) override;
+          void get_solutions(std::vector<Vector<double>> &solutions) override;
 
           // Return the value of all solution gradients at the given evaluation point. Note
           // that this function only works after a successful call to reinit(),
@@ -819,6 +847,9 @@ namespace aspect
           // happened in reinit().
           void get_gradients(const unsigned int evaluation_point,
                              std::vector<Tensor<1,dim>> &gradients) override;
+
+          void get_gradients(std::vector<
+                             std::vector<Tensor<1,dim>>> &gradients) override;
 
           // Return the evaluator for velocity or fluid velocity. This is the only
           // information necessary for advecting particles.
@@ -1097,11 +1128,16 @@ namespace aspect
 
         for (const auto &eval : compositions)
           {
-            const std::vector<double> values = eval->get_value(evaluation_point);
             const unsigned int start_index = eval->first_component;
 
-            for (unsigned int j=0; j<eval->n_components; ++j)
-              solution[j+start_index] = values[j];
+            ArrayView<double> destination (&solution[start_index],eval->n_components);
+            eval->get_value_fast(destination,evaluation_point);
+
+//            const std::vector<double> values =
+
+
+//            for (unsigned int j=0; j<eval->n_components; ++j)
+            //            solution[j+start_index] = values[j];
           }
 
         if (simulator_access.include_melt_transport())
@@ -1113,6 +1149,55 @@ namespace aspect
             solution[melt_component_indices[1]] = fluid_pressure->get_value(evaluation_point);
             solution[melt_component_indices[2]] = compaction_pressure->get_value(evaluation_point);
           }
+      }
+
+
+      template <int dim>
+      void
+      SolutionEvaluatorsImplementation<dim>::get_solutions(std::vector<Vector<double>> &solution)
+      {
+        const unsigned int n_evaluation_points = solution.size();
+        Assert(n_evaluation_points > 0, ExcInternalError());
+        Assert(solution[0].size() == simulator_access.introspection().n_components,
+               ExcDimensionMismatch(solution.size(), simulator_access.introspection().n_components));
+
+        const auto &component_indices = simulator_access.introspection().component_indices;
+
+
+        for (unsigned int i=0; i<n_evaluation_points; ++i)
+          {
+            const Tensor<1,dim> velocity_value = velocity.get_value(i);
+            for (unsigned int j=0; j<dim; ++j)
+              solution[i][component_indices.velocities[j]] = velocity_value[j];
+            solution[i][component_indices.pressure] = pressure->get_value(i);
+            solution[i][component_indices.temperature] = temperature.get_value(i);
+          }
+
+
+        for (const auto &eval : compositions)
+          {
+            //const std::vector<double> values = eval->get_value(evaluation_point);
+            const unsigned int start_index = eval->first_component;
+
+            for (unsigned int i=0; i<n_evaluation_points; ++i)
+              {
+
+                ArrayView<double> destination (&solution[i][start_index],eval->n_components);
+                eval->get_value_fast(destination,i);
+              }
+
+          }
+
+        if (simulator_access.include_melt_transport())
+          for (unsigned int evaluation_point=0; evaluation_point<n_evaluation_points; ++evaluation_point)
+            {
+              const Tensor<1,dim> fluid_velocity_value = velocity.get_value(evaluation_point);
+              for (unsigned int j=0; j<dim; ++j)
+                solution[melt_component_indices[0]+j] = fluid_velocity_value[j];
+
+              solution[melt_component_indices[1]] = fluid_pressure->get_value(evaluation_point);
+              solution[melt_component_indices[2]] = compaction_pressure->get_value(evaluation_point);
+            }
       }
 
 
@@ -1154,6 +1239,55 @@ namespace aspect
           }
       }
 
+      template <int dim>
+      void
+      SolutionEvaluatorsImplementation<dim>::get_gradients(std::vector<std::vector<Tensor<1,dim>>> &gradients)
+      {
+        const unsigned int n_evaluation_points = gradients.size();
+        Assert(gradients[0].size() == simulator_access.introspection().n_components,
+               ExcDimensionMismatch(gradients.size(), simulator_access.introspection().n_components));
+
+        const auto &component_indices = simulator_access.introspection().component_indices;
+
+
+        for (unsigned int evaluation_point = 0; evaluation_point < n_evaluation_points; ++evaluation_point)
+          {
+            const Tensor<2,dim> velocity_gradient = velocity.get_gradient(evaluation_point);
+            for (unsigned int j=0; j<dim; ++j)
+              gradients[evaluation_point][component_indices.velocities[j]] = velocity_gradient[j];
+            gradients[evaluation_point][component_indices.pressure] = pressure->get_gradient(evaluation_point);
+            gradients[evaluation_point][component_indices.temperature] = temperature.get_gradient(evaluation_point);
+          }
+
+
+        for (const auto &eval : compositions)
+          {
+            //const std::vector<Tensor<1,dim>> values = eval->get_gradient(evaluation_point);
+            const unsigned int start_index = eval->first_component;
+
+            for (unsigned int i=0; i<n_evaluation_points; ++i)
+              {
+
+                ArrayView<Tensor<1,dim>> destination (&gradients[i][start_index],eval->n_components);
+                eval->get_gradient_fast(destination, i);
+              }
+
+
+            // for (unsigned int j=0; j<eval->n_components; ++j)
+            //   gradients[j+start_index] = values[j];
+          }
+
+        if (simulator_access.include_melt_transport())
+          for (unsigned int evaluation_point = 0; evaluation_point < n_evaluation_points; ++evaluation_point)
+            {
+              const Tensor<2,dim> fluid_velocity_gradient = velocity.get_gradient(evaluation_point);
+              for (unsigned int j=0; j<dim; ++j)
+                gradients[evaluation_point][melt_component_indices[0]+j] = fluid_velocity_gradient[j];
+
+              gradients[evaluation_point][melt_component_indices[1]] = fluid_pressure->get_gradient(evaluation_point);
+              gradients[evaluation_point][melt_component_indices[2]] = compaction_pressure->get_gradient(evaluation_point);
+            }
+      }
 
       template <int dim>
       FEPointEvaluation<dim, dim> &

@@ -104,6 +104,8 @@ namespace aspect
           virtual void get_solution(const unsigned int evaluation_point,
                                     Vector<double> &solution) = 0;
 
+          virtual void get_solutions(std::vector<Vector<double>> &solutions) = 0;
+
           /**
            * Fill @p gradients with all solution gradients at the given @p evaluation_point. Note
            * that this function only works after a successful call to reinit(),
@@ -112,6 +114,8 @@ namespace aspect
            */
           virtual void get_gradients(const unsigned int evaluation_point,
                                      std::vector<Tensor<1, dim>> &gradients) = 0;
+          virtual void get_gradients(std::vector<
+                                     std::vector<Tensor<1,dim>>> &gradients) = 0;
 
           /**
            * Return the evaluator for velocity or fluid velocity. This is the only
