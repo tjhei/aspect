@@ -26,6 +26,8 @@
 #include <aspect/mesh_deformation/interface.h>
 
 #include <deal.II/base/signaling_nan.h>
+#include <deal.II/dofs/dof_tools.h>
+#include <deal.II/lac/linear_operator.h>
 #include <deal.II/lac/solver_gmres.h>
 #include <deal.II/lac/solver_bicgstab.h>
 #include <deal.II/lac/solver_cg.h>
@@ -162,11 +164,47 @@ namespace aspect
 
       return dst.l2_norm();
     }
+    template<class VectorType>
+    struct Nullspace{
+      std::vector<VectorType> basis;
+    };
+
+    template<typename Range, 
+    typename Domain,
+    typename Payload,
+    class Op,
+    class VectorType> 
+    LinearOperator<Range, Domain, Payload> myoperator(Op & op,
+    LinearOperator<Range,Domain,Payload> & exemplar,
+    Nullspace<VectorType> & nullspace){
+      LinearOperator<Range, Domain, Payload> return_op;
+
+    return_op.reinit_range_vector  = exemplar.reinit_range_vector;
+    return_op.reinit_domain_vector = exemplar.reinit_domain_vector;
+
+    return_op.vmult = [&](Range &dest, const Domain &src) {
+      // std::cout << "before vmult" << std::endl;
+      op.vmult(dest, src); // dest = Phi(src)
+
+      // std::cout << "projection" << std::endl;
+      //  Projection.
+      for (unsigned int i = 0; i < nullspace.basis.size(); ++i)
+        {
+          double inner_product = nullspace.basis[i] * dest;
+          dest.add(-1.0 * inner_product, nullspace.basis[i]);
+        }
+    };
+      //  std::cout << "ok" << std::endl;
+      return return_op;
+    
+    }
 
 
     /**
      * Implement the block Schur preconditioner for the Stokes system.
      */
+    
+    
     template <class AInvOperator, class SInvOperator>
     class BlockSchurPreconditioner : public Subscriptor
     {
@@ -763,6 +801,55 @@ namespace aspect
   std::pair<double,double>
   Simulator<dim>::solve_stokes ()
   {
+    aspect::internal::Nullspace<TrilinosWrappers::MPI::Vector> nullspace;
+    nullspace.basis.emplace_back(introspection.index_sets.stokes_partitioning,mpi_communicator);
+
+    TrilinosWrappers::MPI::Vector &vec=nullspace.basis[0];
+    AffineConstraints<double> c;
+    c.close();
+    const unsigned int gauss_degree=finite_element.degree+1;
+     QGauss<dim>                          quadrature_formula(gauss_degree);
+        std::vector<types::global_dof_index> local_dof_indices(
+          finite_element.n_dofs_per_cell());
+
+        FEValues<dim, dim> fe_values(finite_element,
+                                     quadrature_formula,
+                                     update_JxW_values | update_values);
+        Vector<double>     local_constraint(fe_values.dofs_per_cell);
+
+        for (const auto &cell : dof_handler.active_cell_iterators())
+
+          if (cell->is_locally_owned())
+            {
+              local_constraint = 0;
+              fe_values.reinit(cell);
+              for (unsigned int q_point = 0;
+                   q_point < fe_values.n_quadrature_points;
+                   ++q_point)
+                for (unsigned int i = 0; i < fe_values.dofs_per_cell; ++i)
+                  local_constraint(i) +=
+                    fe_values.shape_value(i, q_point) * fe_values.JxW(q_point);
+
+
+              cell->get_dof_indices(local_dof_indices);
+              if (true)
+                {
+                  // no hanging node constraints:
+                  c.distribute_local_to_global(local_constraint,
+                                               local_dof_indices,
+                                               vec);
+                }
+              else
+                {
+                  // with constraints:
+                  constraints.distribute_local_to_global(local_constraint,
+                                                         local_dof_indices,
+                                                         vec);
+                }
+            }
+        vec.compress(VectorOperation::add);
+        vec/=vec.l2_norm();
+  
     TimerOutput::Scope timer (computing_timer, "Solve Stokes system");
 
     const std::string name = [&]() -> std::string
