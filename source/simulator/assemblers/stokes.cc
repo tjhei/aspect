@@ -166,7 +166,7 @@ namespace aspect
                         data.local_matrix(i, j) += (
                                                      1.0/sqrt_eta * pressure_scaling
                                                      * (scratch.grad_phi_p[i]
-                                                        * scratch.grad_phi_p[j] + 1e-6*scratch.phi_p[i]*scratch.phi_p[j] ))
+                                                        * scratch.grad_phi_p[j] + 1e-6*0*scratch.phi_p[i]*scratch.phi_p[j] ))
                                                    * JxW;
                     }
                 }

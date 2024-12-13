@@ -165,46 +165,75 @@ namespace aspect
       return dst.l2_norm();
     }
     template<class VectorType>
-    struct Nullspace{
+    struct Nullspace
+    {
       std::vector<VectorType> basis;
     };
 
-    template<typename Range, 
-    typename Domain,
-    typename Payload,
-    class Op,
-    class VectorType> 
-    LinearOperator<Range, Domain, Payload> myoperator(Op & op,
-    LinearOperator<Range,Domain,Payload> & exemplar,
-    Nullspace<VectorType> & nullspace){
+    template<typename Range,
+             typename Domain,
+             typename Payload,
+             class Op,
+             class VectorType>
+    LinearOperator<Range, Domain, Payload> myoperator(Op &op,
+                                                      LinearOperator<Range,Domain,Payload> &exemplar,
+                                                      Nullspace<VectorType> &nullspace)
+    {
       LinearOperator<Range, Domain, Payload> return_op;
 
-    return_op.reinit_range_vector  = exemplar.reinit_range_vector;
-    return_op.reinit_domain_vector = exemplar.reinit_domain_vector;
+      return_op.reinit_range_vector  = exemplar.reinit_range_vector;
+      return_op.reinit_domain_vector = exemplar.reinit_domain_vector;
 
-    return_op.vmult = [&](Range &dest, const Domain &src) {
-      // std::cout << "before vmult" << std::endl;
-      op.vmult(dest, src); // dest = Phi(src)
+      return_op.vmult = [&](Range &dest, const Domain &src)
+      {
+        // std::cout << "before vmult" << std::endl;
+        op.vmult(dest, src); // dest = Phi(src)
 
-      // std::cout << "projection" << std::endl;
-      //  Projection.
-      for (unsigned int i = 0; i < nullspace.basis.size(); ++i)
-        {
-          double inner_product = nullspace.basis[i] * dest;
-          dest.add(-1.0 * inner_product, nullspace.basis[i]);
-        }
-    };
+        // std::cout << "projection" << std::endl;
+        //  Projection.
+        for (unsigned int i = 0; i < nullspace.basis.size(); ++i)
+          {
+            double inner_product = nullspace.basis[i] * dest;
+            dest.add(-1.0 * inner_product, nullspace.basis[i]);
+          }
+      };
       //  std::cout << "ok" << std::endl;
       return return_op;
-    
+
     }
+
+
+    template<typename Range,
+             typename Domain,
+             typename Payload>
+    LinearOperator<Range, Domain, Payload> remove_mean_value(LinearOperator<Range,Domain,Payload> &exemplar)
+    {
+      LinearOperator<Range, Domain, Payload> return_op;
+
+      return_op.reinit_range_vector  = exemplar.reinit_range_vector;
+      return_op.reinit_domain_vector = exemplar.reinit_domain_vector;
+
+      return_op.vmult = [&](Range &dest, const Domain &src)
+      {
+        // std::cout << "before vmult" << std::endl;
+        // op.vmult(dest, src); // dest = Phi(src)
+
+        // std::cout << "projection" << std::endl;
+        //  Projection.
+        dest = src;
+        dest.add(-dest.mean_value());
+      };
+      //  std::cout << "ok" << std::endl;
+      return return_op;
+    }
+
 
 
     /**
      * Implement the block Schur preconditioner for the Stokes system.
      */
-    
-    
+
+
     template <class AInvOperator, class SInvOperator>
     class BlockSchurPreconditioner : public Subscriptor
     {
@@ -492,13 +521,23 @@ namespace aspect
           TrilinosWrappers::MPI::Vector wtmp;
           wtmp.reinit(inverse_lumped_mass_matrix);
           {
-            SolverControl solver_control(5000, 1e-6 * src.l2_norm(), false, true);
+            deallog.depth_console(10);
+            SolverControl solver_control(1000, 1e-6 * src.l2_norm(), false, true);
             SolverCG<TrilinosWrappers::MPI::Vector> solver(solver_control);
+
+            auto op_matrix = LinearOperator<TrilinosWrappers::MPI::Vector>(mp_matrix);
+            auto op_preconditioner = LinearOperator<TrilinosWrappers::MPI::Vector>(mp_preconditioner);
+            auto rmv = remove_mean_value<>(op_matrix);
+
+            TrilinosWrappers::MPI::Vector prhs = src;
+            prhs.add(-prhs.mean_value());
+
             //Solve with Schur Complement approximation
-            solver.solve(mp_matrix,
+            solver.solve( mp_matrix, //rmv*op_matrix, // mp_matrix, //
                          ptmp,
-                         src,
-                         mp_preconditioner);
+                         prhs,
+                         op_preconditioner);
+
             n_iterations_ += solver_control.last_step();
             system_matrix.block(0,1).vmult(utmp,ptmp);
 
@@ -508,6 +547,8 @@ namespace aspect
             system_matrix.block(1,0).vmult(ptmp,wtmp);
 
             dst=0;
+            ptmp.add(-ptmp.mean_value());
+
             solver.solve(mp_matrix,
                          dst,
                          ptmp,
@@ -802,54 +843,56 @@ namespace aspect
   Simulator<dim>::solve_stokes ()
   {
     aspect::internal::Nullspace<TrilinosWrappers::MPI::Vector> nullspace;
-    nullspace.basis.emplace_back(introspection.index_sets.stokes_partitioning,mpi_communicator);
+    nullspace.basis.emplace_back(introspection.index_sets.stokes_partitioning[1], mpi_communicator);
 
     TrilinosWrappers::MPI::Vector &vec=nullspace.basis[0];
-    AffineConstraints<double> c;
-    c.close();
-    const unsigned int gauss_degree=finite_element.degree+1;
-     QGauss<dim>                          quadrature_formula(gauss_degree);
-        std::vector<types::global_dof_index> local_dof_indices(
-          finite_element.n_dofs_per_cell());
+    // AffineConstraints<double> c;
+    // c.close();
+    // const unsigned int gauss_degree=finite_element.degree+1;
+    //  QGauss<dim>                          quadrature_formula(gauss_degree);
+    //     std::vector<types::global_dof_index> local_dof_indices(
+    //       finite_element.n_dofs_per_cell());
 
-        FEValues<dim, dim> fe_values(finite_element,
-                                     quadrature_formula,
-                                     update_JxW_values | update_values);
-        Vector<double>     local_constraint(fe_values.dofs_per_cell);
+    //     FEValues<dim, dim> fe_values(finite_element,
+    //                                  quadrature_formula,
+    //                                  update_JxW_values | update_values);
+    //     Vector<double>     local_constraint(fe_values.dofs_per_cell);
 
-        for (const auto &cell : dof_handler.active_cell_iterators())
+    //     for (const auto &cell : dof_handler.active_cell_iterators())
 
-          if (cell->is_locally_owned())
-            {
-              local_constraint = 0;
-              fe_values.reinit(cell);
-              for (unsigned int q_point = 0;
-                   q_point < fe_values.n_quadrature_points;
-                   ++q_point)
-                for (unsigned int i = 0; i < fe_values.dofs_per_cell; ++i)
-                  local_constraint(i) +=
-                    fe_values.shape_value(i, q_point) * fe_values.JxW(q_point);
+    //       if (cell->is_locally_owned())
+    //         {
+    //           local_constraint = 0;
+    //           fe_values.reinit(cell);
+    //           for (unsigned int q_point = 0;
+    //                q_point < fe_values.n_quadrature_points;
+    //                ++q_point)
+    //             for (unsigned int i = 0; i < fe_values.dofs_per_cell; ++i)
+    //               local_constraint(i) +=
+    //                 fe_values.shape_value(i, q_point) * fe_values.JxW(q_point);
 
 
-              cell->get_dof_indices(local_dof_indices);
-              if (true)
-                {
-                  // no hanging node constraints:
-                  c.distribute_local_to_global(local_constraint,
-                                               local_dof_indices,
-                                               vec);
-                }
-              else
-                {
-                  // with constraints:
-                  constraints.distribute_local_to_global(local_constraint,
-                                                         local_dof_indices,
-                                                         vec);
-                }
-            }
-        vec.compress(VectorOperation::add);
-        vec/=vec.l2_norm();
-  
+    //           cell->get_dof_indices(local_dof_indices);
+    //           if (true)
+    //             {
+    //               // no hanging node constraints:
+    //               c.distribute_local_to_global(local_constraint,
+    //                                            local_dof_indices,
+    //                                            vec);
+    //             }
+    //           else
+    //             {
+    //               // with constraints:
+    //               constraints.distribute_local_to_global(local_constraint,
+    //                                                      local_dof_indices,
+    //                                                      vec);
+    //             }
+    //         }
+
+    vec.add(1.0);
+    vec.compress(VectorOperation::add);
+    vec/=vec.l2_norm();
+
     TimerOutput::Scope timer (computing_timer, "Solve Stokes system");
 
     const std::string name = [&]() -> std::string
@@ -1204,6 +1247,7 @@ namespace aspect
                                         system_preconditioner_matrix,
                                         *schur,
                                         inverse_velocity_block_expensive);
+
         // step 1a: try if the simple and fast solver
         // succeeds in n_cheap_stokes_solver_steps steps or less.
         try
