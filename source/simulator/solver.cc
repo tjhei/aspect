@@ -526,17 +526,18 @@ namespace aspect
             SolverCG<TrilinosWrappers::MPI::Vector> solver(solver_control);
 
             auto op_matrix = LinearOperator<TrilinosWrappers::MPI::Vector>(mp_matrix);
-            auto op_preconditioner = LinearOperator<TrilinosWrappers::MPI::Vector>(mp_preconditioner);
+            auto op_preconditioner = linear_operator(op_matrix, mp_preconditioner);
             auto rmv = remove_mean_value<>(op_matrix);
 
             TrilinosWrappers::MPI::Vector prhs = src;
             prhs.add(-prhs.mean_value());
+            solver_control.set_tolerance(1e-6*prhs.l2_norm());
 
             //Solve with Schur Complement approximation
-            solver.solve( mp_matrix, //rmv*op_matrix, // mp_matrix, //
-                         ptmp,
-                         prhs,
-                         op_preconditioner);
+            solver.solve( rmv*op_matrix, //rmv*op_matrix, // mp_matrix, //
+                          ptmp,
+                          prhs,
+                          rmv*op_preconditioner);
 
             n_iterations_ += solver_control.last_step();
             system_matrix.block(0,1).vmult(utmp,ptmp);
@@ -548,11 +549,12 @@ namespace aspect
 
             dst=0;
             ptmp.add(-ptmp.mean_value());
+            solver_control.set_tolerance(1e-6*ptmp.l2_norm());
 
-            solver.solve(mp_matrix,
+            solver.solve(rmv*op_matrix,
                          dst,
                          ptmp,
-                         mp_preconditioner);
+                         rmv*op_preconditioner);
             n_iterations_ += solver_control.last_step();
           }
         }

@@ -415,7 +415,7 @@ namespace aspect
         IndexSet local_indices = inverse_lumped_mass_matrix.block(0).locally_owned_elements();
         for (auto i: local_indices)
           {
-            if (current_constraints.is_constrained(i))
+            if (current_constraints.is_constrained(i) || inverse_lumped_mass_matrix.block(0)[i]==0.0)
               {
                 inverse_lumped_mass_matrix.block(0)[i] = 1.0;
               }
