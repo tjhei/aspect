@@ -2065,6 +2065,7 @@ namespace aspect
        */
       AffineConstraints<double>                                          constraints;
       AffineConstraints<double>                                          current_constraints;
+      AffineConstraints<double>                                          current_constraints_prec;
 
       /**
        * A place to store the latest correction computed by normalize_pressure().

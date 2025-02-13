@@ -822,6 +822,22 @@ namespace aspect
 #endif
     current_constraints.close();
 
+    current_constraints_prec.reinit (introspection.index_sets.system_relevant_set);
+    current_constraints_prec.merge (constraints);
+
+//for (int b=0;b<4;++b)
+    //for (int b=0;b<2;++b)
+    VectorTools::interpolate_boundary_values (*mapping,
+                                              dof_handler,
+                                              0, // top boundary
+                                              Functions::ZeroFunction<dim>(introspection.n_components),
+                                              current_constraints_prec,
+                                              introspection.component_masks.pressure);
+
+
+    current_constraints_prec.close();
+    std::cout << current_constraints_prec.n_constraints() << std::endl;
+
     // TODO: We should use current_constraints.is_consistent_in_parallel()
     // here to assert that our constraints are consistent between
     // processors. This got removed in
@@ -1295,7 +1311,7 @@ namespace aspect
 
     DoFTools::make_sparsity_pattern (dof_handler,
                                      coupling, sp,
-                                     current_constraints, false,
+                                     current_constraints_prec, false,
                                      Utilities::MPI::
                                      this_mpi_process(mpi_communicator));
 

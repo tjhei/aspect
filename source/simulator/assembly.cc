@@ -340,9 +340,9 @@ namespace aspect
   Simulator<dim>::
   copy_local_to_global_stokes_preconditioner (const internal::Assembly::CopyData::StokesPreconditioner<dim> &data)
   {
-    current_constraints.distribute_local_to_global (data.local_matrix,
-                                                    data.local_dof_indices,
-                                                    system_preconditioner_matrix);
+    current_constraints_prec.distribute_local_to_global (data.local_matrix,
+                                                         data.local_dof_indices,
+                                                         system_preconditioner_matrix);
     if (parameters.use_bfbt)
       current_constraints.distribute_local_to_global(data.local_inverse_lumped_mass_matrix,data.local_dof_indices,inverse_lumped_mass_matrix);
   }
