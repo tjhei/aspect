@@ -1,3 +1,6 @@
 [submodule "contrib/WorldBuilder"]
 	path = contrib/WorldBuilder
 	url = https://github.com/GeodynamicWorldBuilder/WorldBuilder.git
+[submodule "landlab"]
+	path = landlab
+	url = https://github.com/landlab-aspect/landlab/
