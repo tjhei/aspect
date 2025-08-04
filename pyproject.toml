@@ -1,0 +1,18 @@
+[project]
+name = "landlab-aspect"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "landlab",
+    "mpi4py",
+]
+
+[tool.uv.workspace]
+members = [
+    "landlab",
+]
+
+[tool.uv.sources]
+landlab = { workspace = true }
