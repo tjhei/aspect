@@ -129,11 +129,16 @@ jobs:
       with:
         submodules: recursive
     - uses: astral-sh/setup-uv@v6
-    - name: setup
+    - name: Python Setup
       run: |
         uv python install 3.12
         uv venv
         uv sync
+    - name: Python Tests
+      run: |
+        . ./.venv/bin/activate
+        cd cookbooks/landlab/
+        ./test.sh
     - name: compile
       run: |
         mkdir build
