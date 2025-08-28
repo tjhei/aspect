@@ -28,7 +28,7 @@ jobs:
     runs-on: [ubuntu-22.04]
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: setup
       run: |
         sudo apt-get update
@@ -50,7 +50,7 @@ jobs:
     runs-on: [ubuntu-24.04]
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
     - name: setup
       run: |
         sudo apt-get update
@@ -109,12 +109,12 @@ jobs:
         include:
           - image: "geodynamics/aspect-tester:focal-dealii-9.5-v3"
             run-tests: "ON"
-            compare-tests: "ON"
+            compare-tests: "OFF"
             result-file: "changes-test-results-9.5.diff"
             container-options: '--name container'
           - image: "geodynamics/aspect-tester:jammy-dealii-9.6-v1"
-            run-tests: "OFF"
-            compare-tests: "OFF"
+            run-tests: "ON"
+            compare-tests: "ON"
             result-file: "changes-test-results-9.6.diff"
             container-options: '--user 0 --name container'
           - image: "geodynamics/aspect-tester:focal-dealii-master"
@@ -128,7 +128,7 @@ jobs:
       options: ${{ matrix.container-options }}
 
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v5
       with:
         submodules: recursive
     - uses: astral-sh/setup-uv@v6
