@@ -212,12 +212,14 @@ namespace aspect
       using SchurComplementMatrixType = MatrixFreeStokesOperators::MassMatrixOperator<dim,velocity_degree-1,double>;
       using ABlockMatrixType = MatrixFreeStokesOperators::ABlockOperator<dim,velocity_degree,double>;
       using BTBlockOperatorType = MatrixFreeStokesOperators::BTBlockOperator<dim,velocity_degree,double>;
+      using BBlockOperatorType = MatrixFreeStokesOperators::BBlockOperator<dim,velocity_degree,double>;
       using GMGSchurComplementMatrixType = MatrixFreeStokesOperators::MassMatrixOperator<dim,velocity_degree-1,GMGNumberType>;
       using GMGABlockMatrixType = MatrixFreeStokesOperators::ABlockOperator<dim,velocity_degree,GMGNumberType>;
 
       StokesMatrixType stokes_matrix;
       ABlockMatrixType A_block_matrix;
       BTBlockOperatorType BT_block;
+      BBlockOperatorType B_block;
       SchurComplementMatrixType Schur_complement_block_matrix;
 
       AffineConstraints<double> constraints_v;

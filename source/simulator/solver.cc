@@ -166,19 +166,10 @@ namespace aspect
       return dst.l2_norm();
     }
 
-    /**
-     * Base class for Schur Complement operators.
-     */
-    class SchurComplementOperator
-    {
-      public:
-        virtual ~SchurComplementOperator() = default;
 
-        virtual void vmult(LinearAlgebra::Vector &dst,
-                           const LinearAlgebra::Vector &src) const=0;
-        virtual unsigned int n_iterations() const=0;
 
-    };
+
+
 
     /**
      * This class approximates the Schur Complement inverse operator
@@ -188,7 +179,7 @@ namespace aspect
      * velocity mass matrix.
      */
     template <class PreconditionerMp>
-    class WeightedBFBT: public SchurComplementOperator
+    class WeightedBFBT: public SchurComplementOperator<LinearAlgebra::Vector>
     {
       public:
         /**
@@ -220,6 +211,9 @@ namespace aspect
         const LinearAlgebra::Vector &inverse_lumped_mass_matrix;
         const LinearAlgebra::BlockSparseMatrix &system_matrix;
     };
+
+
+
 
     template <class PreconditionerMp>
     WeightedBFBT<PreconditionerMp>::WeightedBFBT(
@@ -309,7 +303,7 @@ namespace aspect
       * PreconditionerMp passed to the constructor.
       */
     template <class PreconditionerMp>
-    class InverseWeightedMassMatrix: public SchurComplementOperator
+    class InverseWeightedMassMatrix: public SchurComplementOperator<LinearAlgebra::Vector>
     {
       public:
         /**
@@ -578,8 +572,10 @@ namespace aspect
 
     const std::string name = [&]() -> std::string
     {
-      if (parameters.stokes_solver_type == Parameters<dim>::StokesSolverType::block_gmg)
+      if (parameters.stokes_solver_type == Parameters<dim>::StokesSolverType::block_gmg && parameters.use_bfbt == false)
         return stokes_matrix_free->name();
+      if (parameters.stokes_solver_type == Parameters<dim>::StokesSolverType::block_gmg && parameters.use_bfbt == true)
+        return "GMG-BFBT";
       if (parameters.use_direct_stokes_solver)
         return "direct";
       if (parameters.use_bfbt)
@@ -765,7 +761,7 @@ namespace aspect
         solver_control_cheap.enable_history_data();
         solver_control_expensive.enable_history_data();
 
-        std::unique_ptr<internal::SchurComplementOperator> schur;
+        std::unique_ptr<internal::SchurComplementOperator<LinearAlgebra::Vector>> schur;
         if (parameters.use_bfbt)
           {
             schur = std::make_unique<internal::WeightedBFBT<LinearAlgebra::PreconditionBase>>(
@@ -784,6 +780,17 @@ namespace aspect
 
           }
 
+        //DEBUG CODE print diag(A)
+        LinearAlgebra::Vector diag_A_amg(system_matrix.block(0,0).locally_owned_range_indices(),this->mpi_communicator);
+        // std::cout<<"diag_A (matrix based)";
+        // for(auto i:diag_A_amg.locally_owned_elements()){
+        //   diag_A_amg[i]=system_matrix.block(0,0).diag_element(i);
+        // }
+        // for(auto i:diag_A_amg.locally_owned_elements()){
+        //   std::cout<<diag_A_amg[i]<<" ";
+        // }
+        // std::cout<<"\n";
+
         // create a cheap preconditioner that consists of only a single V-cycle
         internal::InverseVelocityBlock<LinearAlgebra::PreconditionAMG, LinearAlgebra::Vector, LinearAlgebra::SparseMatrix> inverse_velocity_block_cheap(
           system_matrix.block(velocity_block_index,velocity_block_index),
@@ -791,12 +798,15 @@ namespace aspect
           /* do_solve_A = */ false,
           stokes_A_block_is_symmetric(),
           parameters.linear_solver_A_block_tolerance);
-        const internal::BlockSchurPreconditioner<internal::InverseVelocityBlock<LinearAlgebra::PreconditionAMG, LinearAlgebra::Vector, LinearAlgebra::SparseMatrix>,
-              internal::SchurComplementOperator, LinearAlgebra::SparseMatrix, LinearAlgebra::BlockVector>
-              preconditioner_cheap (
-                inverse_velocity_block_cheap,
-                *schur,
-                system_matrix.block(0,1));
+        const internal::BlockSchurPreconditioner<
+        internal::InverseVelocityBlock<LinearAlgebra::PreconditionAMG, LinearAlgebra::Vector, LinearAlgebra::SparseMatrix>,
+                 LinearAlgebra::SparseMatrix,
+                 LinearAlgebra::BlockVector,
+                 LinearAlgebra::Vector>
+                 preconditioner_cheap(
+                   inverse_velocity_block_cheap,
+                   *schur,
+                   system_matrix.block(0,1));
 
         // create an expensive preconditioner that solves for the A block with CG
         internal::InverseVelocityBlock<LinearAlgebra::PreconditionAMG, LinearAlgebra::Vector, LinearAlgebra::SparseMatrix> inverse_velocity_block_expensive(
@@ -805,12 +815,15 @@ namespace aspect
           /* do_solve_A = */ true,
           stokes_A_block_is_symmetric(),
           parameters.linear_solver_A_block_tolerance);
-        const internal::BlockSchurPreconditioner<internal::InverseVelocityBlock<LinearAlgebra::PreconditionAMG, LinearAlgebra::Vector, LinearAlgebra::SparseMatrix>,
-              internal::SchurComplementOperator, LinearAlgebra::SparseMatrix, LinearAlgebra::BlockVector>
-              preconditioner_expensive (
-                inverse_velocity_block_expensive,
-                *schur,
-                system_matrix.block(0,1));
+
+        const internal::BlockSchurPreconditioner<
+        internal::InverseVelocityBlock<LinearAlgebra::PreconditionAMG, LinearAlgebra::Vector, LinearAlgebra::SparseMatrix>,
+                 LinearAlgebra::SparseMatrix,
+                 LinearAlgebra::BlockVector,
+                 LinearAlgebra::Vector> preconditioner_expensive(
+                   inverse_velocity_block_expensive,
+                   *schur,
+                   system_matrix.block(0,1));
         // step 1a: try if the simple and fast solver
         // succeeds in n_cheap_stokes_solver_steps steps or less.
         try

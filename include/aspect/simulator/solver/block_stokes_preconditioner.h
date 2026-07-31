@@ -159,91 +159,82 @@ namespace aspect
     {
       return n_iterations_;
     }
-
     /**
-     * Implement the block Schur preconditioner
-     * (A B^T; 0 S)^{-1}.
-     */
-    template <class AInvOperator, class SInvOperator, class BTOperator,  class VectorType>
+    * Base class for Schur Complement operators.
+    */
+    template<class VectorType>
+    class SchurComplementOperator
+    {
+      public:
+        virtual ~SchurComplementOperator() = default;
+
+        virtual void vmult(VectorType &dst,
+                           const VectorType &src) const=0;
+        virtual unsigned int n_iterations() const=0;
+
+    };
+
+
+
+    template <class AInvOperator, class BTOperator, class VectorType, class PressureVectorType>
     class BlockSchurPreconditioner : public
 #if DEAL_II_VERSION_GTE(9,7,0)
       EnableObserverPointer
 #else
       Subscriptor
 #endif
-
     {
       public:
-        /**
-         * @brief Constructor
-         * @param A_inverse_operator Approximation of the inverse of the velocity block.
-         * @param S_inverse_operator Approximation for the inverse Schur complement.
-         * @param BT_operator Operator for the B^T block of the Stokes system.
-         */
-        BlockSchurPreconditioner (
-          const AInvOperator                         &A_inverse_operator,
-          const SInvOperator                         &S_inverse_operator,
-          const BTOperator                           &BT_operator);
+        BlockSchurPreconditioner(
+          const AInvOperator                                  &A_inverse_operator,
+          const SchurComplementOperator<PressureVectorType>   &S_inverse_operator,
+          const BTOperator                                    &BT_operator);
 
-        /**
-         * Matrix vector product with this preconditioner object.
-         */
-        void vmult (VectorType       &dst,
-                    const VectorType &src) const;
+        void vmult(VectorType       &dst,
+                   const VectorType &src) const;
 
       private:
-        /**
-         * References to the various operators this preconditioner works with.
-         */
-
-        const AInvOperator                     &A_inverse_operator;
-        const SInvOperator                     &S_inverse_operator;
-        const BTOperator                       &BT_operator;
-        mutable VectorType                      tmp;
+        const AInvOperator                                  &A_inverse_operator;
+        const SchurComplementOperator<PressureVectorType>   &S_inverse_operator;
+        const BTOperator                                    &BT_operator;
+        mutable VectorType                                   tmp;
     };
 
-
-    template <class AInvOperator, class SInvOperator, class BTOperator,  class VectorType>
-    BlockSchurPreconditioner<AInvOperator, SInvOperator, BTOperator, VectorType>::
-    BlockSchurPreconditioner (
-      const AInvOperator                         &A_inverse_operator,
-      const SInvOperator                         &S_inverse_operator,
-      const BTOperator                           &BT_operator)
+    template <class AInvOperator, class BTOperator, class VectorType, class PressureVectorType>
+    BlockSchurPreconditioner<AInvOperator, BTOperator, VectorType, PressureVectorType>::
+    BlockSchurPreconditioner(
+      const AInvOperator                                  &A_inverse_operator,
+      const SchurComplementOperator<PressureVectorType>   &S_inverse_operator,
+      const BTOperator                                    &BT_operator)
       :
-      A_inverse_operator (A_inverse_operator),
-      S_inverse_operator (S_inverse_operator),
-      BT_operator        (BT_operator)
+      A_inverse_operator(A_inverse_operator),
+      S_inverse_operator(S_inverse_operator),
+      BT_operator(BT_operator)
     {}
 
 
 
-    template <class AInvOperator, class SInvOperator, class BTOperator, class VectorType>
+
+
+    template <class AInvOperator, class BTOperator, class VectorType, class PressureVectorType>
     void
-    BlockSchurPreconditioner<AInvOperator, SInvOperator, BTOperator, VectorType>::
-    vmult (VectorType       &dst,
-           const VectorType &src) const
+    BlockSchurPreconditioner<AInvOperator, BTOperator, VectorType, PressureVectorType>::
+    vmult(VectorType       &dst,
+          const VectorType &src) const
     {
       if (tmp.size() == 0)
         tmp.reinit(src);
 
+      dst = 0.0;
 
-      dst=0.0;
-
-      // first apply the Schur Complement inverse operator.
       {
-        S_inverse_operator.vmult(dst.block(1),src.block(1));
+        S_inverse_operator.vmult(dst.block(1), src.block(1));
         dst.block(1) *= -1.0;
       }
 
-
-      // apply the top right block: B^T or J^{up}
       {
-        // For matrix-free usage, the BT operator needs to operate on the whole vector,
-        // but the matrix-based version is a SparseMatrix::vmult() that requires passing the
-        // individual blocks.
         if constexpr (std::is_same_v<VectorType, dealii::LinearAlgebra::distributed::BlockVector<double>>)
           BT_operator.vmult(tmp, dst);
-
         else
           BT_operator.vmult(tmp.block(0), dst.block(1));
 
@@ -254,27 +245,18 @@ namespace aspect
       A_inverse_operator.vmult(dst.block(0), tmp.block(0));
     }
 
-
-
     template<class OperatorType, class StokesMatrixType, class SchurComplementMatrixType, class VectorType>
-    class SchurApproximation
+    class SchurApproximation : public SchurComplementOperator<VectorType>
     {
       public:
-        /**
-         * @brief Constructor
-         * @param schur_preconditioner Preconditioner for the Schur Complement.
-         * @param stokes_matrix Stokes system. This is not necessarily a matrix.
-         * @param Schur_complement_block Operator for the Schur complement.
-         * @param do_solve_Schur_complement Flag that determines whether to do a full solve with the Schur complement or a v-cycle.
-         * @param Schur_complement_tolerance Tolerance in case a full solve for the Schur complement is used.
-         */
         SchurApproximation(const OperatorType &schur_preconditioner,
                            const StokesMatrixType &stokes_matrix,
                            const SchurComplementMatrixType &Schur_complement_block,
                            const bool do_solve_Schur_complement,
                            const double Schur_complement_tolerance);
-        void vmult( VectorType &dst, const VectorType &src) const;
-        unsigned int n_iterations() const;
+
+        void vmult(VectorType &dst, const VectorType &src) const override;
+        unsigned int n_iterations() const override;
 
       private:
         const OperatorType &schur_preconditioner;
@@ -283,8 +265,6 @@ namespace aspect
         const bool do_solve_Schur_complement;
         const double Schur_complement_tolerance;
         mutable unsigned int n_iterations_Schur_complement_;
-
-
     };
 
 
@@ -303,6 +283,11 @@ namespace aspect
       Schur_complement_tolerance(Schur_complement_tolerance),
       n_iterations_Schur_complement_(0)
     {}
+
+
+
+
+
 
 
     template<class OperatorType, class StokesMatrixType, class SchurComplementMatrixType, class VectorType>
@@ -350,11 +335,90 @@ namespace aspect
           n_iterations_Schur_complement_ += 1;
         }
     }
+
+
+
     template<class OperatorType, class StokesMatrixType, class SchurComplementMatrixType, class VectorType>
     unsigned int SchurApproximation<OperatorType, StokesMatrixType, SchurComplementMatrixType, VectorType>::n_iterations() const
     {
       return n_iterations_Schur_complement_;
     }
+
+
+
+
+
+
+    template<class StokesMatrixType, class BOperatorType, class BTOperatorType>
+    class BC_invBT_Operator
+    {
+      public:
+        BC_invBT_Operator(const StokesMatrixType &system_matrix,
+                          const BOperatorType &B_operator,
+                          const BTOperatorType &BT_operator,
+                          const dealii::LinearAlgebra::distributed::Vector<double> &diag_A_inv):
+          system_matrix(system_matrix),
+          B_operator(B_operator),
+          BT_operator(BT_operator),
+          diag_A_inv(diag_A_inv)
+        {}
+        void vmult(dealii::LinearAlgebra::distributed::Vector<double> &dst,
+                   const dealii::LinearAlgebra::distributed::Vector<double> &src) const;
+      private:
+        const StokesMatrixType &system_matrix;
+        const BOperatorType &B_operator;
+        const BTOperatorType &BT_operator;
+        const dealii::LinearAlgebra::distributed::Vector<double> &diag_A_inv;
+    };
+
+    template <class StokesMatrixType, class AOperatorType, class BOperatorType, class BTOperatorType, class SchurComplementMatrixType,class VectorType, class PreconditionerMp>
+    class DiagBFBT: public SchurComplementOperator<VectorType>
+    {
+      public:
+        /**
+         * Constructor.
+         * @param mp_preconditioner The preconditioner for the BC^{-1}B^T operator
+         *        used in the inner CG solves.
+         * @param do_solve_schur_complement Full solve with Schur complement or just vmult.
+         * @param solver_tolerance The relative solver tolerance for the inner CG solves
+         *        with BC^{-1}B^T.
+         * @param diag_A_inv Diagonal of A used as C and D in the diag A-BFBT preconditioner.
+         * @param system_matrix The Stokes operator of the form
+         * [A B^T
+         *  B 0].
+         * @param A_operator The velocity block operator.
+         * @param B_operator The B block operator.
+         * @param BT_operator The B^T block operator.
+         * @param mp_matrix Pressure mass matrix used as preconditioner for BC^{-1}B^T.
+         */
+        DiagBFBT(const PreconditionerMp &mp_preconditioner,
+                 const bool do_solve_schur_complement,
+                 const double solver_tolerance,
+                 const dealii::LinearAlgebra::distributed::Vector<double> &diag_A_inv,
+                 const StokesMatrixType &system_matrix,
+                 const AOperatorType &A_operator,
+                 const BOperatorType &B_operator,
+                 const BTOperatorType &BT_operator,
+                 const SchurComplementMatrixType &mp_matrix);
+
+        void vmult(VectorType &dst,
+                   const VectorType &src) const override;
+
+        unsigned int n_iterations() const override;
+
+      private:
+        mutable unsigned int n_iterations_;
+        const PreconditionerMp &mp_preconditioner;
+        const bool do_solve_schur_complement;
+        const double solver_tolerance;
+        const dealii::LinearAlgebra::distributed::Vector<double> &diag_A_inv;
+        const StokesMatrixType &system_matrix;
+        const AOperatorType &A_operator;
+        const BOperatorType &B_operator;
+        const BTOperatorType &BT_operator;
+        const SchurComplementMatrixType &mp_matrix;
+    };
+
 
 
   }

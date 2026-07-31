@@ -526,6 +526,98 @@ namespace aspect
     data->cell_loop(&BTBlockOperator::local_apply, this, dst, src);
   }
 
+
+
+  /**
+   *Operator for B block.
+   */
+  template <int dim, int degree_v, typename number>
+  MatrixFreeStokesOperators::BBlockOperator<dim,degree_v,number>::BBlockOperator ():
+    MatrixFreeOperators::Base<dim, dealii::LinearAlgebra::distributed::BlockVector<number>>()
+  {}
+
+  template <int dim, int degree_v, typename number>
+  void
+  MatrixFreeStokesOperators::BBlockOperator<dim,degree_v,number>::clear ()
+  {
+    this->cell_data = nullptr;
+    MatrixFreeOperators::Base<dim,dealii::LinearAlgebra::distributed::BlockVector<number>>::clear();
+  }
+
+
+
+  template <int dim, int degree_v, typename number>
+  void
+  MatrixFreeStokesOperators::BBlockOperator<dim,degree_v,number>::
+  set_cell_data (const OperatorCellData<dim,number> &data)
+  {
+    this->cell_data = &data;
+  }
+
+
+  template <int dim, int degree_v, typename number>
+  void
+  MatrixFreeStokesOperators::BBlockOperator<dim,degree_v,number>
+  ::compute_diagonal ()
+  {
+    // There is no need in the code for this diagonal.
+    Assert(false, ExcNotImplemented());
+  }
+
+
+
+  template<int dim,int degree_v, typename number>
+  void
+  MatrixFreeStokesOperators::BBlockOperator<dim,degree_v,number>
+  ::local_apply(const dealii::MatrixFree<dim,number> &data,
+                dealii::LinearAlgebra::distributed::BlockVector<number> &dst,
+                const dealii::LinearAlgebra::distributed::BlockVector<number> &src,
+                const std::pair<unsigned int,unsigned int> &cell_range) const
+  {
+    FEEvaluation<dim,degree_v,degree_v+1,dim,number> u_eval(data, 0);
+    FEEvaluation<dim,degree_v-1,degree_v+1,1,number> p_eval(data, /*dofh*/1);
+
+
+
+    for (unsigned int cell=cell_range.first; cell<cell_range.second; ++cell)
+      {
+
+        u_eval.reinit(cell);
+        u_eval.gather_evaluate(src.block(0), EvaluationFlags::gradients);
+
+        p_eval.reinit(cell);
+
+
+        SymmetricTensor<2,dim,VectorizedArray<number>> sym_grad_u;
+
+        for (const unsigned int q : u_eval.quadrature_point_indices())
+          {
+            sym_grad_u = u_eval.get_symmetric_gradient(q);
+
+            const VectorizedArray<number> div_u = trace(sym_grad_u);
+            VectorizedArray<number> pressure_terms =
+              -cell_data->pressure_scaling * div_u;
+            p_eval.submit_value(pressure_terms, q);
+
+
+
+          }
+
+
+        p_eval.integrate_scatter(EvaluationFlags::values, dst.block(1));
+      }
+  }
+
+  template <int dim, int degree_v, typename number>
+  void
+  MatrixFreeStokesOperators::BBlockOperator<dim,degree_v,number>
+  ::apply_add (dealii::LinearAlgebra::distributed::BlockVector<number> &dst,
+               const dealii::LinearAlgebra::distributed::BlockVector<number> &src) const
+  {
+    MatrixFreeOperators::Base<dim, dealii::LinearAlgebra::distributed::BlockVector<number>>::
+    data->cell_loop(&BBlockOperator::local_apply, this, dst, src);
+  }
+
   /**
    * Mass matrix operator on pressure
    */
@@ -941,6 +1033,8 @@ namespace aspect
   template class MatrixFreeStokesOperators::StokesOperator<dim,3,GMGNumberType>; \
   template class MatrixFreeStokesOperators::BTBlockOperator<dim,2,GMGNumberType>; \
   template class MatrixFreeStokesOperators::BTBlockOperator<dim,3,GMGNumberType>; \
+  template class MatrixFreeStokesOperators::BBlockOperator<dim,2,GMGNumberType>;\
+  template class MatrixFreeStokesOperators::BBlockOperator<dim,3,GMGNumberType>;\
   template class MatrixFreeStokesOperators::MassMatrixOperator<dim,1,GMGNumberType>; \
   template class MatrixFreeStokesOperators::MassMatrixOperator<dim,2,GMGNumberType>; \
   template struct MatrixFreeStokesOperators::OperatorCellData<dim, GMGNumberType>;
