@@ -1220,17 +1220,22 @@ namespace aspect
                                   Schur_complement_block_matrix,
                                   /*do_solve_Schur*/ true,
                                   this->get_parameters().linear_solver_S_block_tolerance);
-    const internal::BlockSchurPreconditioner<internal::InverseVelocityBlock<GMGPreconditioner,VectorType,ABlockMatrixType>,
-          SchurApproximationType,BTBlockOperatorType, dealii::LinearAlgebra::distributed::BlockVector<double>>
-          preconditioner_cheap (inverse_velocity_block_cheap,
-                                schur_approximation_cheap,
-                                BT_block);
 
-    const internal::BlockSchurPreconditioner<internal::InverseVelocityBlock<GMGPreconditioner,VectorType,ABlockMatrixType>,
-          SchurApproximationType, BTBlockOperatorType, dealii::LinearAlgebra::distributed::BlockVector<double>>
-          preconditioner_expensive (inverse_velocity_block_expensive,
-                                    schur_approximation_expensive,
-                                    BT_block);
+    using BlockSchurPreconditionerType = internal::BlockSchurPreconditioner<
+                                         internal::InverseVelocityBlock<GMGPreconditioner, VectorType, ABlockMatrixType>,
+                                         BTBlockOperatorType,
+                                         dealii::LinearAlgebra::distributed::BlockVector<double>,
+                                         VectorType>;
+
+    const BlockSchurPreconditionerType
+    preconditioner_cheap (inverse_velocity_block_cheap,
+                          schur_approximation_cheap,
+                          BT_block);
+
+    const BlockSchurPreconditionerType
+    preconditioner_expensive (inverse_velocity_block_expensive,
+                              schur_approximation_expensive,
+                              BT_block);
 
     PrimitiveVectorMemory<dealii::LinearAlgebra::distributed::BlockVector<double>> mem;
 
