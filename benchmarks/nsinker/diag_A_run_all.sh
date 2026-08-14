@@ -1,9 +1,9 @@
 #!/bin/bash
 
-for averaging in none; do # arithmetic/geometric/harmonic average
-  for nsinkers in 4 8 16; do
-    for viscosity in 1e1 1e2 1e3 1e4 1e5 ; do
-      for refinement in   4 5 6 ; do
+for averaging in "harmonic average"; do # arithmetic/geometric/harmonic average
+  for nsinkers in 8; do
+    for viscosity in 1e1 1e3 1e5 ; do
+      for refinement in   4 5 6 7; do
         echo "subsection Material model" > current.prm
         echo "  set Material averaging = $averaging" >> current.prm
         echo "  subsection NSinker" >> current.prm
@@ -19,6 +19,9 @@ for averaging in none; do # arithmetic/geometric/harmonic average
 			echo "set Number of cheap Stokes solver steps=500">>current.prm
 			echo "set Maximum number of expensive Stokes solver steps=0">>current.prm
 		echo "end">>current.prm
+  echo "subsection Matrix Free">>current.prm
+echo "    set Output details = true" >> current.prm
+echo "  end">>current.prm
         echo "subsection AMG parameters">>current.prm
 		echo "set AMG aggregation threshold = 0.02">>current.prm
 	echo "end">>current.prm	
@@ -30,8 +33,8 @@ for averaging in none; do # arithmetic/geometric/harmonic average
 		echo "set Use locally conservative discretization=false">>current.prm
 	echo "end">>current.prm
 
-	current_model="averaging${averaging}_nsinkers${nsinkers}_viscosity${viscosity}_refinement${refinement}"
-        echo "set Output directory =/home/qxhoang/aspect/benchmarks/nsinker/diag_A_prec_laplace_gmg_solve/output-${current_model}" >> current.prm
+	current_model="mass-averaging${averaging}_nsinkers${nsinkers}_viscosity${viscosity}_refinement${refinement}"
+        echo "set Output directory =output-${current_model}" >> current.prm
         echo "Starting ${current_model}"
         cat nsinker.prm current.prm | mpirun -np 32 ./aspect-release --
       done
