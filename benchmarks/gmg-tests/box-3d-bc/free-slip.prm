@@ -1,0 +1,12 @@
+# Nsinker benchmark using geometric multigrid preconditioner
+# with global coarsening GMG
+#
+# MPI: 2
+
+set Dimension = 3
+
+include base.prm
+
+subsection Boundary velocity model
+  set Zero velocity boundary indicators = #bottom #left,right,bottom,top,front,back
+end

@@ -19,7 +19,7 @@ subsection Solver parameters
   subsection Stokes solver parameters
     set Stokes solver type = block GMG
     set Stokes GMG type = global coarsening
-    set Number of cheap Stokes solver steps             = 300
+    set Number of cheap Stokes solver steps             = 1000
     set Maximum number of expensive Stokes solver steps = 0
     set Linear solver tolerance                         = 1e-8
     set GMRES solver restart length                     = 100
@@ -72,7 +72,7 @@ end
 
 subsection Mesh refinement
   set Initial global refinement = 4
-  set Initial adaptive refinement = 5
+  set Initial adaptive refinement = 4
   set Adapt by fraction of cells = true
   set Strategy = velocity
   set Run postprocessors on initial refinement = true
