@@ -5,7 +5,7 @@ set -euo pipefail
 NP=${NP:-8}
 
 for method in GMG AMG; do
-  for boundary_case in no-slip free-slip partial-free-slip partial-set; do
+  for boundary_case in no-slip free-slip partial-free-slip partial-set open; do
     cat "${boundary_case}.prm" > current.prm
 
     if [[ ${method} == AMG ]]; then

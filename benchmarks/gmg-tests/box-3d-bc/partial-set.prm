@@ -11,6 +11,7 @@ include base.prm
 subsection Boundary velocity model
 # free slip: left
   set Zero velocity boundary indicators = right,top,bottom,back
+  set Tangential velocity boundary indicators = left,front
   set Prescribed velocity boundary indicators = front x: function
 
   subsection Function
