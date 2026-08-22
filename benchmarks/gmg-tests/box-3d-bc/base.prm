@@ -71,8 +71,8 @@ subsection Initial temperature model
 end
 
 subsection Mesh refinement
-  set Initial global refinement = 4
-  set Initial adaptive refinement = 4
+  set Initial global refinement = 5
+  set Initial adaptive refinement = 3
   set Adapt by fraction of cells = true
   set Strategy = velocity
   set Run postprocessors on initial refinement = true
