@@ -44,6 +44,9 @@
 #include <deal.II/dofs/dof_handler.h>
 #include <deal.II/dofs/dof_renumbering.h>
 
+#include <algorithm>
+#include <memory>
+
 namespace aspect
 {
 
@@ -57,6 +60,25 @@ namespace aspect
 
 
 
+    template<typename Range,
+             typename Domain,
+             typename Payload>
+    LinearOperator<Range, Domain, Payload> remove_mean_value(LinearOperator<Range,Domain,Payload> &exemplar, const Range &mass_matrix)
+    {
+      LinearOperator<Range, Domain, Payload> return_op;
+
+      return_op.reinit_range_vector  = exemplar.reinit_range_vector;
+      return_op.reinit_domain_vector = exemplar.reinit_domain_vector;
+
+      const double mass_ones = mass_matrix.mean_value() *
+                               static_cast<double>(mass_matrix.size());
+      return_op.vmult = [mass_matrix, mass_ones](Range &dest, const Domain &src)
+      {
+        dest = src;
+        dest.add(-(mass_matrix * src) / mass_ones);
+      };
+      return return_op;
+    }
 
     template<typename Range,
              typename Domain,
@@ -76,6 +98,112 @@ namespace aspect
       };
       return return_op;
     }
+
+
+    /**
+     * P K P with P the Euclidean mean-zero projector. Used as the matrix for
+     * PreconditionChebyshev when approximating K^{-1} with a linear polynomial.
+     */
+    template <class StokesMatrixType, class BOperatorType, class BTOperatorType>
+    class ProjectedBCInvBTOperator : public
+#if DEAL_II_VERSION_GTE(9,7,0)
+      EnableObserverPointer
+#else
+      Subscriptor
+#endif
+    {
+      public:
+        ProjectedBCInvBTOperator(
+          const StokesMatrixType &system_matrix,
+          const BOperatorType &B_operator,
+          const BTOperatorType &BT_operator,
+          const dealii::LinearAlgebra::distributed::Vector<double> &diag_A_inv,
+          const types::global_dof_index n_rows)
+          :
+          op(system_matrix, B_operator, BT_operator, diag_A_inv),
+          n_rows(n_rows)
+        {}
+
+        void
+        vmult(dealii::LinearAlgebra::distributed::Vector<double> &dst,
+              const dealii::LinearAlgebra::distributed::Vector<double> &src) const
+        {
+          tmp.reinit(src, true);
+          tmp = src;
+          tmp.add(-tmp.mean_value());
+          op.vmult(dst, tmp);
+          dst.add(-dst.mean_value());
+        }
+
+        void
+        Tvmult(dealii::LinearAlgebra::distributed::Vector<double> &dst,
+               const dealii::LinearAlgebra::distributed::Vector<double> &src) const
+        {
+          vmult(dst, src);
+        }
+
+        types::global_dof_index
+        m() const
+        {
+          return n_rows;
+        }
+
+        types::global_dof_index
+        n() const
+        {
+          return n_rows;
+        }
+
+      private:
+        BC_invBT_Operator<StokesMatrixType, BOperatorType, BTOperatorType> op;
+        const types::global_dof_index n_rows;
+        mutable dealii::LinearAlgebra::distributed::Vector<double> tmp;
+    };
+
+
+    /**
+     * Laplace GMG with the same mean-zero projection, used as the inner
+     * preconditioner of PreconditionChebyshev.
+     */
+    template <class PreconditionerType, class VectorType>
+    class MeanZeroPreconditioner
+    {
+      public:
+        MeanZeroPreconditioner(const PreconditionerType &preconditioner,
+                               const types::global_dof_index n_rows)
+          :
+          preconditioner(preconditioner),
+          n_rows(n_rows)
+        {}
+
+        void
+        vmult(VectorType &dst, const VectorType &src) const
+        {
+          tmp.reinit(src, true);
+          tmp = src;
+          tmp.add(-tmp.mean_value());
+          dst = 0.0;
+          preconditioner.vmult(dst, tmp);
+          dst.add(-dst.mean_value());
+        }
+
+        types::global_dof_index
+        m() const
+        {
+          return n_rows;
+        }
+
+        types::global_dof_index
+        n() const
+        {
+          return n_rows;
+        }
+
+      private:
+        const PreconditionerType &preconditioner;
+        const types::global_dof_index n_rows;
+        mutable VectorType tmp;
+    };
 
 
     template<class StokesMatrixType, class BOperatorType, class BTOperatorType>
@@ -108,6 +236,7 @@ namespace aspect
 
     template <class StokesMatrixType, class AOperatorType, class BOperatorType, class BTOperatorType,class SchurComplementMatrixType, class VectorType, class PreconditionerMp>
     DiagBFBT<StokesMatrixType, AOperatorType, BOperatorType, BTOperatorType, SchurComplementMatrixType, VectorType, PreconditionerMp>::DiagBFBT(
+      const dealii::LinearAlgebra::distributed::Vector<double> &mass_matrix_diagonal,
       const PreconditionerMp &mp_preconditioner,
       const bool do_solve_schur_complement,
       const double solver_tolerance,
@@ -118,9 +247,13 @@ namespace aspect
       const BTOperatorType &BT_operator,
       const SchurComplementMatrixType &mp_matrix)
       : n_iterations_(0),
+        mass_matrix_diagonal(mass_matrix_diagonal),
         mp_preconditioner(mp_preconditioner),
         do_solve_schur_complement(do_solve_schur_complement),
         solver_tolerance(solver_tolerance),
+        chebyshev_eigenvalues_initialized(false),
+        chebyshev_lambda_max(1.0),
+        chebyshev_lambda_min(1.0),
         diag_A_inv(diag_A_inv),
         system_matrix(system_matrix),
         A_operator(A_operator),
@@ -152,6 +285,8 @@ namespace aspect
             Op_BC_invBT.vmult(dst,src);
           };
 
+          auto rmv=remove_mean_value<>(op_BC_invBT);//, mass_matrix_diagonal);
+
           dealii::LinearOperator<VectorType> op_mp_preconditioner;
           op_mp_preconditioner.reinit_range_vector=[&](VectorType &v, bool)
           {
@@ -166,57 +301,93 @@ namespace aspect
           op_mp_preconditioner.vmult=[&](VectorType &dst, const VectorType &src)
           {
             // PrimitiveVectorMemory<VectorType>  mp_mem;
-            VectorType src_mean_zero=src;
-            src_mean_zero.add(-src_mean_zero.mean_value());
+            //VectorType src_mean_zero=src;
+            //src_mean_zero.add(-src_mean_zero.mean_value());
             // SolverControl solver_control(1000,src_mean_zero.l2_norm()*1e-6);
             // SolverCG<VectorType> solver(solver_control,mp_mem);
             dst=0.0;
             // solver.solve(mp_matrix,dst,src_mean_zero,mp_preconditioner);
+            VectorType src_mean_zero;
+            rmv.vmult(src_mean_zero, src);
 
             mp_preconditioner.vmult(dst,src_mean_zero);
-            dst.add(-dst.mean_value());
+            rmv.vmult(dst, dst);
+            //dst.add(-dst.mean_value());
           };
-          auto rmv=remove_mean_value<>(op_BC_invBT);
 
           VectorType ptmp;
           VectorType ptmp2;
           ptmp.reinit(src);
           ptmp2.reinit(src);
-          PrimitiveVectorMemory<VectorType> mem;
 
 
 
           VectorType rhs1=src; //nullspace removal
-          rhs1.add(-rhs1.mean_value());
-
-
+          rmv.vmult(rhs1, src);
 
           SolverControl solver_control(5000, rhs1.l2_norm() * solver_tolerance, false, true);
-          IterationNumberControl iteration_control(100);
-
-          //          SolverCG<VectorType> solver((do_solve_schur_complement?solver_control:iteration_control), mem);
           SolverSelector<VectorType> solver("cg", solver_control);
+
+          const unsigned int chebyshev_degree = 3;
+          using ProjectedKType =
+            ProjectedBCInvBTOperator<StokesMatrixType, BOperatorType, BTOperatorType>;
+          using InnerPrecType = MeanZeroPreconditioner<PreconditionerMp, VectorType>;
+          using ChebyshevType = PreconditionChebyshev<ProjectedKType, VectorType, InnerPrecType>;
+
+          std::unique_ptr<ProjectedKType> projected_K;
+          std::unique_ptr<ChebyshevType> chebyshev;
           if (!do_solve_schur_complement)
             {
-              solver.select("richardson");
-              solver.set_control(iteration_control);
+              projected_K = std::make_unique<ProjectedKType>(system_matrix,
+                                                             B_operator,
+                                                             BT_operator,
+                                                             diag_A_inv,
+                                                             src.size());
+
+              typename ChebyshevType::AdditionalData data;
+              data.degree = chebyshev_degree;
+              if (chebyshev_eigenvalues_initialized)
+                {
+                  data.eig_cg_n_iterations = 0;
+                  data.max_eigenvalue = chebyshev_lambda_max;
+                  data.smoothing_range = chebyshev_lambda_max / chebyshev_lambda_min;
+                }
+              else
+                {
+                  data.eig_cg_n_iterations = 20;
+                  data.smoothing_range = 1e-3;
+                }
+              data.preconditioner = std::make_shared<InnerPrecType>(mp_preconditioner, src.size());
+
+              chebyshev = std::make_unique<ChebyshevType>();
+              chebyshev->initialize(*projected_K, data);
+              if (!chebyshev_eigenvalues_initialized)
+                {
+                  const typename ChebyshevType::EigenvalueInformation info =
+                    chebyshev->estimate_eigenvalues(src);
+                  chebyshev_lambda_max = info.max_eigenvalue_estimate;
+                  chebyshev_lambda_min = std::max(info.min_eigenvalue_estimate,
+                                                  1e-4 * chebyshev_lambda_max);
+                  chebyshev_eigenvalues_initialized = true;
+                }
             }
 
-          ptmp = 0;
-          // mp_preconditioner.vmult(ptmp,rhs1);
-          // std::cout<<"rhs1 norm = "<<rhs1.l2_norm();
-          // std::cout<<"\n ptmp_norm - "<<ptmp.l2_norm()<<std::endl;
+          auto apply_K_inverse = [&](VectorType &dst, const VectorType &rhs)
+          {
+            dst = 0;
+            if (do_solve_schur_complement)
+              {
+                solver.solve(rmv * op_BC_invBT * rmv, dst, rhs, op_mp_preconditioner);
+                n_iterations_ += solver_control.last_step();
+              }
+            else
+              {
+                chebyshev->vmult(dst, rhs);
+                n_iterations_ += chebyshev_degree;
+              }
+          };
 
-          if (do_solve_schur_complement)
-            solver.solve(rmv*op_BC_invBT*rmv, ptmp, rhs1, op_mp_preconditioner);
-          else
-            {
-              mp_preconditioner.vmult(ptmp,rhs1);
-              ptmp.add(-ptmp.mean_value());
-            }
-
-          // std::cout << "A: x " << rhs1.l2_norm() << " -> y " << ptmp.l2_norm() << " in " <<  solver_control.last_step() << " iterations "<< std::endl;
-          n_iterations_ += solver_control.last_step();
+          apply_K_inverse(ptmp, rhs1);
 
           {
             dealii::LinearAlgebra::distributed::BlockVector<double> block_src;
@@ -244,27 +415,12 @@ namespace aspect
           }
 
           VectorType rhs2=ptmp2;
-          rhs2.add(-rhs2.mean_value());
-
-
+          rmv.vmult(rhs2, rhs2);
 
           if (do_solve_schur_complement)
-            {
-              solver_control.set_tolerance(solver_tolerance*rhs2.l2_norm());
-            }
-          dst = 0;
-          // mp_preconditioner.vmult(dst,rhs2);
-          if (do_solve_schur_complement)
-            solver.solve(rmv*op_BC_invBT*rmv, dst, rhs2, op_mp_preconditioner);
-          else
-            {
-              mp_preconditioner.vmult(dst,rhs2);
-              dst.add(-dst.mean_value());
-            }
-          //std::cout << "applying op_BC_invBT:" << std::endl;
-          //op_BC_invBT.vmult(dst,rhs2);
-          // std::cout << "B: x " << rhs2.l2_norm() << " -> y " << dst.l2_norm() << " in " <<  solver_control.last_step() << " iterations "<< std::endl;
-          n_iterations_ += solver_control.last_step();
+            solver_control.set_tolerance(solver_tolerance*rhs2.l2_norm());
+
+          apply_K_inverse(dst, rhs2);
 
 
         }
@@ -1535,6 +1691,7 @@ namespace aspect
     PressureLaplaceOperatorType pressure_laplace_operator;
     using SchurApproximationType = internal::SchurApproximation<GMGPreconditioner, StokesMatrixType, SchurComplementMatrixType, VectorType>;
 
+    dealii::LinearAlgebra::distributed::Vector<double> mass_matrix_diagonal;
 
     if (this->get_parameters().use_bfbt)
       {
@@ -1551,12 +1708,15 @@ namespace aspect
         pressure_laplace_operator.compute_diagonal();
         const dealii::DiagonalMatrix<VectorType> &diag_pressure_laplace=*pressure_laplace_operator.get_matrix_diagonal_inverse();
 
+        pressure_laplace_operator.initialize_dof_vector(mass_matrix_diagonal);
+        internal::ChangeVectorTypes::copy(mass_matrix_diagonal, sim.pressure_shape_function_integrals.block(1));
 
         using DiagBFBTType = internal::DiagBFBT<StokesMatrixType, ABlockMatrixType, BBlockOperatorType, BTBlockOperatorType, SchurComplementMatrixType, VectorType, GMGPreconditioner>;
 
         schur_approximation_cheap = std::make_unique<DiagBFBTType>(
+                                      mass_matrix_diagonal,
                                       prec_Laplace,
-                                      /*do_solve_schur_complement*/ false,
+                                      /*do_solve_schur_complement*/ true, // choose false for inner Chebychev, true: inner CG
                                       this->get_parameters().linear_solver_S_block_tolerance,
                                       diag_A_inv,
                                       stokes_matrix,
@@ -1566,6 +1726,7 @@ namespace aspect
                                       Schur_complement_block_matrix);
 
         schur_approximation_expensive = std::make_unique<DiagBFBTType>(
+                                          mass_matrix_diagonal,
                                           prec_Laplace,
                                           /*do_solve_schur_complement*/ true,
                                           this->get_parameters().linear_solver_S_block_tolerance,
@@ -1794,10 +1955,13 @@ namespace aspect
                    SolverIDR<dealii::LinearAlgebra::distributed::BlockVector<double>>::
                    AdditionalData(this->get_parameters().idr_s_parameter));
 
+                   dealii::Timer timer(this->get_mpi_communicator());
             solver.solve (stokes_matrix,
                           solution_copy,
                           rhs_copy,
                           preconditioner_cheap);
+                          const double time = timer.wall_time();
+            this->get_pcout() << "time: " << time << " seconds " << std::flush;
           }
         else
           Assert(false,ExcNotImplemented());
@@ -1844,10 +2008,13 @@ namespace aspect
                 throw exc;
               }
 
+            dealii::Timer timer(this->get_mpi_communicator());
             solver.solve(stokes_matrix,
                          solution_copy,
                          rhs_copy,
                          preconditioner_expensive);
+                         const double time = timer.wall_time();
+            this->get_pcout() << "time: " << time << " seconds " << std::flush;
 
             // Success. Print expensive iterations to screen.
             this->get_pcout() << solver_control_expensive.last_step()

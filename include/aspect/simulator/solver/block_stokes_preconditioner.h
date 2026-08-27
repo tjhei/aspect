@@ -391,7 +391,8 @@ namespace aspect
          * @param BT_operator The B^T block operator.
          * @param mp_matrix Pressure mass matrix used as preconditioner for BC^{-1}B^T.
          */
-        DiagBFBT(const PreconditionerMp &mp_preconditioner,
+        DiagBFBT(const dealii::LinearAlgebra::distributed::Vector<double> &mass_matrix_diagonal,
+                 const PreconditionerMp &mp_preconditioner,
                  const bool do_solve_schur_complement,
                  const double solver_tolerance,
                  const dealii::LinearAlgebra::distributed::Vector<double> &diag_A_inv,
@@ -408,9 +409,13 @@ namespace aspect
 
       private:
         mutable unsigned int n_iterations_;
+        const dealii::LinearAlgebra::distributed::Vector<double> mass_matrix_diagonal;
         const PreconditionerMp &mp_preconditioner;
         const bool do_solve_schur_complement;
         const double solver_tolerance;
+        mutable bool chebyshev_eigenvalues_initialized;
+        mutable double chebyshev_lambda_max;
+        mutable double chebyshev_lambda_min;
         const dealii::LinearAlgebra::distributed::Vector<double> &diag_A_inv;
         const StokesMatrixType &system_matrix;
         const AOperatorType &A_operator;
