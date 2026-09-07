@@ -497,6 +497,12 @@ namespace aspect
           dealii::LinearAlgebra::distributed::Vector<double> &solution);
 
         /**
+         * Set up the multigrid hierarchy used by the local-smoothing mesh
+         * deformation solver using a mesh mapping of degree @p mapping_degree.
+         */
+        void setup_local_smoothing_multigrid(const unsigned int mapping_degree);
+
+        /**
          * Set up the vector with initial displacements of the mesh
          * due to the initial topography, as supplied by the initial
          * topography plugin based on the surface coordinates of the
@@ -519,9 +525,10 @@ namespace aspect
         void interpolate_mesh_velocity ();
 
         /**
-         * Update the mesh deformation for the multigrid levels.
+         * Update the mesh deformation on the levels of the local-smoothing
+         * multigrid hierarchy.
          */
-        void update_multilevel_deformation ();
+        void update_local_smoothing_multigrid();
 
         /**
          * Reference to the Simulator object to which a MeshDeformationHandler
