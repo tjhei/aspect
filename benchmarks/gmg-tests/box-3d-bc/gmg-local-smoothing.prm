@@ -1,0 +1,5 @@
+subsection Solver parameters
+  subsection Stokes solver parameters
+    set Stokes GMG type = local smoothing
+  end
+end
