@@ -1581,8 +1581,10 @@ namespace aspect
 
 
     template <int dim>
-    void MeshDeformationHandler<dim>::setup_local_smoothing_multigrid(const unsigned int mapping_degree)
+    void MeshDeformationHandler<dim>::setup_local_smoothing_multigrid()
     {
+      const unsigned int mapping_degree = get_mapping_degree();
+
       mesh_deformation_dof_handler.distribute_mg_dofs();
 
       const unsigned int n_levels = this->get_triangulation().n_global_levels();
@@ -1678,7 +1680,7 @@ namespace aspect
         }
 
       if (this->is_stokes_matrix_free())
-        setup_local_smoothing_multigrid(mapping_degree);
+        setup_local_smoothing_multigrid();
 
       {
         std::locale s = this->get_pcout().get_stream().getloc();

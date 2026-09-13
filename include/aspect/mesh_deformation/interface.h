@@ -510,9 +510,9 @@ namespace aspect
 
         /**
          * Set up the multigrid hierarchy used by the local-smoothing mesh
-         * deformation solver using a mesh mapping of degree @p mapping_degree.
+         * deformation solver.
          */
-        void setup_local_smoothing_multigrid(const unsigned int mapping_degree);
+        void setup_local_smoothing_multigrid();
 
         /**
          * Set up the vector with initial displacements of the mesh
