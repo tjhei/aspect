@@ -317,7 +317,7 @@ namespace aspect
 
 
 // Change pressure scaling to 1.0:
-double pressure_scaling_signal(const double /*pressure_scaling*/,
+double pressure_scaling_signal(const double pressure_scaling,
                                const double /*reference_viscosity*/,
                                const double /*length_scale*/)
 {

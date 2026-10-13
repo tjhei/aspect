@@ -24,6 +24,8 @@
 #include <aspect/gravity_model/interface.h>
 #include <aspect/postprocess/interface.h>
 
+#include <aspect/simulator_signals.h>
+
 
 #include <deal.II/dofs/dof_tools.h>
 #include <deal.II/numerics/data_out.h>
@@ -483,6 +485,23 @@ namespace aspect
 
   }
 }
+
+// Change pressure scaling to 1.0:
+double pressure_scaling_signal(const double /*pressure_scaling*/,
+                               const double /*reference_viscosity*/,
+                               const double /*length_scale*/)
+{
+  return 1.0;
+}
+
+template <int dim>
+void signal_connector (aspect::SimulatorSignals<dim> &signals)
+{
+  signals.modify_pressure_scaling.connect(&pressure_scaling_signal);
+}
+
+ASPECT_REGISTER_SIGNALS_CONNECTOR(signal_connector<2>,
+                                  signal_connector<3>)
 
 
 
