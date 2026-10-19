@@ -1526,12 +1526,14 @@ void remove_mean_value_free_dofs(VectorType &v,
     // The pressure Laplace features a mean value removal
   //   if there is a pressure nullspace and 
   //   does not otherwise.
-    const MGCoarseGridBase<VectorType>   &coarse_Laplace = pressure_laplace_has_nullspace?
+  //   DEBUG ns removal for LP with free top
+const bool coarse_laplace_remove_mean = this->get_parameters().use_bfbt;
+    const MGCoarseGridBase<VectorType>   &coarse_Laplace = /*pressure_laplace_has_nullspace*/coarse_laplace_remove_mean?
                                                    static_cast<const MGCoarseGridBase<VectorType> &>(mg_coarse_Laplace_remove_ns)
                                                    :
                                                    static_cast<const MGCoarseGridBase<VectorType> &>(mg_coarse_Laplace);
      
-    const MGCoarseGridBase<VectorType>   &coarse_Laplace_damped = pressure_laplace_has_nullspace?
+    const MGCoarseGridBase<VectorType>   &coarse_Laplace_damped = /*pressure_laplace_has_nullspace*/coarse_laplace_remove_mean?
                                                    static_cast<const MGCoarseGridBase<VectorType> &>(mg_coarse_Laplace_damped_remove_ns)
                                                    :
                                                    static_cast<const MGCoarseGridBase<VectorType> &>(mg_coarse_Laplace_damped);
@@ -2669,14 +2671,15 @@ void remove_mean_value_free_dofs(VectorType &v,
             level_constraints_p.reinit(dof_handler_p.locally_owned_mg_dofs(level), relevant_dofs);
             // For w-BFBT, on Neumann velocity boundaries, impose 
             // Dirichlet 0 conditions for the pressure Laplace.
-           const unsigned int finest=this->get_triangulation().n_global_levels()-1; 
-        if(this->get_parameters().use_bfbt && level<finest)
-              for(const auto index:mg_constrained_dofs_Schur_complement.get_boundary_indices(level))
-                level_constraints_p.constrain_dof_to_zero(index);
-            // The pressure level operator uses empty constraints
-            // when weighted BFBT is set as false. Scalar
-            // periodicity is handled by the Schur-complement transfer.
-            level_constraints_p.close();
+        // DEBUG get rid of ns removal for L_p
+//           const unsigned int finest=this->get_triangulation().n_global_levels()-1; 
+//        if(this->get_parameters().use_bfbt && level<finest)
+//              for(const auto index:mg_constrained_dofs_Schur_complement.get_boundary_indices(level))
+//                level_constraints_p.constrain_dof_to_zero(index);
+//            // The pressure level operator uses empty constraints
+//            // when weighted BFBT is set as false. Scalar
+//            // periodicity is handled by the Schur-complement transfer.
+//            level_constraints_p.close();
           }
 
           // set up MatrixFree objects for each multigrid level
