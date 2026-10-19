@@ -1388,14 +1388,14 @@ void remove_mean_value_free_dofs(VectorType &v,
         if (this->get_parameters().use_bfbt)
           {
             auto eigenvalue_info = mg_smoother_Laplace[level].estimate_eigenvalues(temp_pressure);
-            this->get_pcout()<<" level: "<<level<<" lambda_min: "<<
-                             eigenvalue_info.min_eigenvalue_estimate<<", lambda_max:"
-                             <<eigenvalue_info.max_eigenvalue_estimate<<" ]"<<std::endl;
+//            this->get_pcout()<<" level: "<<level<<" lambda_min: "<<
+//                             eigenvalue_info.min_eigenvalue_estimate<<", lambda_max:"
+//                             <<eigenvalue_info.max_eigenvalue_estimate<<" ]"<<std::endl;
              auto eigenvalue_info_damped = mg_smoother_Laplace_damped[level].estimate_eigenvalues(temp_pressure);
 
-            this->get_pcout()<<" level: "<<level<<" lambda_min: "<<
-                             eigenvalue_info_damped.min_eigenvalue_estimate<<", lambda_max:"
-                             <<eigenvalue_info_damped.max_eigenvalue_estimate<<" ]"<<std::endl;
+//            this->get_pcout()<<" level: "<<level<<" lambda_min: "<<
+//                             eigenvalue_info_damped.min_eigenvalue_estimate<<", lambda_max:"
+//                             <<eigenvalue_info_damped.max_eigenvalue_estimate<<" ]"<<std::endl;
           }
         else
           {
