@@ -1,0 +1,12 @@
+# free slip top and bottom
+
+include $ASPECT_SOURCE_DIR/benchmarks/gmg-tests/spherical-nullspace/base.prm
+
+subsection Boundary velocity model
+  set Zero velocity boundary indicators =
+  set Tangential velocity boundary indicators = inner,outer
+end
+
+subsection Nullspace removal
+  set Remove nullspace = net rotation
+end

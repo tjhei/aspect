@@ -1,0 +1,8 @@
+# free slip on top
+
+include $ASPECT_SOURCE_DIR/benchmarks/gmg-tests/spherical-nullspace/base.prm
+
+subsection Boundary velocity model
+  set Zero velocity boundary indicators = inner
+  set Tangential velocity boundary indicators = outer
+end

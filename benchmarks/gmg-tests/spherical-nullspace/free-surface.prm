@@ -1,0 +1,23 @@
+# bottom: free slip, top: free surface
+
+include $ASPECT_SOURCE_DIR/benchmarks/gmg-tests/spherical-nullspace/base.prm
+
+subsection Boundary velocity model
+  set Tangential velocity boundary indicators = inner
+  set Zero velocity boundary indicators = 
+end
+
+subsection Nullspace removal
+  set Remove nullspace = net rotation
+end
+
+subsection Mesh deformation
+  set Mesh deformation boundary indicators = outer: free surface
+end
+
+subsection Postprocess
+  subsection Visualization
+    set Output mesh displacement = true
+    set Output undeformed mesh = true
+  end
+end
