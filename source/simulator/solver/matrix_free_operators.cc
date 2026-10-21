@@ -1534,6 +1534,234 @@ namespace aspect
         local_element = 1./local_element;
       }
   }
+
+    template<typename Range,
+             typename Domain,
+             typename Payload>
+    LinearOperator<Range, Domain, Payload> remove_mean_value(LinearOperator<Range,Domain,Payload> &exemplar)
+    {
+      LinearOperator<Range, Domain, Payload> return_op;
+
+      return_op.reinit_range_vector  = exemplar.reinit_range_vector;
+      return_op.reinit_domain_vector = exemplar.reinit_domain_vector;
+
+      return_op.vmult = [&](Range &dest, const Domain &src)
+      {
+
+        dest = src;
+        dest.add(-dest.mean_value());
+      };
+      return return_op;
+    }
+
+// Do not include entries associated with constrained dofs in average
+// for mean value removal.
+template <typename VectorType>
+void remove_mean_value_free_dofs(VectorType &v,
+                                 const dealii::AffineConstraints<double> &constraints)
+{
+  const auto &part = *v.get_partitioner();
+  double sum = 0.;
+  dealii::types::global_dof_index n = 0;
+  for (unsigned int i = 0; i < v.locally_owned_size(); ++i)
+    if (!constraints.is_constrained(part.local_to_global(i)))
+      { sum += v.local_element(i); ++n; }
+  sum = dealii::Utilities::MPI::sum(sum, v.get_mpi_communicator());
+  n   = dealii::Utilities::MPI::sum(n,   v.get_mpi_communicator());
+  const double mean = sum / n;
+  for (unsigned int i = 0; i < v.locally_owned_size(); ++i)
+    if (!constraints.is_constrained(part.local_to_global(i)))
+      v.local_element(i) -= mean;
+}
+    template <class StokesMatrixType, class AOperatorType, class BOperatorType, class BTOperatorType,class SchurComplementMatrixType, class VectorType, class PreconditionerMp>
+    MatrixFreeStokesOperators::DiagBFBT<StokesMatrixType, AOperatorType, BOperatorType, BTOperatorType, SchurComplementMatrixType, VectorType, PreconditionerMp>::DiagBFBT(
+      const PreconditionerMp &mp_preconditioner,
+      const PreconditionerMp &mp_preconditioner_damped,
+      const bool do_solve_schur_complement,
+      const double solver_tolerance,
+      const dealii::LinearAlgebra::distributed::Vector<double> &lumped_velocity_mass_matrix,
+      const dealii::LinearAlgebra::distributed::Vector<double> &lumped_velocity_mass_matrix_damped,
+      const StokesMatrixType &system_matrix,
+      const AOperatorType &A_operator,
+      const BOperatorType &B_operator,
+      const BTOperatorType &BT_operator,
+      const SchurComplementMatrixType &mp_matrix,
+      const dealii::AffineConstraints<double> &constraints,
+      const bool pressure_laplace_has_nullspace)
+      : n_iterations_(0),
+        mp_preconditioner(mp_preconditioner),
+        mp_preconditioner_damped(mp_preconditioner_damped),
+        do_solve_schur_complement(do_solve_schur_complement),
+        solver_tolerance(solver_tolerance),
+        lumped_velocity_mass_matrix(lumped_velocity_mass_matrix),
+        lumped_velocity_mass_matrix_damped(lumped_velocity_mass_matrix_damped),
+        system_matrix(system_matrix),
+        A_operator(A_operator),
+        B_operator(B_operator),
+        BT_operator(BT_operator),
+        mp_matrix(mp_matrix),
+        constraints(constraints),
+        pressure_laplace_has_nullspace(pressure_laplace_has_nullspace)
+    {
+    }
+
+    template <class StokesMatrixType, class AOperatorType, class BOperatorType, class BTOperatorType, class SchurComplementMatrixType, class VectorType, class PreconditionerMp>
+    void MatrixFreeStokesOperators::DiagBFBT<StokesMatrixType, AOperatorType, BOperatorType, BTOperatorType, SchurComplementMatrixType, VectorType, PreconditionerMp>::vmult(
+      VectorType &dst, const VectorType &src) const
+    {
+
+
+      try
+        {
+
+
+          MatrixFreeStokesOperators::BC_invBT_Operator<BOperatorType, BTOperatorType>
+          Op_BC_invBT(B_operator, BT_operator, lumped_velocity_mass_matrix);
+          dealii::LinearOperator<VectorType> op_BC_invBT;
+
+
+          op_BC_invBT.reinit_range_vector=[&](VectorType &v, bool)
+          {
+            v.reinit(src);
+          };
+          op_BC_invBT.reinit_domain_vector=[&](VectorType &v, bool)
+          {
+            v.reinit(src);
+          };
+          op_BC_invBT.vmult=[&](VectorType &dst, const VectorType &src)
+          {
+            Op_BC_invBT.vmult(dst,src);
+          };
+
+
+          dealii::LinearOperator<VectorType> op_mp_preconditioner;
+          op_mp_preconditioner.reinit_range_vector=[&](VectorType &v, bool)
+          {
+            v.reinit(src);
+          };
+          op_mp_preconditioner.reinit_domain_vector=[&](VectorType &v, bool)
+          {
+            v.reinit(src);
+          };
+
+          //precondition with solve
+          op_mp_preconditioner.vmult=[&](VectorType &dst, const VectorType &src)
+          {
+            dst=0.0;
+            for (unsigned int i = 0; i<2; ++i)
+              {
+
+                VectorType tmp;
+                VectorType residual=src;
+                tmp.reinit(src);
+                tmp=0.0;
+                Op_BC_invBT.vmult(tmp,dst);
+                residual-=tmp;
+                VectorType corrected;
+                corrected.reinit(dst);
+                mp_preconditioner.vmult(corrected,residual);
+                dst+=corrected;
+                dst.add(-dst.mean_value());
+              }
+
+
+          };
+          auto remove_pressure_laplace_nullspace=[&](VectorType &v){
+            if(pressure_laplace_has_nullspace)
+              remove_mean_value_free_dofs(v,constraints);
+          };
+          auto rmv=remove_mean_value<>(op_BC_invBT);
+          VectorType ptmp;
+          VectorType ptmp2;
+          ptmp.reinit(src);
+          ptmp2.reinit(src);
+          PrimitiveVectorMemory<VectorType> mem;
+
+
+
+          VectorType rhs1=src; //nullspace removal
+   //       rhs1.add(-rhs1.mean_value());
+            remove_pressure_laplace_nullspace(rhs1);
+
+
+
+//          SolverControl solver_control(5000, rhs1.l2_norm() * solver_tolerance, false, true);
+//         SolverCG<VectorType> solver(solver_control,mem);
+
+          ptmp = 0;
+
+          mp_preconditioner_damped.vmult(ptmp,rhs1);
+  //        ptmp.add(-ptmp.mean_value());
+            remove_pressure_laplace_nullspace(ptmp);
+
+
+//           solver.solve(rmv*op_BC_invBT_damped, ptmp, rhs1, mp_preconditioner);
+//          n_iterations_ += solver_control.last_step();
+
+          {
+            dealii::LinearAlgebra::distributed::BlockVector<double> block_src;
+            dealii::LinearAlgebra::distributed::BlockVector<double> block_dst;
+            block_src.reinit(2);
+            block_dst.reinit(2);
+            system_matrix.initialize_dof_vector(block_src);
+            system_matrix.initialize_dof_vector(block_dst);
+
+            block_src.block(1) = ptmp;
+            block_src.block(0) = 0;
+            block_dst = 0;
+            BT_operator.vmult(block_dst, block_src);
+
+            block_dst.block(0).scale(lumped_velocity_mass_matrix_damped);
+
+            A_operator.vmult(block_src.block(0), block_dst.block(0));
+
+            block_src.block(0).scale(lumped_velocity_mass_matrix);
+
+            block_src.block(1) = 0;
+            block_dst = 0;
+            B_operator.vmult(block_dst, block_src);
+            ptmp2 = block_dst.block(1);
+          }
+
+          VectorType rhs2=ptmp2;
+ //         rhs2.add(-rhs2.mean_value());
+
+          remove_pressure_laplace_nullspace(rhs2);
+
+
+          dst = 0;
+          mp_preconditioner.vmult(dst,rhs2);
+//          if (std::abs(dst.mean_value())>(1e-6*rhs2.l2_norm()))
+//            {
+//              std::cout<<"dst mean value is "<<dst.mean_value();
+//            }
+//          solver_control.set_tolerance(solver_tolerance*rhs2.l2_norm());
+//          solver.solve(rmv*op_BC_invBT, dst, rhs2, mp_preconditioner);
+
+//          dst.add(-dst.mean_value());
+    
+           remove_pressure_laplace_nullspace(dst);
+//         n_iterations_ += solver_control.last_step();
+
+
+        }
+
+      catch (const std::exception &exc)
+        {
+          Utilities::throw_linear_solver_failure_exception("iterative (DiagBFBT) solver",
+                                                           "DiagBFBT::vmult",
+                                                           std::vector<SolverControl> {},
+                                                           exc,
+                                                           src.get_mpi_communicator());
+        }
+    }
+
+    template <class StokesMatrixType, class AOperatorType, class BOperatorType, class BTOperatorType, class SchurComplementMatrixType, class VectorType, class PreconditionerMp>
+    unsigned int MatrixFreeStokesOperators::DiagBFBT<StokesMatrixType, AOperatorType, BOperatorType, BTOperatorType, SchurComplementMatrixType, VectorType, PreconditionerMp>::n_iterations() const
+    {
+      return n_iterations_;
+    }
+
 }
 
 
@@ -1587,7 +1815,21 @@ namespace aspect
   template class MatrixFreeStokesOperators::BC_invBT_Operator<MatrixFreeStokesOperators::BBlockOperator<dim,2,GMGNumberType>, \
                                                               MatrixFreeStokesOperators::BTBlockOperator<dim,2,GMGNumberType>>; \
   template class MatrixFreeStokesOperators::BC_invBT_Operator<MatrixFreeStokesOperators::BBlockOperator<dim,3,GMGNumberType>, \
-                                                              MatrixFreeStokesOperators::BTBlockOperator<dim,3,GMGNumberType>>;
+                                                              MatrixFreeStokesOperators::BTBlockOperator<dim,3,GMGNumberType>>; \
+  template class MatrixFreeStokesOperators::DiagBFBT<MatrixFreeStokesOperators::StokesOperator<dim,2,double>, \
+                                                     MatrixFreeStokesOperators::ABlockOperator<dim,2,double>, \
+                                                     MatrixFreeStokesOperators::BBlockOperator<dim,2,double>, \
+                                                     MatrixFreeStokesOperators::BTBlockOperator<dim,2,double>, \
+                                                     MatrixFreeStokesOperators::MassMatrixOperator<dim,1,double>, \
+                                                     dealii::LinearAlgebra::distributed::Vector<GMGNumberType>, \
+                                                     PreconditionMG<dim, dealii::LinearAlgebra::distributed::Vector<GMGNumberType>, MGTransferType<dim,GMGNumberType>>>; \
+  template class MatrixFreeStokesOperators::DiagBFBT<MatrixFreeStokesOperators::StokesOperator<dim,3,double>, \
+                                                     MatrixFreeStokesOperators::ABlockOperator<dim,3,double>, \
+                                                     MatrixFreeStokesOperators::BBlockOperator<dim,3,double>, \
+                                                     MatrixFreeStokesOperators::BTBlockOperator<dim,3,double>, \
+                                                     MatrixFreeStokesOperators::MassMatrixOperator<dim,2,double>, \
+                                                     dealii::LinearAlgebra::distributed::Vector<GMGNumberType>, \
+                                                     PreconditionMG<dim, dealii::LinearAlgebra::distributed::Vector<GMGNumberType>, MGTransferType<dim,GMGNumberType>>>; \
 
   ASPECT_INSTANTIATE(INSTANTIATE)
 

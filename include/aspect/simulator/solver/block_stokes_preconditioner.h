@@ -413,64 +413,6 @@ namespace aspect
 
 
 
-    template <class StokesMatrixType, class AOperatorType, class BOperatorType, class BTOperatorType, class SchurComplementMatrixType,class VectorType, class PreconditionerMp>
-    class DiagBFBT: public SchurComplementOperator<VectorType>
-    {
-      public:
-        /**
-         * Constructor.
-         * @param mp_preconditioner The preconditioner for the BC^{-1}B^T operator
-         *        used in the inner CG solves.
-         * @param do_solve_schur_complement Full solve with Schur complement or just vmult.
-         * @param solver_tolerance The relative solver tolerance for the inner CG solves
-         *        with BC^{-1}B^T.
-         * @param lumped_velocity_mass_matrix Lumped velocity mass matrix used in weighted BFBT.
-         * @param system_matrix The Stokes operator of the form
-         * [A B^T
-         *  B 0].
-         * @param A_operator The velocity block operator.
-         * @param B_operator The B block operator.
-         * @param BT_operator The B^T block operator.
-         * @param mp_matrix Pressure mass matrix used as preconditioner for BC^{-1}B^T.
-         * @param constraints Affineconstraints used for boundary corrections.
-         * @param pressure_laplace_has_nullspace Flag that determines how boundary conditions are handled for the
-         * pressure Laplace operator.
-         */
-        DiagBFBT(const PreconditionerMp &mp_preconditioner,
-                 const PreconditionerMp &mp_preconditioner_damped,
-                 const bool do_solve_schur_complement,
-                 const double solver_tolerance,
-                 const dealii::LinearAlgebra::distributed::Vector<double> &lumped_velocity_mass_matrix,
-                 const dealii::LinearAlgebra::distributed::Vector<double> &lumped_velocity_mass_matrix_damped,
-                 const StokesMatrixType &system_matrix,
-                 const AOperatorType &A_operator,
-                 const BOperatorType &B_operator,
-                 const BTOperatorType &BT_operator,
-                 const SchurComplementMatrixType &mp_matrix,
-                 const dealii::AffineConstraints<double> &constraints,
-                 const bool pressure_laplace_has_nullspace);
-
-        void vmult(VectorType &dst,
-                   const VectorType &src) const override;
-
-        unsigned int n_iterations() const override;
-
-      private:
-        mutable unsigned int n_iterations_;
-        const PreconditionerMp &mp_preconditioner;
-        const PreconditionerMp &mp_preconditioner_damped;
-        const bool do_solve_schur_complement;
-        const double solver_tolerance;
-        const dealii::LinearAlgebra::distributed::Vector<double> &lumped_velocity_mass_matrix;
-        const dealii::LinearAlgebra::distributed::Vector<double> &lumped_velocity_mass_matrix_damped;
-        const StokesMatrixType &system_matrix;
-        const AOperatorType &A_operator;
-        const BOperatorType &B_operator;
-        const BTOperatorType &BT_operator;
-        const SchurComplementMatrixType &mp_matrix;
-        const dealii::AffineConstraints<double> &constraints;
-        const bool pressure_laplace_has_nullspace;
-    };
 
 
 
