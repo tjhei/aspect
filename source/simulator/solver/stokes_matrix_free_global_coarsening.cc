@@ -133,7 +133,9 @@ namespace aspect
   template <int dim, int velocity_degree>
   std::string
   StokesMatrixFreeHandlerGlobalCoarseningImplementation<dim, velocity_degree>::name () const
-  {
+  { 
+    if(this -> get_parameters().use_bfbt)
+      return "GMG-GC-BFBT";
     return "GMG-GC";
   }
 
