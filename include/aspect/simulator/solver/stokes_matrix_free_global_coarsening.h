@@ -271,6 +271,37 @@ namespace aspect
       MGLevelObject<MGTwoLevelTransfer<dim, dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>> transfers_p;
       std::unique_ptr<GCMGTransferType<dim,GMGNumberType>> mg_transfer_A_block;
       std::unique_ptr<GCMGTransferType<dim,GMGNumberType>> mg_transfer_Schur_complement;
+
+/// For weighted BFBT.
+      using BBlockOperatorType     = MatrixFreeStokesOperators::BBlockOperator<dim,velocity_degree,double>;
+      using GMGBBlockOperatorType  = MatrixFreeStokesOperators::BBlockOperator<dim,velocity_degree,GMGNumberType>;
+      using GMGBTBlockOperatorType = MatrixFreeStokesOperators::BTBlockOperator<dim,velocity_degree,GMGNumberType>;
+      using GMGLaplaceType = MatrixFreeStokesOperators::PressureLaplaceOperator<dim,velocity_degree-1,GMGNumberType,
+                                                                                GMGBBlockOperatorType, GMGBTBlockOperatorType>;
+      using LumpedVelocityMassMatrixType    = MatrixFreeStokesOperators::LumpedVelocityMassOperator<dim,velocity_degree,double>;
+      using GMGLumpedVelocityMassMatrixType = MatrixFreeStokesOperators::LumpedVelocityMassOperator<dim,velocity_degree,GMGNumberType>;
+      
+      MatrixFreeStokesOperators::OperatorCellData<dim, GMGNumberType> active_cell_data_damped;
+      MGLevelObject<MatrixFreeStokesOperators::OperatorCellData<dim, GMGNumberType>> level_cell_data_damped;
+      MGLevelObject<MatrixFreeStokesOperators::OperatorCellData<dim, GMGNumberType>> level_cell_data_laplace;
+      MGLevelObject<MatrixFreeStokesOperators::OperatorCellData<dim, GMGNumberType>> level_cell_data_laplace_damped;
+      
+      BBlockOperatorType B_block;
+      LumpedVelocityMassMatrixType lumped_velocity_mass_matrix;
+      LumpedVelocityMassMatrixType lumped_velocity_mass_matrix_damped;
+      
+      GMGBBlockOperatorType  B_block_finest;
+      GMGBTBlockOperatorType BT_block_finest;
+      GMGLumpedVelocityMassMatrixType lumped_velocity_mass_matrix_finest_grid;
+      GMGLumpedVelocityMassMatrixType lumped_velocity_mass_matrix_damped_finest_grid;
+      
+      MGLevelObject<GMGLaplaceType> mg_matrices_Laplace;
+      MGLevelObject<GMGLaplaceType> mg_matrices_Laplace_damped;
+      MGLevelObject<AffineConstraints<double>> constraints_p_laplace;
+      
+      bool pressure_laplace_has_nullspace = true;
+      std::set<types::boundary_id> free_velocity_boundaries;
+      void compute_pressure_nullspace_flag();   // public
   };
 }
 
