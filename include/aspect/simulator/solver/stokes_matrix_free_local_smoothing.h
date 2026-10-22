@@ -197,15 +197,6 @@ namespace aspect
       {
         return mg_transfer_A_block;
       }
-      /**
-       * Checks for any Neumann boundary conditions for velocity. If present, 
-       * the pressure Laplace operator used by w-BFBT should be 
-       * discretized with Dirichlet 0 conditions on pressure on
-       * the Neumann parts of the velocity boundary. 
-       * Sets the pressure_laplace_has_nullspace flag
-       * and flags for pressure laplace nullsapce removals.
-       */
-      void compute_pressure_nullspace_flag();
 
     private:
       /**
@@ -264,7 +255,6 @@ namespace aspect
       MGLevelObject<MatrixFreeStokesOperators::OperatorCellData<dim, GMGNumberType>>
       level_cell_data_laplace_damped;
 
-      bool pressure_laplace_has_nullspace = true;
       std::set<types::boundary_id> free_velocity_boundaries;
 
       using StokesMatrixType = MatrixFreeStokesOperators::StokesOperator<dim,velocity_degree,double>;

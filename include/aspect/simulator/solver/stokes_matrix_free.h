@@ -24,6 +24,7 @@
 #include <aspect/global.h>
 #include <aspect/parameters.h>
 #include <aspect/simulator/solver/interface.h>
+#include <deal.II/base/types.h>
 
 namespace aspect
 {
@@ -100,6 +101,19 @@ namespace aspect
        * equation data like viscosity to be able to apply the operators.
        */
       virtual std::size_t get_cell_data_memory_consumption() const = 0;
+      
+      /**
+       * Checks for any Neumann boundary conditions for velocity. If present, 
+       * the pressure Laplace operator used by w-BFBT should be 
+       * discretized with Dirichlet 0 conditions on pressure on
+       * the Neumann parts of the velocity boundary. 
+       * Sets the pressure_laplace_has_nullspace flag
+       * and flags for pressure laplace nullsapce removals.
+       */
+      void compute_pressure_nullspace_flag();
+      protected:
+      std::set<types::boundary_id> free_velocity_boundaries;
+      bool pressure_laplace_has_nullspace = true;
   };
 
   /**
