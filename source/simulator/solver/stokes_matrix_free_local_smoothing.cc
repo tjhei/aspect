@@ -64,48 +64,6 @@ namespace aspect
   namespace internal
   {
 
-    template<typename VectorType, typename SmootherType>
-    void MGSmootherRemoveNullspace<VectorType, SmootherType>::clear()
-    {}
-
-    template<typename VectorType, typename SmootherType>
-    void MGSmootherRemoveNullspace<VectorType, SmootherType>::smooth(const unsigned int level,
-                                                                     VectorType &dst, const VectorType &src) const
-    {
-      smoother->smooth(level, dst, src);
-      dst.add(-dst.mean_value());
-    }
-
-
-    template<typename VectorType, typename SmootherType>
-    void MGSmootherRemoveNullspace<VectorType, SmootherType>::apply(const unsigned int level, VectorType &dst,
-                                                                    const VectorType &src) const
-    {
-      smoother->apply(level,dst,src);
-      dst.add(-dst.mean_value());
-    }
-
-    template<typename VectorType, typename SmootherType>
-    void MGSmootherRemoveNullspace<VectorType, SmootherType>::initialize(const SmootherType &smoother)
-    {
-      this->smoother=&smoother;
-    }
-    template<typename VectorType>
-
-    void MGCoarseGridApplySmootherRemoveNullspace<VectorType>::operator()(const unsigned int level,
-                                                                          VectorType &dst,
-                                                                          const VectorType &src) const
-    {
-      (*coarse_grid_solver)(level,dst,src);
-      dst.add(-dst.mean_value());
-    }
-
-    template<typename VectorType>
-
-    void MGCoarseGridApplySmootherRemoveNullspace<VectorType>::initialize(const dealii::MGCoarseGridApplySmoother<VectorType> &coarse_grid_solver)
-    {
-      this->coarse_grid_solver = &coarse_grid_solver;
-    }
 
 
 

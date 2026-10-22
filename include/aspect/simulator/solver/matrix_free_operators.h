@@ -53,6 +53,38 @@ namespace aspect
 {
   namespace internal
   {
+
+    /**
+     * Applies nullspace removal in coarser grids in v cycle.
+     */
+    template<typename VectorType, typename SmootherType>
+    class MGSmootherRemoveNullspace: public dealii::MGSmootherBase<VectorType>
+    {
+      public:
+
+        virtual void smooth(const unsigned int level, VectorType &dst, const VectorType &src) const override;
+        virtual void apply(const unsigned int level, VectorType &dst, const VectorType &src) const override;
+        virtual void clear() override;
+        void initialize(const SmootherType &smoother);
+
+      private:
+        const SmootherType *smoother=nullptr;
+    };
+    /**
+      * Applies the coarse grid solve with a mean value nullspace removal.
+      * Used in diag A bfbt BC^{-1}B^T v-cycle.
+      */
+    template <typename VectorType>
+    class MGCoarseGridApplySmootherRemoveNullspace: public dealii::MGCoarseGridBase<VectorType>
+    {
+      public:
+        virtual void operator()(const unsigned int level,
+                                VectorType &dst,
+                                const VectorType &src) const override;
+        void initialize(const dealii::MGCoarseGridApplySmoother<VectorType> &coarse_grid_solver);
+      private:
+        const dealii::MGCoarseGridApplySmoother<VectorType> *coarse_grid_solver=nullptr;
+    };
     /**
      * Matrix-free operators must use deal.II defined vectors, while the rest of the ASPECT
      * software is based on Trilinos vectors. Here we define functions which copy between the

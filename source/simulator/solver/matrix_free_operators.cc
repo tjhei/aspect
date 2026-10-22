@@ -48,6 +48,7 @@
 #include <deal.II/matrix_free/fe_evaluation.h>
 #include <deal.II/matrix_free/fe_evaluation_data.h>
 #include <deal.II/matrix_free/operators.h>
+#include <deal.II/multigrid/mg_coarse.h>
 #include <deal.II/multigrid/mg_tools.h>
 #include <deal.II/numerics/vector_tools.h>
 
@@ -65,7 +66,53 @@
 namespace aspect
 {
   namespace internal
-  {
+  { 
+   
+    template<typename VectorType, typename SmootherType>
+    void MGSmootherRemoveNullspace<VectorType, SmootherType>::clear()
+    {}
+
+    template<typename VectorType, typename SmootherType>
+    void MGSmootherRemoveNullspace<VectorType, SmootherType>::smooth(const unsigned int level,
+                                                                     VectorType &dst, const VectorType &src) const
+    {
+      smoother->smooth(level, dst, src);
+      dst.add(-dst.mean_value());
+    }
+
+
+    template<typename VectorType, typename SmootherType>
+    void MGSmootherRemoveNullspace<VectorType, SmootherType>::apply(const unsigned int level, VectorType &dst,
+                                                                    const VectorType &src) const
+    {
+      smoother->apply(level,dst,src);
+      dst.add(-dst.mean_value());
+    }
+
+    template<typename VectorType, typename SmootherType>
+    void MGSmootherRemoveNullspace<VectorType, SmootherType>::initialize(const SmootherType &smoother)
+    {
+      this->smoother=&smoother;
+    }
+    template<typename VectorType>
+
+    void MGCoarseGridApplySmootherRemoveNullspace<VectorType>::operator()(const unsigned int level,
+                                                                          VectorType &dst,
+                                                                          const VectorType &src) const
+    {
+      (*coarse_grid_solver)(level,dst,src);
+      dst.add(-dst.mean_value());
+    }
+    template<typename VectorType>
+
+    void MGCoarseGridApplySmootherRemoveNullspace<VectorType>::initialize(const 
+                                                                          dealii::MGCoarseGridApplySmoother<VectorType> &coarse_grid_solver)
+    {
+      this->coarse_grid_solver = &coarse_grid_solver;
+    }
+    template class MGCoarseGridApplySmootherRemoveNullspace<dealii::LinearAlgebra::distributed::Vector<double>>;
+
+
     /**
      * Matrix-free operators must use deal.II defined vectors, while the rest of the ASPECT
      * software is based on Trilinos vectors. Here we define functions which copy between the
@@ -1830,6 +1877,24 @@ namespace aspect
                                                      MatrixFreeStokesOperators::MassMatrixOperator<dim,2,double>, \
                                                      dealii::LinearAlgebra::distributed::Vector<GMGNumberType>, \
                                                      PreconditionMG<dim, dealii::LinearAlgebra::distributed::Vector<GMGNumberType>, MGTransferType<dim,GMGNumberType>>>; \
+  template class internal::MGSmootherRemoveNullspace< \
+  dealii::LinearAlgebra::distributed::Vector<GMGNumberType>, \
+  dealii::mg::SmootherRelaxation< \
+  dealii::PreconditionChebyshev< \
+  MatrixFreeStokesOperators::PressureLaplaceOperator<dim,1,GMGNumberType, \
+  MatrixFreeStokesOperators::BBlockOperator<dim,2,GMGNumberType>, \
+  MatrixFreeStokesOperators::BTBlockOperator<dim,2,GMGNumberType>>, \
+  dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>, \
+  dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>>; \
+  template class internal::MGSmootherRemoveNullspace< \
+  dealii::LinearAlgebra::distributed::Vector<GMGNumberType>, \
+  dealii::mg::SmootherRelaxation< \
+  dealii::PreconditionChebyshev< \
+  MatrixFreeStokesOperators::PressureLaplaceOperator<dim,2,GMGNumberType, \
+  MatrixFreeStokesOperators::BBlockOperator<dim,3,GMGNumberType>, \
+  MatrixFreeStokesOperators::BTBlockOperator<dim,3,GMGNumberType>>, \
+  dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>, \
+  dealii::LinearAlgebra::distributed::Vector<GMGNumberType>>>; \
 
   ASPECT_INSTANTIATE(INSTANTIATE)
 
