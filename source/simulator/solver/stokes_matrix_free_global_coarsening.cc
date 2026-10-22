@@ -190,6 +190,16 @@ namespace aspect
 
     active_cell_data.is_compressible = this->get_material_model().is_compressible();
     active_cell_data.pressure_scaling = this->get_pressure_scaling();
+    
+    // create a copy of active cell data for w-bfbt boundary damping.
+    active_cell_data_damped = active_cell_data;
+
+    // w-BFBT related active level matrix free objects.
+    stokes_matrix.set_cell_data(active_cell_data);
+    BT_block.set_cell_data(active_cell_data);
+    B_block.set_cell_data(active_cell_data);
+    lumped_velocity_mass_matrix.set_cell_data(active_cell_data);
+    lumped_velocity_mass_matrix_damped.set_cell_data(active_cell_data_damped);
 
     // Store viscosity tables and other data into the active level matrix-free objects.
     stokes_matrix.set_cell_data(active_cell_data);
@@ -1686,7 +1696,21 @@ namespace aspect
       std::vector<unsigned int> selected = {0}; // select velocity DoFHandler
       A_block_matrix.initialize(matrix_free, selected, selected);
     }
+    // B Block matrix (for w-BFBT)
+    {
+      B_block.clear();
+      B_block.initialize(matrix_free);
+    }
+    // Lumped velocity mass matrices (for w-BFBT)
+    {
+      const std::vector<unsigned int> selected_dof_handler={0};
 
+      lumped_velocity_mass_matrix.clear();
+      lumped_velocity_mass_matrix.initialize(matrix_free,selected_dof_handler);
+
+      lumped_velocity_mass_matrix_damped.clear();
+      lumped_velocity_mass_matrix_damped.initialize(matrix_free,selected_dof_handler);
+    }
     //B^T Block matrix
     {
       BT_block.clear();
