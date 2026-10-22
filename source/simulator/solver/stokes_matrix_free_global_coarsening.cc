@@ -1811,10 +1811,27 @@ namespace aspect
     this->get_computing_timer().enter_subsection("Build Stokes preconditioner");
 
     for (auto l = min_level; l <= max_level; ++l)
-      {
-        mg_matrices_Schur_complement[l].compute_diagonal();
+      { 
+        if(this->get_parameters().use_bfbt){
+          mg_matrices_Laplace[l].compute_diagonal();
+          mg_matrices_Laplace_damped[l].compute_diagonal();
+        }
+        else 
+          mg_matrices_Schur_complement[l].compute_diagonal();
         mg_matrices_A_block[l].compute_diagonal();
       }
+     // On the finest level use the true BC^{-1}B^T operator.
+    if(this->get_parameters().use_bfbt)
+      {
+        lumped_velocity_mass_matrix_finest_grid.compute_diagonal();
+        lumped_velocity_mass_matrix_damped_finest_grid.compute_diagonal();
+
+        mg_matrices_Laplace[max_level].set_BCinvBT(B_block_finest, BT_block_finest,
+                                                   lumped_velocity_mass_matrix_finest_grid.get_matrix_diagonal_inverse()->get_vector());
+      
+        mg_matrices_Laplace_damped[max_level].set_BCinvBT(B_block_finest, BT_block_finest,
+                                                   lumped_velocity_mass_matrix_damped_finest_grid.get_matrix_diagonal_inverse()->get_vector());
+     }
     this->get_computing_timer().leave_subsection("Build Stokes preconditioner");
   }
 
