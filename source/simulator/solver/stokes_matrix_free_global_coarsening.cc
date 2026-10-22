@@ -27,6 +27,8 @@
 #include <aspect/mesh_deformation/interface.h>
 #include <aspect/newton.h>
 
+#include <deal.II/base/index_set.h>
+#include <deal.II/fe/component_mask.h>
 #include <deal.II/fe/mapping_q.h>
 #include <deal.II/fe/mapping_q_cache.h>
 #include <deal.II/numerics/vector_tools.h>
@@ -1498,7 +1500,8 @@ namespace aspect
     transfers_v.resize(min_level, max_level);
     mg_matrices_A_block.resize(min_level, max_level);
     mg_matrices_Schur_complement.resize(min_level, max_level);
-
+    mg_matrices_Laplace.resize(min_level, max_level);
+    mg_matrices_Laplace_damped.resize(min_level, max_level);
 
     {
       for (auto l = min_level; l <= max_level; ++l)
@@ -1633,6 +1636,23 @@ namespace aspect
             DoFTools::make_hanging_node_constraints(dof_handler, constraint);
             this->get_geometry_model().make_periodicity_constraints(dof_handler,
                                                                     constraint);
+            DoFTools::make_hanging_node_constraints(dof_handler, constraint);
+            this->get_geometry_model().make_periodicity_constraints(dof_handler, constraint);
+
+            // For w-BFBT, if velocity is free, we impose 
+            // Dirichlet 0 conditions for the pressure Laplace operator,
+            // which is only used on coarser levels of the multigrid.
+            if(this->get_parameters().use_bfbt && l<max_level &&
+               !free_velocity_boundaries.empty())
+               {
+                  const IndexSet free_face_dofs = DoFTools::extract_boundary_dofs(dof_handler,
+                                                                                  ComponentMask(),
+                                                                                  free_velocity_boundaries);
+                 for(const auto i : free_face_dofs)
+                     if(constraint.can_store_line(i) && !constraint.is_constrained(i))
+                        constraint.constrain_dof_to_zero(i);
+          
+               }
 
             constraint.close();
           }
@@ -1646,7 +1666,35 @@ namespace aspect
           matrix_free = std::make_shared<MatrixFree<dim,double>>();
           matrix_free_objects.push_back(matrix_free);
           mg_matrices_Schur_complement[l].reinit(mapping, dofhandlers_v[l], dofhandlers_p[l], constraints_v[l], constraints_p[l], matrix_free);
+          // Level operators for w-BFBT.
+          if(this->get_parameters().use_bfbt){
+            matrix_free = std::make_shared<MatrixFree<dim,double>>();
+            matrix_free_objects.push_back(matrix_free);
+            mg_matrices_Laplace[l].reinit(mapping, dofhandlers_v[l], dofhandlers_p[l],
+                                          constraints_v[l], constraints_p[l],
+                                          matrix_free);
+            // on the finest level use BC^{-1}B^T instead of pressure Laplace
+           // stand in operator. 
+            if(l == max_level){
+              B_block_finest.clear();
+              B_block_finest.initialize(matrix_free);
+              BT_block_finest.clear();
+              BT_block_finest.initialize(matrix_free);
 
+              const std::vector<unsigned int> selected = {0};
+              lumped_velocity_mass_matrix_finest_grid.clear();
+              lumped_velocity_mass_matrix_finest_grid.initialize(matrix_free, 
+                                                                selected);
+              lumped_velocity_mass_matrix_damped_finest_grid.clear();
+              lumped_velocity_mass_matrix_damped_finest_grid.initialize(matrix_free, 
+                                                                        selected);
+            }
+            matrix_free = std::make_shared<MatrixFree<dim,double>>();
+            matrix_free_objects.push_back(matrix_free);
+            mg_matrices_Laplace_damped[l].reinit(mapping, dofhandlers_v[l], dofhandlers_p[l],
+                                              constraints_v[l], constraints_p[l],
+                                              matrix_free);
+          }
           // Coefficient transfer objects:
           {
             auto &dof_handler_projection = dofhandlers_projection[l];
@@ -1703,13 +1751,13 @@ namespace aspect
     }
     // Lumped velocity mass matrices (for w-BFBT)
     {
-      const std::vector<unsigned int> selected_dof_handler={0};
+      const std::vector<unsigned int> selected={0};
 
       lumped_velocity_mass_matrix.clear();
-      lumped_velocity_mass_matrix.initialize(matrix_free,selected_dof_handler);
+      lumped_velocity_mass_matrix.initialize(matrix_free,selected);
 
       lumped_velocity_mass_matrix_damped.clear();
-      lumped_velocity_mass_matrix_damped.initialize(matrix_free,selected_dof_handler);
+      lumped_velocity_mass_matrix_damped.initialize(matrix_free,selected);
     }
     //B^T Block matrix
     {
