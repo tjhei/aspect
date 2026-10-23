@@ -298,10 +298,6 @@ namespace aspect
       MGLevelObject<GMGLaplaceType> mg_matrices_Laplace;
       MGLevelObject<GMGLaplaceType> mg_matrices_Laplace_damped;
       MGLevelObject<AffineConstraints<double>> constraints_p_laplace;
-      
-      bool pressure_laplace_has_nullspace = true;
-      std::set<types::boundary_id> free_velocity_boundaries;
-      void compute_pressure_nullspace_flag();   // public
   };
 }
 
