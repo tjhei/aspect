@@ -172,8 +172,6 @@ namespace aspect
     dealii::LinearAlgebra::distributed::Vector<double> active_viscosity_vector(dof_handler_projection.locally_owned_dofs(),
                                                                                this->get_mpi_communicator());
 
-    dealii::LinearAlgebra::distributed::Vector<double> active_viscosity_vector_damped(dof_handler_projection.locally_owned_dofs(),
-                                                                               this->get_mpi_communicator());
     const Quadrature<dim> &quadrature_formula = this->introspection().quadratures.velocities;
 
     MatrixFreeStokesOperators::fill_active_cell_data<dim, double>(this->get_dof_handler(),
@@ -193,6 +191,24 @@ namespace aspect
                                                                   minimum_viscosity,
                                                                   maximum_viscosity);
 
+    // Dampen copy of viscosity vector for weighted BFBT.
+    const double a_r=1.0;
+    dealii::LinearAlgebra::distributed::Vector<double> active_viscosity_vector_damped=active_viscosity_vector;
+
+    {
+      std::vector<types::global_dof_index> local_dof_indices_damped(dof_handler_projection.get_fe().dofs_per_cell);
+      for (const auto &cell:dof_handler_projection.active_cell_iterators())
+        if (!cell->is_artificial() && cell->at_boundary())
+          {
+            cell->get_dof_indices(local_dof_indices_damped);
+            for (const auto dof:local_dof_indices_damped)
+              if (active_viscosity_vector_damped.get_partitioner()->in_local_range(dof))
+                active_viscosity_vector_damped(dof)*=std::pow(a_r,2.0);
+          }
+
+
+
+    }
     active_cell_data.is_compressible = this->get_material_model().is_compressible();
     active_cell_data.pressure_scaling = this->get_pressure_scaling();
     
@@ -254,6 +270,10 @@ namespace aspect
       transfer.interpolate_to_mg(dof_handler_projection,
                                  level_viscosity_vector,
                                  active_viscosity_vector);
+
+      transfer.interpolate_to_mg(dof_handler_projection,
+                                 level_viscosity_vector_damped,
+                                 active_viscosity_vector_damped);
     };
 
     if (dof_handler_projection.get_fe().degree == 0)
@@ -1518,6 +1538,10 @@ namespace aspect
   template <int dim, int velocity_degree>
   void StokesMatrixFreeHandlerGlobalCoarseningImplementation<dim, velocity_degree>::setup_dofs()
   {
+   // Determine pressure laplace boundary conditions if weighted
+  //  BFBT is used.
+    if(this->get_parameters().use_bfbt)
+      this->compute_pressure_nullspace_flag();
     // This vector will be refilled with the new MatrixFree objects below:
     matrix_free_objects.clear();
 
