@@ -884,32 +884,95 @@ namespace aspect
     using MSmootherType = PreconditionChebyshev<GMGSchurComplementMatrixType,VectorType>;
     mg::SmootherRelaxation<MSmootherType, VectorType>
     mg_smoother_Schur(4);
+
+    using MSmootherLaplaceType = PreconditionChebyshev<GMGLaplaceType,VectorType>;
+    mg::SmootherRelaxation<MSmootherLaplaceType, VectorType>
+    mg_smoother_Laplace(4);
+    internal::MGSmootherRemoveNullspace<VectorType, mg::SmootherRelaxation<MSmootherLaplaceType, VectorType>> mg_smoother_Laplace_remove_ns;
+    mg_smoother_Laplace_remove_ns.initialize(mg_smoother_Laplace);
+
+    mg::SmootherRelaxation<MSmootherLaplaceType, VectorType>
+    mg_smoother_Laplace_damped(4);
+    internal::MGSmootherRemoveNullspace<VectorType, mg::SmootherRelaxation<MSmootherLaplaceType, VectorType>> mg_smoother_Laplace_damped_remove_ns;
+    mg_smoother_Laplace_damped_remove_ns.initialize(mg_smoother_Laplace_damped);
     {
       MGLevelObject<typename MSmootherType::AdditionalData> smoother_data_Schur;
+      MGLevelObject<typename MSmootherLaplaceType::AdditionalData> smoother_data_Laplace;
+      MGLevelObject<typename MSmootherLaplaceType::AdditionalData> smoother_data_Laplace_damped;
       smoother_data_Schur.resize(0, this->get_triangulation().n_global_levels()-1);
+      smoother_data_Laplace.resize(0, this->get_triangulation().n_global_levels()-1);
+      smoother_data_Laplace_damped.resize(0, this->get_triangulation().n_global_levels()-1);
+      
       for (unsigned int level = 0; level<this->get_triangulation().n_global_levels(); ++level)
         {
           if (level > 0)
             {
-              smoother_data_Schur[level].smoothing_range = 15.;
-              smoother_data_Schur[level].degree = 4;
-              smoother_data_Schur[level].eig_cg_n_iterations = 10;
+              if (this->get_parameters().use_bfbt)
+                {
+
+                  smoother_data_Laplace[level].smoothing_range = 15;
+                  smoother_data_Laplace[level].degree = 4;
+                  smoother_data_Laplace[level]. eig_cg_n_iterations= 10;
+
+                  smoother_data_Laplace_damped[level].smoothing_range = 15;
+                  smoother_data_Laplace_damped[level].degree = 4;
+                  smoother_data_Laplace_damped[level]. eig_cg_n_iterations= 10;
+                }
+              else
+                {
+                  smoother_data_Schur[level].smoothing_range = 15.;
+                  smoother_data_Schur[level].degree = 4;
+                  smoother_data_Schur[level].eig_cg_n_iterations = 10;
+
+                }
             }
           else
             {
-              // The pressure mass matrix scaled by inverse diagonal has eigenvalues in
-              // [0.5^dim, 1.5^dim] for Q1 and Q2 pressure. The Lanczos eigenvalue
-              // estimate in deal.II uses a mean zero starting vector, so it misses the
-              // largest eigenvalue. Instead, we manually prescribe the eigenvalues with
-              // a safety factor:
-              smoother_data_Schur[0].max_eigenvalue = 1.2*Utilities::fixed_power<dim>(1.5);
-              smoother_data_Schur[0].smoothing_range = 1.2*Utilities::fixed_power<dim>(3.0);
-              smoother_data_Schur[0].eig_cg_n_iterations = 0;
-              smoother_data_Schur[0].degree = 8;
+
+
+              if (this->get_parameters().use_bfbt)
+                {
+                  smoother_data_Laplace[level].smoothing_range = 1e-3;
+                  smoother_data_Laplace[level].degree = 8;
+                  smoother_data_Laplace[level].eig_cg_n_iterations=100;
+
+                  smoother_data_Laplace_damped[level].smoothing_range = 1e-3;
+                  smoother_data_Laplace_damped[level].degree = 8;
+                  smoother_data_Laplace_damped[level].eig_cg_n_iterations=100;
+                }
+              else
+                {
+
+                  // The pressure mass matrix scaled by inverse diagonal has eigenvalues in
+                  // [0.5^dim, 1.5^dim] for Q1 and Q2 pressure. The Lanczos eigenvalue
+                  // estimate in deal.II uses a mean zero starting vector, so it misses the
+                  // largest eigenvalue. Instead, we manually prescribe the eigenvalues with
+                  // a safety factor:
+                  smoother_data_Schur[0].max_eigenvalue = 1.2*Utilities::fixed_power<dim>(1.5);
+                  smoother_data_Schur[0].smoothing_range = 1.2*Utilities::fixed_power<dim>(3.0);
+                  smoother_data_Schur[0].eig_cg_n_iterations = 0;
+                  smoother_data_Schur[0].degree = 8;
+                }
             }
-          smoother_data_Schur[level].preconditioner = mg_matrices_Schur_complement[level].get_matrix_diagonal_inverse();
+          if (this->get_parameters().use_bfbt)
+            {
+              smoother_data_Laplace[level].preconditioner = mg_matrices_Laplace[level].get_matrix_diagonal_inverse();
+              smoother_data_Laplace_damped[level].preconditioner = mg_matrices_Laplace_damped[level].get_matrix_diagonal_inverse();
+            }
+          else
+            {
+              smoother_data_Schur[level].preconditioner = mg_matrices_Schur_complement[level].get_matrix_diagonal_inverse();
+            }
         }
-      mg_smoother_Schur.initialize(mg_matrices_Schur_complement, smoother_data_Schur);
+      if (this->get_parameters().use_bfbt)
+        {
+          mg_smoother_Laplace.initialize(mg_matrices_Laplace,smoother_data_Laplace);
+          mg_smoother_Laplace_damped.initialize(mg_matrices_Laplace_damped,smoother_data_Laplace_damped);
+        }
+      else
+        {
+          mg_smoother_Schur.initialize(mg_matrices_Schur_complement, smoother_data_Schur);
+        }
     }
 
     // Estimate the eigenvalues for the Chebyshev smoothers.
@@ -924,10 +987,36 @@ namespace aspect
         VectorType temp_velocity;
         VectorType temp_pressure;
         mg_matrices_A_block[level].initialize_dof_vector(temp_velocity);
-        mg_matrices_Schur_complement[level].initialize_dof_vector(temp_pressure);
+
+        if (this->get_parameters().use_bfbt)
+          {
+            mg_matrices_Laplace[level].initialize_dof_vector(temp_pressure);
+            mg_matrices_Laplace_damped[level].initialize_dof_vector(temp_pressure);
+          }
+        else
+          {
+            mg_matrices_Schur_complement[level].initialize_dof_vector(temp_pressure);
+
+          }
 
         mg_smoother_A[level].estimate_eigenvalues(temp_velocity);
-        mg_smoother_Schur[level].estimate_eigenvalues(temp_pressure);
+        if (this->get_parameters().use_bfbt)
+          {
+            auto eigenvalue_info = mg_smoother_Laplace[level].estimate_eigenvalues(temp_pressure);
+//            this->get_pcout()<<" level: "<<level<<" lambda_min: "<<
+//                             eigenvalue_info.min_eigenvalue_estimate<<", lambda_max:"
+//                             <<eigenvalue_info.max_eigenvalue_estimate<<" ]"<<std::endl;
+             auto eigenvalue_info_damped = mg_smoother_Laplace_damped[level].estimate_eigenvalues(temp_pressure);
+
+//            this->get_pcout()<<" level: "<<level<<" lambda_min: "<<
+//                             eigenvalue_info_damped.min_eigenvalue_estimate<<", lambda_max:"
+//                             <<eigenvalue_info_damped.max_eigenvalue_estimate<<" ]"<<std::endl;
+          }
+        else
+          {
+            mg_smoother_Schur[level].estimate_eigenvalues(temp_pressure);
+
+          }
 
         if (level==0)
           {
@@ -937,13 +1026,38 @@ namespace aspect
       }
 
 
-    // Coarse Solver is just an application of the Chebyshev smoother set up
-    // in such a way to be a solver:
+    // Coarse Solver is just an application of the Chebyshev smoother setup
+    // in such a way to be a solver
+    //ABlock GMG
     MGCoarseGridApplySmoother<VectorType> mg_coarse_A;
     mg_coarse_A.initialize(mg_smoother_A);
 
+    //Schur complement matrix GMG
     MGCoarseGridApplySmoother<VectorType> mg_coarse_Schur;
-    mg_coarse_Schur.initialize(mg_smoother_Schur);
+
+
+    //Pressure laplace for diag BFBT GMG
+    MGCoarseGridApplySmoother<VectorType> mg_coarse_Laplace;
+    internal::MGCoarseGridApplySmootherRemoveNullspace<VectorType> mg_coarse_Laplace_remove_ns;
+
+    MGCoarseGridApplySmoother<VectorType> mg_coarse_Laplace_damped;
+    internal::MGCoarseGridApplySmootherRemoveNullspace<VectorType> mg_coarse_Laplace_damped_remove_ns;
+    if (this->get_parameters().use_bfbt)
+      {
+        mg_coarse_Laplace.initialize(mg_smoother_Laplace);
+        mg_coarse_Laplace_remove_ns.initialize(mg_coarse_Laplace);
+
+        mg_coarse_Laplace_damped.initialize(mg_smoother_Laplace_damped);
+        mg_coarse_Laplace_damped_remove_ns.initialize(mg_coarse_Laplace_damped);
+        
+      }
+    else
+      {
+        mg_coarse_Schur.initialize(mg_smoother_Schur);
+
+      }
+
+
 
 
     if (print_details)
@@ -961,24 +1075,58 @@ namespace aspect
     // MG Matrix
     mg::Matrix<VectorType> mg_matrix_A(mg_matrices_A_block);
     mg::Matrix<VectorType> mg_matrix_Schur(mg_matrices_Schur_complement);
-
+    mg::Matrix<VectorType> mg_matrix_Laplace(mg_matrices_Laplace);
+    mg::Matrix<VectorType> mg_matrix_Laplace_damped(mg_matrices_Laplace_damped);
     // MG object
+    // ABlock GMG
     Multigrid<VectorType> mg_A(mg_matrix_A,
                                mg_coarse_A,
                                *mg_transfer_A_block,
                                mg_smoother_A,
                                mg_smoother_A);
 
+    // Schur complement matrix GMG
     Multigrid<VectorType> mg_Schur(mg_matrix_Schur,
                                    mg_coarse_Schur,
                                    *mg_transfer_Schur_complement,
                                    mg_smoother_Schur,
                                    mg_smoother_Schur);
 
+    //Diag-BFBT pressure Laplace GMG
+
+    // The pressure Laplace features a mean value removal
+  //   if there is a pressure nullspace and 
+  //   does not otherwise.
+    const MGCoarseGridBase<VectorType>   &coarse_Laplace = this->pressure_laplace_has_nullspace?
+                                                   static_cast<const MGCoarseGridBase<VectorType> &>(mg_coarse_Laplace_remove_ns)
+                                                   :
+                                                   static_cast<const MGCoarseGridBase<VectorType> &>(mg_coarse_Laplace);
+     
+    const MGCoarseGridBase<VectorType>   &coarse_Laplace_damped = this->pressure_laplace_has_nullspace?
+                                                   static_cast<const MGCoarseGridBase<VectorType> &>(mg_coarse_Laplace_damped_remove_ns)
+                                                   :
+                                                   static_cast<const MGCoarseGridBase<VectorType> &>(mg_coarse_Laplace_damped);
+    Multigrid<VectorType> mg_Laplace(mg_matrix_Laplace,
+                                     coarse_Laplace,
+                                     *mg_transfer_Schur_complement,
+                                     mg_smoother_Laplace/*_remove_ns*/,
+                                     mg_smoother_Laplace/*_remove_ns*/);
+
+    Multigrid<VectorType> mg_Laplace_damped(mg_matrix_Laplace_damped,
+                                     coarse_Laplace_damped,
+                                     *mg_transfer_Schur_complement,
+                                     mg_smoother_Laplace_damped/*_remove_ns*/,
+                                     mg_smoother_Laplace_damped/*_remove_ns*/);
+
+
+
     // GMG Preconditioner for ABlock and Schur complement
     using GMGPreconditioner = PreconditionMG<dim, VectorType, GCMGTransferType<dim,double>>;
     GMGPreconditioner prec_A(dofhandlers_v.back(), mg_A, *mg_transfer_A_block);
     GMGPreconditioner prec_Schur(dofhandlers_p.back(), mg_Schur, *mg_transfer_Schur_complement);
+    GMGPreconditioner prec_Laplace(dofhandlers_p.back(), mg_Laplace, *mg_transfer_Schur_complement);
+    GMGPreconditioner prec_Laplace_damped(dofhandlers_p.back(), mg_Laplace_damped, *mg_transfer_Schur_complement);
+
 
 
     // Many parts of the solver depend on the block layout (velocity = 0,
