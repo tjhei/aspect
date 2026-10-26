@@ -72,18 +72,18 @@ namespace aspect
     StokesMatrixFreeHandlerLocalSmoothingImplementation<dim,2>::declare_parameters(prm);
     StokesMatrixFreeHandlerGlobalCoarseningImplementation<dim,2>::declare_parameters(prm);
   }
-  
+
   template <int dim>
   void StokesMatrixFreeHandler<dim>::
   compute_pressure_nullspace_flag()
   {
     const auto &bvm = this->get_boundary_velocity_manager();
-  
+
     // boundaries whose normal velocity is constrained
     std::set<types::boundary_id> constrained = bvm.get_zero_boundary_velocity_indicators();
     const auto &tang = bvm.get_tangential_boundary_velocity_indicators();
     constrained.insert(tang.begin(), tang.end());
-  
+
     // prescribed boundaries: an empty mask means all components (same convention as setup_dofs)
     std::set<types::boundary_id> masked;
     for (const auto id : bvm.get_prescribed_boundary_velocity_indicators())
@@ -94,7 +94,7 @@ namespace aspect
         else
           masked.insert(id);
       }
-  
+
     // periodic faces are interior, not boundaries
     std::set<types::boundary_id> periodic;
     for (const auto &pp : this->get_geometry_model().get_periodic_boundary_pairs())
@@ -102,18 +102,18 @@ namespace aspect
         periodic.insert(pp.first.first);
         periodic.insert(pp.first.second);
       }
-  
+
     // masked boundary: normal is constrained iff every component with a nonzero normal entry is masked.
     // Uses fe_normals and the triangulation only, so it works before distribute_dofs().
     std::map<types::boundary_id,int> masked_ok;
     for (const auto id : masked) masked_ok[id] = 1;
-  
+
     if (!masked.empty())
       {
         const FE_Q<dim> fe_normals(1);
         FEFaceValues<dim> fe_face(this->get_mapping(), fe_normals,
                                   QMidpoint<dim-1>(), update_normal_vectors);
-  
+
         for (const auto &cell : this->get_triangulation().active_cell_iterators())
           if (cell->is_locally_owned())
             for (const auto f : cell->face_indices())
@@ -130,12 +130,12 @@ namespace aspect
                       masked_ok[id] = 0;
                 }
       }
-  
+
     // Every rank must take part in the reduction, whether or not it owns
     // any masked face. The map has the same keys on all ranks.
     for (auto &kv : masked_ok)
       kv.second = Utilities::MPI::min(kv.second, this->get_mpi_communicator());
-  
+
     free_velocity_boundaries.clear();
     for (const auto id : this->get_geometry_model().get_used_boundary_indicators())
       {
@@ -144,28 +144,28 @@ namespace aspect
         free_velocity_boundaries.insert(id);
       }
     pressure_laplace_has_nullspace = free_velocity_boundaries.empty();
-   // ---- DEBUG diagnostic: how was each boundary classified? ----
-  for (const auto id : this->get_geometry_model().get_used_boundary_indicators())
-    {
-      std::string kind;
-      if (periodic.count(id))                                     kind = "periodic (interior)";
-      else if (bvm.get_zero_boundary_velocity_indicators().count(id)) kind = "zero velocity (no-slip)";
-      else if (tang.count(id))                                    kind = "tangential (free-slip)";
-      else if (masked.count(id))                                  kind = (masked_ok[id] == 1)
-                                                                       ? "prescribed, masked (normal constrained)"
-                                                                       : "prescribed, masked (normal FREE)";
-      else if (constrained.count(id))                             kind = "prescribed (all components)";
-      else                                                        kind = "FREE (traction/open)";
+    // ---- DEBUG diagnostic: how was each boundary classified? ----
+    for (const auto id : this->get_geometry_model().get_used_boundary_indicators())
+      {
+        std::string kind;
+        if (periodic.count(id))                                     kind = "periodic (interior)";
+        else if (bvm.get_zero_boundary_velocity_indicators().count(id)) kind = "zero velocity (no-slip)";
+        else if (tang.count(id))                                    kind = "tangential (free-slip)";
+        else if (masked.count(id))                                  kind = (masked_ok[id] == 1)
+                                                                             ? "prescribed, masked (normal constrained)"
+                                                                             : "prescribed, masked (normal FREE)";
+        else if (constrained.count(id))                             kind = "prescribed (all components)";
+        else                                                        kind = "FREE (traction/open)";
 
-      this->get_pcout() << "  boundary " << id << " ("
-                        << this->get_geometry_model().translate_id_to_symbol_name(id)
-                        << "): " << kind << std::endl;
-    }
-  this->get_pcout() << "  pressure Laplace has nullspace: "
-                    << (pressure_laplace_has_nullspace ? "yes (remove mean)"
-                                                       : "no (Dirichlet p=0 on free boundaries)")
-                    << std::endl; 
-}
+        this->get_pcout() << "  boundary " << id << " ("
+                          << this->get_geometry_model().translate_id_to_symbol_name(id)
+                          << "): " << kind << std::endl;
+      }
+    this->get_pcout() << "  pressure Laplace has nullspace: "
+                      << (pressure_laplace_has_nullspace ? "yes (remove mean)"
+                          : "no (Dirichlet p=0 on free boundaries)")
+                      << std::endl;
+  }
 }
 
 // explicit instantiations

@@ -178,7 +178,7 @@ namespace aspect
   std::string
   StokesMatrixFreeHandlerLocalSmoothingImplementation<dim, velocity_degree>::name () const
   {
-    if(this->get_parameters().use_bfbt)
+    if (this->get_parameters().use_bfbt)
       return "GMG-BFBT";
     return "GMG";
   }
@@ -229,8 +229,8 @@ namespace aspect
                                                                   maximum_viscosity);
     //diag A bfbt - dampen contributions from velocity dofs touching boundary
     //  by scaling the viscosity values.
-  //  Note that this does not test whether the velocity dofs in the cell
-  //  are subject to Dirichlet constraints yet.
+    //  Note that this does not test whether the velocity dofs in the cell
+    //  are subject to Dirichlet constraints yet.
 
 //    const double a_r=std::pow(2.0,static_cast<double>(this->get_triangulation().n_global_levels()-1)-4.0);
     const double a_r=1.0;
@@ -452,15 +452,21 @@ namespace aspect
       }
     level_cell_data_laplace.resize(0,n_levels-1);
     level_cell_data_laplace_damped.resize(0,n_levels-1);
+    // lambda returning the sqrt of viscosity.
+    const auto sqrt_viscosity=[](const MatrixFreeStokesOperators::OperatorCellData<dim, GMGNumberType> &active_cell_data)
+    {
+      MatrixFreeStokesOperators::OperatorCellData<dim, GMGNumberType> cell_data_sqrt_viscosity=active_cell_data;
+      auto &viscosity = cell_data_sqrt_viscosity.viscosity;
+      for (unsigned int i=0; i<viscosity.size(0); ++i)
+        for (unsigned int j=0; j<viscosity.size(1); ++j)
+          for (unsigned int c=0; c<VectorizedArray<GMGNumberType>::size(); ++c)
+            if (viscosity(i,j)[c]>0.)
+              viscosity(i,j)[c]=std::sqrt(viscosity(i,j)[c]);
+      return cell_data_sqrt_viscosity;
+    };
     for (unsigned int level=0; level<n_levels; ++level)
       {
-        level_cell_data_laplace[level]=level_cell_data[level];
-        auto &visc=level_cell_data_laplace[level].viscosity;
-        for (unsigned int i=0; i<visc.size(0); ++i)
-          for (unsigned int j=0; j<visc.size(1); ++j)
-            for (unsigned int c=0; c<VectorizedArray<GMGNumberType>::size(); ++c)
-              if (visc(i,j)[c]>0.)
-                visc(i,j)[c]=std::sqrt(visc(i,j)[c]);
+        level_cell_data_laplace[level]=sqrt_viscosity(level_cell_data[level]);
         mg_matrices_Laplace[level].set_cell_data(level_cell_data_laplace[level]);
       }
     level_cell_data_damped.resize(0,n_levels-1);
@@ -470,13 +476,7 @@ namespace aspect
     lumped_velocity_mass_matrix_damped_finest_grid.set_cell_data(level_cell_data_damped[n_levels-1]);
     for (unsigned int level=0; level<n_levels; ++level)
       {
-        level_cell_data_laplace_damped[level]=level_cell_data_damped[level];
-        auto &visc=level_cell_data_laplace_damped[level].viscosity;
-        for (unsigned int i=0; i<visc.size(0); ++i)
-          for (unsigned int j=0; j<visc.size(1); ++j)
-            for (unsigned int c=0; c<VectorizedArray<GMGNumberType>::size(); ++c)
-              if (visc(i,j)[c]>0.)
-                visc(i,j)[c]=std::sqrt(visc(i,j)[c]);
+        level_cell_data_laplace_damped[level]=sqrt_viscosity(level_cell_data_damped[level]);
         mg_matrices_Laplace_damped[level].set_cell_data(level_cell_data_laplace_damped[level]);
       }
 
@@ -1004,7 +1004,7 @@ namespace aspect
       smoother_data_Schur.resize(0, this->get_triangulation().n_global_levels()-1);
       smoother_data_Laplace.resize(0, this->get_triangulation().n_global_levels()-1);
       smoother_data_Laplace_damped.resize(0, this->get_triangulation().n_global_levels()-1);
-      
+
       for (unsigned int level = 0; level<this->get_triangulation().n_global_levels(); ++level)
         {
           if (level > 0)
@@ -1113,7 +1113,7 @@ namespace aspect
 //            this->get_pcout()<<" level: "<<level<<" lambda_min: "<<
 //                             eigenvalue_info.min_eigenvalue_estimate<<", lambda_max:"
 //                             <<eigenvalue_info.max_eigenvalue_estimate<<" ]"<<std::endl;
-             auto eigenvalue_info_damped = mg_smoother_Laplace_damped[level].estimate_eigenvalues(temp_pressure);
+            auto eigenvalue_info_damped = mg_smoother_Laplace_damped[level].estimate_eigenvalues(temp_pressure);
 
 //            this->get_pcout()<<" level: "<<level<<" lambda_min: "<<
 //                             eigenvalue_info_damped.min_eigenvalue_estimate<<", lambda_max:"
@@ -1156,7 +1156,7 @@ namespace aspect
 
         mg_coarse_Laplace_damped.initialize(mg_smoother_Laplace_damped);
         mg_coarse_Laplace_damped_remove_ns.initialize(mg_coarse_Laplace_damped);
-        
+
       }
     else
       {
@@ -1246,17 +1246,17 @@ namespace aspect
     //Diag-BFBT pressure Laplace GMG
 
     // The pressure Laplace features a mean value removal
-  //   if there is a pressure nullspace and 
-  //   does not otherwise.
+    //   if there is a pressure nullspace and
+    //   does not otherwise.
     const MGCoarseGridBase<VectorType>   &coarse_Laplace = this->pressure_laplace_has_nullspace?
-                                                   static_cast<const MGCoarseGridBase<VectorType> &>(mg_coarse_Laplace_remove_ns)
-                                                   :
-                                                   static_cast<const MGCoarseGridBase<VectorType> &>(mg_coarse_Laplace);
-     
+                                                           static_cast<const MGCoarseGridBase<VectorType> &>(mg_coarse_Laplace_remove_ns)
+                                                           :
+                                                           static_cast<const MGCoarseGridBase<VectorType> &>(mg_coarse_Laplace);
+
     const MGCoarseGridBase<VectorType>   &coarse_Laplace_damped = this->pressure_laplace_has_nullspace?
-                                                   static_cast<const MGCoarseGridBase<VectorType> &>(mg_coarse_Laplace_damped_remove_ns)
-                                                   :
-                                                   static_cast<const MGCoarseGridBase<VectorType> &>(mg_coarse_Laplace_damped);
+                                                                  static_cast<const MGCoarseGridBase<VectorType> &>(mg_coarse_Laplace_damped_remove_ns)
+                                                                  :
+                                                                  static_cast<const MGCoarseGridBase<VectorType> &>(mg_coarse_Laplace_damped);
     Multigrid<VectorType> mg_Laplace(mg_matrix_Laplace,
                                      coarse_Laplace,
                                      mg_transfer_Schur_complement,
@@ -1264,10 +1264,10 @@ namespace aspect
                                      mg_smoother_Laplace/*_remove_ns*/);
 
     Multigrid<VectorType> mg_Laplace_damped(mg_matrix_Laplace_damped,
-                                     coarse_Laplace_damped,
-                                     mg_transfer_Schur_complement,
-                                     mg_smoother_Laplace_damped/*_remove_ns*/,
-                                     mg_smoother_Laplace_damped/*_remove_ns*/);
+                                            coarse_Laplace_damped,
+                                            mg_transfer_Schur_complement,
+                                            mg_smoother_Laplace_damped/*_remove_ns*/,
+                                            mg_smoother_Laplace_damped/*_remove_ns*/);
     if (this->get_parameters().use_bfbt)
       {
         mg_Laplace.set_edge_matrices(mg_interface_Laplace, mg_interface_Laplace);
@@ -1512,7 +1512,7 @@ namespace aspect
                                           BT_block,
                                           Schur_complement_block_matrix,
                                           constraints_p,
-                                        this->pressure_laplace_has_nullspace);
+                                          this->pressure_laplace_has_nullspace);
       }
     else
       {
@@ -1880,9 +1880,10 @@ namespace aspect
   template <int dim, int velocity_degree>
   void StokesMatrixFreeHandlerLocalSmoothingImplementation<dim, velocity_degree>::setup_dofs()
   {
-    if(this->get_parameters().use_bfbt){
-      this->compute_pressure_nullspace_flag();
-    }
+    if (this->get_parameters().use_bfbt)
+      {
+        this->compute_pressure_nullspace_flag();
+      }
     // Local smoothing requires matching refinement levels on periodic
     // boundaries. Check the current mesh before setting up multigrid.
     {
@@ -2090,7 +2091,7 @@ namespace aspect
 
       mg_constrained_dofs_Schur_complement.clear();
       mg_constrained_dofs_Schur_complement.initialize(dof_handler_p);
-      if(this->get_parameters().use_bfbt)
+      if (this->get_parameters().use_bfbt)
         mg_constrained_dofs_Schur_complement.make_zero_boundary_constraints(dof_handler_p,
                                                                             free_velocity_boundaries);
 
@@ -2297,11 +2298,11 @@ namespace aspect
 #endif
 
             level_constraints_p.reinit(dof_handler_p.locally_owned_mg_dofs(level), relevant_dofs);
-            // For w-BFBT, on Neumann velocity boundaries, impose 
+            // For w-BFBT, on Neumann velocity boundaries, impose
             // Dirichlet 0 conditions for the pressure Laplace.
-           const unsigned int finest=this->get_triangulation().n_global_levels()-1; 
-        if(this->get_parameters().use_bfbt && level<finest)
-              for(const auto index:mg_constrained_dofs_Schur_complement.get_boundary_indices(level))
+            const unsigned int finest=this->get_triangulation().n_global_levels()-1;
+            if (this->get_parameters().use_bfbt && level<finest)
+              for (const auto index:mg_constrained_dofs_Schur_complement.get_boundary_indices(level))
                 level_constraints_p.constrain_dof_to_zero(index);
             // The pressure level operator uses empty constraints
             // when weighted BFBT is set as false. Scalar
@@ -2356,9 +2357,9 @@ namespace aspect
 
             mg_matrices_Laplace_damped[level].clear();
             mg_matrices_Laplace_damped[level].initialize(matrix_free_level,
-                                                  mg_constrained_dofs_Schur_complement,
-                                                  level,
-                                                  selected_dof_handler);
+                                                         mg_constrained_dofs_Schur_complement,
+                                                         level,
+                                                         selected_dof_handler);
           }
 
           // In the case that we use diag A bfbt, we form the want to use the
@@ -2374,9 +2375,9 @@ namespace aspect
 
               lumped_velocity_mass_matrix_damped_finest_grid.clear();
               lumped_velocity_mass_matrix_damped_finest_grid.initialize(matrix_free_level,
-                                                                 mg_constrained_dofs_A_block,
-                                                                 level,
-                                                                 selected_dof_handler);
+                                                                        mg_constrained_dofs_A_block,
+                                                                        level,
+                                                                        selected_dof_handler);
             }
           {
             mg_matrices_B_block[level].initialize(matrix_free_level);
@@ -2445,8 +2446,8 @@ namespace aspect
                                                       mg_matrices_BT_block[finest_level],
                                                       lumped_velocity_mass_matrix_finest_grid.get_matrix_diagonal_inverse()->get_vector());
         mg_matrices_Laplace_damped[finest_level].set_BCinvBT(mg_matrices_B_block[finest_level],
-                                                            mg_matrices_BT_block[finest_level],
-                                                            lumped_velocity_mass_matrix_damped_finest_grid.get_matrix_diagonal_inverse()->get_vector());
+                                                             mg_matrices_BT_block[finest_level],
+                                                             lumped_velocity_mass_matrix_damped_finest_grid.get_matrix_diagonal_inverse()->get_vector());
       }
     this->get_computing_timer().leave_subsection("Build Stokes preconditioner");
   }

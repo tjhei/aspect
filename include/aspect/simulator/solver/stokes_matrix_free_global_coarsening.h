@@ -277,24 +277,24 @@ namespace aspect
       using GMGBBlockOperatorType  = MatrixFreeStokesOperators::BBlockOperator<dim,velocity_degree,GMGNumberType>;
       using GMGBTBlockOperatorType = MatrixFreeStokesOperators::BTBlockOperator<dim,velocity_degree,GMGNumberType>;
       using GMGLaplaceType = MatrixFreeStokesOperators::PressureLaplaceOperator<dim,velocity_degree-1,GMGNumberType,
-                                                                                GMGBBlockOperatorType, GMGBTBlockOperatorType>;
+            GMGBBlockOperatorType, GMGBTBlockOperatorType>;
       using LumpedVelocityMassMatrixType    = MatrixFreeStokesOperators::LumpedVelocityMassOperator<dim,velocity_degree,double>;
       using GMGLumpedVelocityMassMatrixType = MatrixFreeStokesOperators::LumpedVelocityMassOperator<dim,velocity_degree,GMGNumberType>;
-      
+
       MatrixFreeStokesOperators::OperatorCellData<dim, GMGNumberType> active_cell_data_damped;
       MGLevelObject<MatrixFreeStokesOperators::OperatorCellData<dim, GMGNumberType>> level_cell_data_damped;
       MGLevelObject<MatrixFreeStokesOperators::OperatorCellData<dim, GMGNumberType>> level_cell_data_laplace;
       MGLevelObject<MatrixFreeStokesOperators::OperatorCellData<dim, GMGNumberType>> level_cell_data_laplace_damped;
-      
+
       BBlockOperatorType B_block;
       LumpedVelocityMassMatrixType lumped_velocity_mass_matrix;
       LumpedVelocityMassMatrixType lumped_velocity_mass_matrix_damped;
-      
+
       GMGBBlockOperatorType  B_block_finest;
       GMGBTBlockOperatorType BT_block_finest;
       GMGLumpedVelocityMassMatrixType lumped_velocity_mass_matrix_finest_grid;
       GMGLumpedVelocityMassMatrixType lumped_velocity_mass_matrix_damped_finest_grid;
-      
+
       MGLevelObject<GMGLaplaceType> mg_matrices_Laplace;
       MGLevelObject<GMGLaplaceType> mg_matrices_Laplace_damped;
       MGLevelObject<AffineConstraints<double>> constraints_p_laplace;

@@ -577,8 +577,8 @@ namespace aspect
         this->stokes_A_block_is_symmetric(),
         this->get_parameters().linear_solver_A_block_tolerance);
       const aspect::internal::BlockSchurPreconditioner<aspect::internal::InverseVelocityBlock<LinearAlgebra::PreconditionAMG, LinearAlgebra::Vector, LinearAlgebra::SparseMatrix>,
-             LinearAlgebra::SparseMatrix, LinearAlgebra::BlockVector,
-             LinearAlgebra::Vector>
+            LinearAlgebra::SparseMatrix, LinearAlgebra::BlockVector,
+            LinearAlgebra::Vector>
             preconditioner_cheap (
               inverse_velocity_block_cheap,
               *schur,
@@ -592,7 +592,7 @@ namespace aspect
         this->stokes_A_block_is_symmetric(),
         this->get_parameters().linear_solver_A_block_tolerance);
       const aspect::internal::BlockSchurPreconditioner<aspect::internal::InverseVelocityBlock<LinearAlgebra::PreconditionAMG, LinearAlgebra::Vector, LinearAlgebra::SparseMatrix>,
-             LinearAlgebra::SparseMatrix, LinearAlgebra::BlockVector,
+            LinearAlgebra::SparseMatrix, LinearAlgebra::BlockVector,
             LinearAlgebra::Vector>
             preconditioner_expensive (
               inverse_velocity_block_expensive,
