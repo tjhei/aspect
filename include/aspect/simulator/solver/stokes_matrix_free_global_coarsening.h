@@ -222,7 +222,10 @@ namespace aspect
       using BTBlockOperatorType = MatrixFreeStokesOperators::BTBlockOperator<dim,velocity_degree,double>;
       using GMGSchurComplementMatrixType = MatrixFreeStokesOperators::MassMatrixOperator<dim,velocity_degree-1,GMGNumberType>;
       using GMGABlockMatrixType = MatrixFreeStokesOperators::ABlockOperator<dim,velocity_degree,GMGNumberType>;
-
+     //for weighted bfbt 
+      using GMGBBlockOperatorType  = MatrixFreeStokesOperators::BBlockOperator<dim,velocity_degree,GMGNumberType>;
+      using GMGBTBlockOperatorType = MatrixFreeStokesOperators::BTBlockOperator<dim,velocity_degree,GMGNumberType>;
+      
       StokesMatrixType stokes_matrix;
       ABlockMatrixType A_block_matrix;
       BTBlockOperatorType BT_block;
@@ -230,6 +233,10 @@ namespace aspect
 
       MGLevelObject<GMGABlockMatrixType> mg_matrices_A_block;
       MGLevelObject<GMGSchurComplementMatrixType> mg_matrices_Schur_complement;
+
+      //for weighted bfbt
+      MGLevelObject<GMGBTBlockOperatorType> mg_matrices_BT_block;
+      MGLevelObject<GMGBBlockOperatorType> mg_matrices_B_block;
 
       MGConstrainedDoFs mg_constrained_dofs_A_block;
       MGConstrainedDoFs mg_constrained_dofs_Schur_complement;
@@ -274,8 +281,6 @@ namespace aspect
 
 /// For weighted BFBT.
       using BBlockOperatorType     = MatrixFreeStokesOperators::BBlockOperator<dim,velocity_degree,double>;
-      using GMGBBlockOperatorType  = MatrixFreeStokesOperators::BBlockOperator<dim,velocity_degree,GMGNumberType>;
-      using GMGBTBlockOperatorType = MatrixFreeStokesOperators::BTBlockOperator<dim,velocity_degree,GMGNumberType>;
       using GMGLaplaceType = MatrixFreeStokesOperators::PressureLaplaceOperator<dim,velocity_degree-1,GMGNumberType,
             GMGBBlockOperatorType, GMGBTBlockOperatorType>;
       using LumpedVelocityMassMatrixType    = MatrixFreeStokesOperators::LumpedVelocityMassOperator<dim,velocity_degree,double>;

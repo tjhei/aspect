@@ -333,12 +333,10 @@ namespace aspect
     active_cell_data_damped.pressure_scaling=this->get_pressure_scaling();
 
 
-    // Store viscosity tables and other data into the active level matrix-free objects.
+
     stokes_matrix.set_cell_data(active_cell_data);
     B_block.set_cell_data(active_cell_data);
     BT_block.set_cell_data(active_cell_data);
-
-
     A_block_matrix.set_cell_data(active_cell_data);
     lumped_velocity_mass_matrix.set_cell_data(active_cell_data);
     lumped_velocity_mass_matrix_damped.set_cell_data(active_cell_data_damped);
@@ -2093,7 +2091,7 @@ namespace aspect
       mg_constrained_dofs_Schur_complement.initialize(dof_handler_p);
       if (this->get_parameters().use_bfbt)
         mg_constrained_dofs_Schur_complement.make_zero_boundary_constraints(dof_handler_p,
-                                                                            free_velocity_boundaries);
+                                                                            this->free_velocity_boundaries);
 
       dof_handler_projection.distribute_mg_dofs();
     }

@@ -221,8 +221,9 @@ namespace aspect
 
     // Store viscosity tables and other data into the active level matrix-free objects.
     stokes_matrix.set_cell_data(active_cell_data);
-
-    if (this->get_parameters().n_expensive_stokes_solver_steps > 0)
+    
+    // Weighted bfbt needs the A block for cheap solves too.
+    if (this->get_parameters().use_bfbt || this->get_parameters().n_expensive_stokes_solver_steps > 0)
       {
         A_block_matrix.set_cell_data(active_cell_data);
         Schur_complement_block_matrix.set_cell_data(active_cell_data);
@@ -236,6 +237,7 @@ namespace aspect
 
     MGLevelObject<dealii::LinearAlgebra::distributed::Vector<GMGNumberType>> level_viscosity_vector_damped;
     level_viscosity_vector_damped.resize(0,n_levels-1);
+
 
     // Project the active level viscosity vector to multilevel vector representations
     // using MG transfer objects. This transfer is based on the same linear operator used to
@@ -382,7 +384,41 @@ namespace aspect
                                  level_viscosity_vector_damped[level],
                                  level_cell_data_damped[level].viscosity);
           }
-      }
+
+       const auto sqrt_viscosity=[](const MatrixFreeStokesOperators::OperatorCellData<dim, GMGNumberType> &active_cell_data)
+       {
+         MatrixFreeStokesOperators::OperatorCellData<dim, GMGNumberType> cell_data_sqrt_viscosity=active_cell_data;
+         auto &viscosity = cell_data_sqrt_viscosity.viscosity;
+         for (unsigned int i=0; i<viscosity.size(0); ++i)
+           for (unsigned int j=0; j<viscosity.size(1); ++j)
+             for (unsigned int c=0; c<VectorizedArray<GMGNumberType>::size(); ++c)
+               if (viscosity(i,j)[c]>0.)
+                 viscosity(i,j)[c]=std::sqrt(viscosity(i,j)[c]);
+         return cell_data_sqrt_viscosity;
+      };
+      level_cell_data_laplace.resize(min_level, max_level);
+      level_cell_data_laplace_damped.resize(min_level, max_level);
+      for (unsigned int level=0; level<n_levels; ++level)
+        {
+          level_cell_data_laplace[level]=sqrt_viscosity(level_cell_data[level]);
+          mg_matrices_Laplace[level].set_cell_data(level_cell_data_laplace[level]);
+          mg_matrices_B_block[level].set_cell_data(level_cell_data[level]);
+          mg_matrices_BT_block[level].set_cell_data(level_cell_data[level]);
+        }
+  
+  
+      lumped_velocity_mass_matrix_finest_grid.set_cell_data(level_cell_data[n_levels-1]);
+      lumped_velocity_mass_matrix_damped_finest_grid.set_cell_data(level_cell_data_damped[n_levels-1]);
+      for (unsigned int level=0; level<n_levels; ++level)
+        {
+          level_cell_data_laplace_damped[level]=sqrt_viscosity(level_cell_data_damped[level]);
+          mg_matrices_Laplace_damped[level].set_cell_data(level_cell_data_laplace_damped[level]);
+        }
+
+    stokes_matrix.set_cell_data(active_cell_data);
+    B_block.set_cell_data(active_cell_data);
+    BT_block.set_cell_data(active_cell_data);
+   }
 
     {
       // create active mesh tables for stuff needed in Newton method
@@ -1752,6 +1788,8 @@ namespace aspect
     mg_matrices_Schur_complement.resize(min_level, max_level);
     mg_matrices_Laplace.resize(min_level, max_level);
     mg_matrices_Laplace_damped.resize(min_level, max_level);
+    mg_matrices_B_block.resize(min_level, max_level);
+    mg_matrices_BT_block.resize(min_level, max_level);
 
     {
       for (auto l = min_level; l <= max_level; ++l)
@@ -1920,15 +1958,15 @@ namespace aspect
               mg_matrices_Laplace[l].reinit(mapping, dofhandlers_v[l], dofhandlers_p[l],
                                             constraints_v[l], constraints_p[l],
                                             matrix_free);
+              mg_matrices_Laplace_damped[l].initialize(matrix_free,
+                                                       std::vector<unsigned int> {1},
+                                                       std::vector<unsigned int> {1});
+              mg_matrices_B_block[l].initialize(matrix_free);
+              mg_matrices_BT_block[l].initialize(matrix_free);
               // on the finest level use BC^{-1}B^T instead of pressure Laplace
               // stand in operator.
               if (l == max_level)
                 {
-                  B_block_finest.clear();
-                  B_block_finest.initialize(matrix_free);
-                  BT_block_finest.clear();
-                  BT_block_finest.initialize(matrix_free);
-
                   const std::vector<unsigned int> selected = {0};
                   lumped_velocity_mass_matrix_finest_grid.clear();
                   lumped_velocity_mass_matrix_finest_grid.initialize(matrix_free,
@@ -1937,11 +1975,6 @@ namespace aspect
                   lumped_velocity_mass_matrix_damped_finest_grid.initialize(matrix_free,
                                                                             selected);
                 }
-              matrix_free = std::make_shared<MatrixFree<dim,double>>();
-              matrix_free_objects.push_back(matrix_free);
-              mg_matrices_Laplace_damped[l].reinit(mapping, dofhandlers_v[l], dofhandlers_p[l],
-                                                   constraints_v[l], constraints_p[l],
-                                                   matrix_free);
             }
           // Coefficient transfer objects:
           {
@@ -2044,8 +2077,11 @@ namespace aspect
                                     constraints_p[l]);
 
         mg_transfer_Schur_complement  = std::make_unique<GCMGTransferType<dim,GMGNumberType>>(transfers_p, [&](const auto l, auto &vec)
-        {
-          mg_matrices_Schur_complement[l].initialize_dof_vector(vec);
+        { 
+          if(this->get_parameters().use_bfbt)
+           mg_matrices_Laplace[l].initialize_dof_vector(vec);
+          else
+           mg_matrices_Schur_complement[l].initialize_dof_vector(vec);
         });
       }
     }
@@ -2075,10 +2111,10 @@ namespace aspect
         lumped_velocity_mass_matrix_finest_grid.compute_diagonal();
         lumped_velocity_mass_matrix_damped_finest_grid.compute_diagonal();
 
-        mg_matrices_Laplace[max_level].set_BCinvBT(B_block_finest, BT_block_finest,
+        mg_matrices_Laplace[max_level].set_BCinvBT(mg_matrices_B_block[max_level], mg_matrices_BT_block[max_level],
                                                    lumped_velocity_mass_matrix_finest_grid.get_matrix_diagonal_inverse()->get_vector());
 
-        mg_matrices_Laplace_damped[max_level].set_BCinvBT(B_block_finest, BT_block_finest,
+        mg_matrices_Laplace_damped[max_level].set_BCinvBT(mg_matrices_B_block[max_level], mg_matrices_BT_block[max_level],
                                                           lumped_velocity_mass_matrix_damped_finest_grid.get_matrix_diagonal_inverse()->get_vector());
       }
     this->get_computing_timer().leave_subsection("Build Stokes preconditioner");
