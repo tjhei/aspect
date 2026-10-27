@@ -125,24 +125,6 @@ namespace aspect
                 {
                   SolverCG<VectorType> solver(solver_control, mem);
                   solver.solve(matrix, dst, src, preconditioner);
-
-                  //DEBUG - test multiple v cycles for A
-                  // for(unsigned int i=0;i<4;++i){
-                  //   VectorType residual = src;
-                  //   VectorType tmp;
-                  //   tmp.reinit(src);
-                  //   tmp=0.0;
-                  //   matrix.vmult(tmp,dst);
-                  //   residual-=tmp;
-                  //   VectorType corrected;
-                  //   corrected.reinit(dst);
-                  //   preconditioner.vmult(corrected,residual);
-                  //   dst+=corrected;
-
-
-
-
-                  // }
                 }
               else
                 {
@@ -375,14 +357,6 @@ namespace aspect
     {
       return n_iterations_Schur_complement_;
     }
-
-
-
-
-
-
-
-
 
 
   }

@@ -227,12 +227,6 @@ namespace aspect
                                                                   active_cell_data,
                                                                   minimum_viscosity,
                                                                   maximum_viscosity);
-    //diag A bfbt - dampen contributions from velocity dofs touching boundary
-    //  by scaling the viscosity values.
-    //  Note that this does not test whether the velocity dofs in the cell
-    //  are subject to Dirichlet constraints yet.
-
-//    const double a_r=std::pow(2.0,static_cast<double>(this->get_triangulation().n_global_levels()-1)-4.0);
     const double a_r=1.0;
     dealii::LinearAlgebra::distributed::Vector<double> active_viscosity_vector_damped=active_viscosity_vector;
 

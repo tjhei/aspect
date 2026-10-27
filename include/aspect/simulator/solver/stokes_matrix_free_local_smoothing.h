@@ -270,7 +270,6 @@ namespace aspect
       using LumpedVelocityMassMatrixType=MatrixFreeStokesOperators::LumpedVelocityMassOperator<dim, velocity_degree, double>;
       using GMGLumpedVelocityMassMatrixType = MatrixFreeStokesOperators::LumpedVelocityMassOperator<dim, velocity_degree, GMGNumberType>;
 
-
       StokesMatrixType stokes_matrix;
       ABlockMatrixType A_block_matrix;
       BTBlockOperatorType BT_block;
@@ -282,14 +281,8 @@ namespace aspect
       GMGLumpedVelocityMassMatrixType lumped_velocity_mass_matrix_finest_grid;
       GMGLumpedVelocityMassMatrixType lumped_velocity_mass_matrix_damped_finest_grid;
 
-
-
-
-
-
       AffineConstraints<double> constraints_v;
       AffineConstraints<double> constraints_p;
-
 
       MGLevelObject<GMGABlockMatrixType> mg_matrices_A_block;
       MGLevelObject<GMGABlockMatrixType> mg_matrices_A_block_damped;
