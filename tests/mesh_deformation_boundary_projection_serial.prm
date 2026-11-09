@@ -1,0 +1,2 @@
+include $ASPECT_SOURCE_DIR/tests/mesh_deformation_boundary_projection.prm
+# MPI: 1

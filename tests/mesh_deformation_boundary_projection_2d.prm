@@ -1,0 +1,3 @@
+include $ASPECT_SOURCE_DIR/tests/mesh_deformation_boundary_projection.prm
+# MPI: 2
+set Dimension = 2

@@ -1,0 +1,7 @@
+# Compare weighted and nearest-point transfer of exp(x+y/2) on a fixed
+# Q2 boundary, using four external grid resolutions and dual-cell areas.
+# MPI: 2
+include $ASPECT_SOURCE_DIR/tests/mesh_deformation_boundary_projection.prm
+subsection Mesh deformation
+  set Mesh deformation boundary indicators = top: test boundary transfer error
+end

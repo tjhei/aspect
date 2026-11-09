@@ -150,6 +150,12 @@ namespace aspect
 #ifdef ASPECT_WITH_LANDLAB
       if (!this->remote_point_evaluator)
         {
+          // Scripts may opt into reference-surface projection by supplying
+          // get_grid_weights(dim), in the same order as their grid coordinates.
+          const bool weighted = Utilities::MPI::max(
+                                  static_cast<unsigned int>(this_rank_runs_landlab &&
+                                                            PyObject_HasAttrString(pModule, "get_grid_weights") == 1),
+                                  this->get_mpi_communicator());
           if (!this_rank_runs_landlab)
             {
               // This rank does not participate, so we don't own any evaluation points.
@@ -159,7 +165,10 @@ namespace aspect
               this->get_computing_timer().leave_subsection("Landlab: Create Grid");
 
               std::vector<Point<dim>> surface_points;
-              this->set_evaluation_points(surface_points);
+              if (weighted)
+                this->set_evaluation_points_with_weights(surface_points, {});
+              else
+                this->set_evaluation_points(surface_points);
               return;
             }
 
@@ -186,6 +195,14 @@ namespace aspect
               pgrid_y = PythonHelper::call_python_function(pModule, "get_grid_y", pArgs);
             if (dim == 3 && is_spherical)
               pgrid_z = PythonHelper::call_python_function(pModule, "get_grid_z", pArgs);
+            std::vector<double> weights;
+            if (weighted)
+              {
+                PyObject *pweights = PythonHelper::call_python_function(pModule, "get_grid_weights", pArgs);
+                const auto data = PythonHelper::numpy_to_array_view(pweights);
+                weights.assign(data.begin(), data.end());
+                Py_DECREF(pweights);
+              }
             Py_DECREF(pArgs);
             this->get_computing_timer().leave_subsection("Landlab: Create Grid");
 
@@ -236,7 +253,10 @@ namespace aspect
             if (pgrid_z)
               Py_DECREF(pgrid_z);
 
-            this->set_evaluation_points(surface_points);
+            if (weighted)
+              this->set_evaluation_points_with_weights(surface_points, weights);
+            else
+              this->set_evaluation_points(surface_points);
           }
         }
 #endif

@@ -1,0 +1,12 @@
+# Enable if: ASPECT_WITH_LANDLAB
+# MPI: 2
+include $ASPECT_SOURCE_DIR/tests/mesh_deformation_boundary_projection.prm
+set End time = 0.002
+set Maximum time step = 0.001
+subsection Mesh deformation
+  set Mesh deformation boundary indicators = top: landlab
+  subsection Landlab
+    set Script name = mesh_deformation_landlab_projection
+    set Script path = $ASPECT_SOURCE_DIR/tests/
+  end
+end

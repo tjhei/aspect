@@ -19,6 +19,7 @@
 #include <aspect/mesh_deformation/interface.h>
 
 
+
 namespace aspect
 {
   namespace MeshDeformation
@@ -120,6 +121,9 @@ namespace aspect
          * reference surface of the model, and not on the currently
          * deformed top surface that describes the current elevation map.
          *
+         * This function selects nearest-point transfer back to ASPECT.
+         * Use set_evaluation_points_with_weights() for boundary projection.
+         *
          * @note This function sets up communication structures that
          *   encode, among other things, which process owns which
          *   points. This information becomes outdated when the
@@ -137,6 +141,21 @@ namespace aspect
         set_evaluation_points (const std::vector<Point<dim>> &evaluation_points);
 
         /**
+         * Set evaluation points and nodal dual measures for weighted boundary
+         * projection. All MPI ranks must call this function, including ranks
+         * supplying empty point and weight vectors. Weights must be finite
+         * and nonnegative and describe the same reference-surface measure as
+         * the boundary mass matrix.
+         * Each external node must be supplied on exactly one rank. In 2D
+         * weights are lengths; in 3D they are areas. The projection preserves
+         * the supplied weighted integral. Constant fields are reproduced only
+         * when the nodal weights integrate the boundary basis consistently.
+         */
+        void
+        set_evaluation_points_with_weights (const std::vector<Point<dim>> &evaluation_points,
+                                            const std::vector<double> &dual_weights);
+
+        /**
          * Return the value of the ASPECT solution at the set of points
          * previously set via set_evaluation_points().
          *
@@ -149,7 +168,9 @@ namespace aspect
         /**
          * Interpolate from velocities given in the evaluation points
          * to ASPECT velocities on the surface in form of a finite
-         * element field.
+         * element field. If weighted_transfer is true, this computes the
+         * boundary mass projection on the undeformed surface; otherwise it
+         * copies velocities from the nearest evaluation points.
          *
          * The @p velocities, which are typically vertical, were previously
          * computed by the external tool and belong to the current process.
@@ -170,6 +191,16 @@ namespace aspect
          * external tool will receive the ASPECT solution values and return the updated velocities.
          */
         std::vector<Point<dim>> evaluation_points;
+
+        /** Whether the external field is transferred by weighted projection. */
+        bool weighted_transfer = false;
+
+        /** Nodal measures for conservative reference-surface transfer. */
+        std::vector<double> dual_weights;
+
+        /** Project an external field onto the reduced boundary trace space. */
+        LinearAlgebra::Vector
+        project_external_vector_field (const std::vector<Tensor<1,dim>> &values) const;
 
         /**
          * deal.II RemotePointEvaluation object used to do point evaluation in the evaluation points.
@@ -213,6 +244,13 @@ namespace aspect
          * external velocities to each surface DoF from the closest evaluation point.
          */
         std::vector<DofToEvalPointData> map_dof_to_eval_point;
+
+      private:
+        /** Shared collective setup for both transfer methods. */
+        void
+        initialize_evaluation_points (const std::vector<Point<dim>> &points,
+                                      const std::vector<double> &weights,
+                                      const bool weighted);
     };
   }
 }

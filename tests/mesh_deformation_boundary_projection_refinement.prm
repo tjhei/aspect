@@ -1,0 +1,16 @@
+# MPI: 2
+include $ASPECT_SOURCE_DIR/tests/mesh_deformation_boundary_projection.prm
+set End time = 0.002
+set Maximum time step = 0.001
+subsection Mesh refinement
+  set Initial adaptive refinement = 1
+  set Additional refinement times = 0.001
+  set Time steps between mesh refinement = 1
+  set Strategy = minimum refinement function
+  set Refinement fraction = 0.01
+  set Coarsening fraction = 0
+  subsection Minimum refinement function
+    set Coordinate system = cartesian
+    set Function expression = if(x<0.5,if(t<0.001,2,3),1)
+  end
+end

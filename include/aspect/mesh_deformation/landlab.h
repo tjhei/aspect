@@ -32,6 +32,12 @@ namespace aspect
      * information to it via a specific set of functions that are
      * explicitly called in the Python script.
      *
+     * A script can optionally implement get_grid_weights(dim),
+     * returning a one-dimensional float64 NumPy array in grid-node order.
+     * Supplying these nodal dual areas (lengths in 2D) selects a weighted
+     * boundary mass projection for both initial topography and subsequent
+     * velocities. Scripts without this function use nearest-point transfer.
+     *
      * @ingroup MeshDeformation
      */
     template <int dim>

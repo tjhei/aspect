@@ -1,0 +1,12 @@
+# MPI: 2
+include $ASPECT_SOURCE_DIR/tests/mesh_deformation_parallel_unstructured_interface_01_3d.prm
+set End time = 0
+subsection Mesh deformation
+  set Mesh deformation boundary indicators = top: test boundary projection
+end
+subsection Mesh refinement
+  set Initial global refinement = 1
+end
+subsection Postprocess
+  set List of postprocessors = topography
+end

@@ -1,0 +1,21 @@
+
+Loading shared library <./libmesh_deformation_boundary_projection_2d.debug.so>
+
+Number of active cells: 4 (on 2 levels)
+Number of degrees of freedom: 84 (50+9+25)
+
+Number of mesh deformation degrees of freedom: 50
+   Solving mesh displacement system... 6 iterations.
+*** Timestep 0:  t=0 seconds, dt=0 seconds
+Boundary projection test 0 passed.
+Boundary projection test 1 passed.
+Boundary projection test 2 passed.
+   Solving mesh displacement system... 0 iterations.
+
+   Postprocessing:
+     Topography min/max: 0 m, 0.01 m
+
+Termination requested by criterion: end time
+
+
+

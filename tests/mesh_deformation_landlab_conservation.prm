@@ -1,0 +1,17 @@
+# Check deposition on a real Landlab grid against the change in ASPECT's
+# integrated boundary displacement, per step and cumulatively.
+# Enable if: ASPECT_WITH_LANDLAB
+# MPI: 2
+include $ASPECT_SOURCE_DIR/tests/mesh_deformation_landlab_projection.prm
+set End time = 0.003
+subsection Mesh deformation
+  # Fixed side walls would override projected values at the top edges.
+  # Allow vertical sliding on every side when testing volume conservation.
+  set Additional tangential mesh velocity boundary indicators = left, right, front, back
+  subsection Landlab
+    set Script name = mesh_deformation_landlab_conservation
+  end
+end
+subsection Postprocess
+  set List of postprocessors = landlab deposition conservation
+end
